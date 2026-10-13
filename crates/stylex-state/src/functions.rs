@@ -10,6 +10,7 @@ use crate::{
 use stylex_enums::value_with_default::ValueWithDefault;
 
 use crate::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
+use stylex_structures::named_import_source::ImportSources;
 use stylex_structures::stylex_env::JSFunction;
 
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
@@ -167,6 +168,17 @@ impl PartialEq for FunctionConfigType {
 }
 
 impl FunctionConfigType {
+  /// Which variant this is, for the memo fingerprint: a name bound to a
+  /// callable and the same name bound to a style object are two entries.
+  fn kind_tag(&self) -> u8 {
+    match self {
+      Self::Regular(_) => 0,
+      Self::Map(_) => 1,
+      Self::IndexMap(_) => 2,
+      Self::EnvObject(_) => 3,
+    }
+  }
+
   pub fn as_map_mut(&mut self) -> Option<&mut FunctionConfigMap> {
     match self {
       Self::Map(map) => Some(map),
@@ -184,6 +196,60 @@ pub struct FunctionMap {
   /// for built-in or inlined functions). Set to `false` to allow normal
   /// import handling.
   pub disable_imports: bool,
+}
+
+impl FunctionMap {
+  /// What this map contributes to a fold's answer, as one number: the names it
+  /// registers, as identifiers and as members of an import source, with the
+  /// kind of entry each is bound to, and whether imports resolve.
+  ///
+  /// Two maps with the same fingerprint fold any one subtree of a module to the
+  /// same value, which is what lets the evaluator's module-lifetime memo answer
+  /// a fold made under one of them with an entry written under the other. Two
+  /// maps with different fingerprints may not: a `create` call registers
+  /// `firstThatWorks`, so it folds `stylex.firstThatWorks('a', 'b')` to a value,
+  /// where the `props` merge, which registers no such helper, leaves the call
+  /// to the runtime as the reference implementation does.
+  ///
+  /// Entry order does not matter: each entry is hashed on its own and the
+  /// hashes are summed, so two maps built in different orders read the same.
+  /// The entries' functions are not part of it; a name is bound to one
+  /// function throughout a module, so the name stands for it.
+  pub fn memo_fingerprint(&self) -> u64 {
+    use std::hash::{Hash, Hasher};
+
+    fn entry_hash(parts: &[&str], tag: u8) -> u64 {
+      let mut hasher = rustc_hash::FxHasher::default();
+      parts.hash(&mut hasher);
+      tag.hash(&mut hasher);
+      hasher.finish()
+    }
+
+    let mut sum: u64 = 0;
+
+    for (name, config) in &self.identifiers {
+      sum = sum.wrapping_add(entry_hash(&[name.as_str()], config.kind_tag()));
+    }
+
+    for (source, members) in &self.member_expressions {
+      let source_name = match source {
+        ImportSources::Regular(name) => name.as_str(),
+        ImportSources::Named(named) => named.r#as.as_str(),
+      };
+
+      for (member, config) in members.iter() {
+        sum = sum.wrapping_add(entry_hash(
+          &[source_name, member.as_str()],
+          config.kind_tag() | 0x80,
+        ));
+      }
+    }
+
+    let mut hasher = rustc_hash::FxHasher::default();
+    sum.hash(&mut hasher);
+    self.disable_imports.hash(&mut hasher);
+    hasher.finish()
+  }
 }
 
 /// Which StyleX helpers a rule call folds inside its argument, and the key the

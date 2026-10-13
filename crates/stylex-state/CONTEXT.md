@@ -180,10 +180,14 @@ _Avoid_: eval config cache, helper table
 **Seen value**:
 A memoized evaluation, keyed by `SeenKey`: the 128-bit
 [structural hash](../stylex-utils/CONTEXT.md) of the expression, beside the
-import mode (`FunctionMap::disable_imports`) the fold ran under. The mode is
-part of the key because the memo lives for the module and an import binding
-answers differently under each mode -- the theme reference where imports
-resolve, a refusal where a `stylex.props` argument is held inside the module.
+fingerprint (`FunctionMap::memo_fingerprint`) of the function map the fold ran
+under: the names it registers, the kind of entry each is bound to, and the
+import mode (`disable_imports`). The map is part of the key because the memo
+lives for the module and a subtree answers differently under each map -- an
+import binding is the theme reference where imports resolve and a refusal where
+a `stylex.props` argument is held inside the module; `stylex.firstThatWorks()`
+is a value where `create` registers the helper and a call left to the runtime
+where the merge does not.
 `resolved` distinguishes a completed evaluation from one in progress, which is
 how cyclic references terminate. It acts on a hash hit without confirming
 equality, which is why the key is that wide. The key covers the whole remaining

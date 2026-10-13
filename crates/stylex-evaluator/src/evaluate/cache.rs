@@ -170,17 +170,20 @@ fn memoized_fold<T: Memoized>(
   // confirm here would cost a subtree compare on every hit and a stored clone of
   // every memoized expression, which is the trade the ADR records rejecting.
   //
-  // The import mode rides beside the hash because it is the one input of the
-  // fold the subtree does not spell: an import binding folds to a theme
-  // reference where imports resolve and to a refusal where `disable_imports`
-  // holds the fold inside the module. The memo outlives the evaluation, so an
-  // entry written under one mode would otherwise answer a fold made under the
-  // other -- which is how a `stylex.props` argument, read with imports
-  // disabled as the reference does, was handed the marker a `create` call had
-  // resolved earlier. `SeenKey` carries the rest of the reasoning.
+  // The function map's fingerprint rides beside the hash because the map is
+  // the input of the fold the subtree does not spell: an import binding folds
+  // to a theme reference where imports resolve and to a refusal where
+  // `disable_imports` holds the fold inside the module, and a helper call such
+  // as `stylex.firstThatWorks(...)` folds to a value where the helper is
+  // registered and stays a call where it is not. The memo outlives the
+  // evaluation, so an entry written under one map would otherwise answer a
+  // fold made under another -- which is how a `stylex.props` argument, read
+  // with the merge's bare map as the reference does, was handed the marker and
+  // the helper value a `create` call had folded earlier. `SeenKey` and
+  // `FunctionMap::memo_fingerprint` carry the rest of the reasoning.
   let key = SeenKey {
     subtree: stable_hash_unspanned(path),
-    imports_disabled: state.functions.disable_imports,
+    functions: state.functions_fingerprint,
   };
 
   let existing = traversal_state.seen.get(&key);

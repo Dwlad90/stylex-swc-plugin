@@ -23,6 +23,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 
 use super::source_evaluation::*;
+use crate::evaluate::evaluate;
 use stylex_constants::constants::evaluation_errors::{
   NON_CONSTANT, SPREAD_ELEMENT, unsupported_expression,
 };
@@ -30,6 +31,7 @@ use stylex_constants::constants::messages::{
   ARGUMENT_NOT_EXPRESSION, PROPERTY_NOT_FOUND, VALUE_MUST_BE_LITERAL,
 };
 use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_state::state_manager::StateManager;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
@@ -38,7 +40,9 @@ use stylex_state::{
 use stylex_structures::{
   named_import_source::ImportSources,
   stylex_env::{EnvEntry, JSFunction},
+  stylex_options::StyleXOptions,
 };
+use swc_core::common::{GLOBALS, Globals};
 use swc_core::ecma::ast::Expr;
 
 use stylex_ast::ast::convertors::{convert_atom_to_string, create_string_expr};
@@ -646,4 +650,102 @@ fn a_namespace() -> FunctionConfigType {
   entries.insert(FOLD_ENTRY.into(), a_folded_function());
 
   FunctionConfigType::Map(entries)
+}
+
+// ==================== the memo and the map ====================
+
+/// What the identifier the cases below call folds to where it is registered.
+const FOLDED: &str = "folded";
+
+/// The memo lives for the module and is read by every fold of it, whatever map
+/// the fold carries. A call on a registered helper folds to the helper's value;
+/// the same call under a map that does not register the helper is not a call
+/// the fold can read, and the reference implementation leaves it to the
+/// runtime. The two maps here share an import mode, so the import mode alone
+/// cannot tell them apart; the map's fingerprint does.
+#[test]
+fn a_value_folded_under_a_map_with_the_helper_is_not_answered_under_a_map_without_it() {
+  let with_helper = map_holding(folded_entry(
+    FunctionType::ArrayArgs(|_, _, _| create_string_expr(FOLDED)),
+    false,
+  ));
+  let without_helper = FunctionMap::default();
+  let source = format!("{CALLED}('a', 'b')");
+
+  let globals = Globals::new();
+
+  GLOBALS.set(&globals, || {
+    let mut traversal_state = StateManager::new(StyleXOptions::default());
+
+    let first = evaluate(&parse_expr(&source), &mut traversal_state, &with_helper);
+    assert_eq!(folded_text_of(first, &source), FOLDED);
+
+    let second = evaluate(&parse_expr(&source), &mut traversal_state, &without_helper);
+    assert_refused(&second, &source);
+
+    // And back: the refusal recorded under the bare map does not hide the
+    // helper from a later fold that registers it.
+    let third = evaluate(&parse_expr(&source), &mut traversal_state, &with_helper);
+    assert_eq!(folded_text_of(third, &source), FOLDED);
+  });
+}
+
+/// Two maps registering the same names, built in different orders, read the
+/// same to the memo; a map registering one more name, or the same name as
+/// another kind of entry, or the same names under the other import mode, does
+/// not.
+#[test]
+fn the_fingerprint_reads_the_registered_names_their_kinds_and_the_import_mode() {
+  let entry = || folded_entry(FunctionType::StylexExprFn(|expr, _| expr), false);
+
+  let mut forwards = FunctionMap::default();
+  forwards.identifiers.insert("a".into(), Box::new(entry()));
+  forwards.identifiers.insert("b".into(), Box::new(entry()));
+
+  let mut backwards = FunctionMap::default();
+  backwards.identifiers.insert("b".into(), Box::new(entry()));
+  backwards.identifiers.insert("a".into(), Box::new(entry()));
+
+  assert_eq!(
+    forwards.memo_fingerprint(),
+    backwards.memo_fingerprint(),
+    "insertion order is no part of the fingerprint"
+  );
+
+  let mut one_more = forwards.clone();
+  one_more.identifiers.insert("c".into(), Box::new(entry()));
+  assert_ne!(forwards.memo_fingerprint(), one_more.memo_fingerprint());
+
+  let mut another_kind = forwards.clone();
+  another_kind.identifiers.insert(
+    "b".into(),
+    Box::new(FunctionConfigType::Map(FunctionConfigMap::default())),
+  );
+  assert_ne!(forwards.memo_fingerprint(), another_kind.memo_fingerprint());
+
+  let mut held_inside_the_module = forwards.clone();
+  held_inside_the_module.disable_imports = true;
+  assert_ne!(
+    forwards.memo_fingerprint(),
+    held_inside_the_module.memo_fingerprint()
+  );
+
+  let mut as_a_member = FunctionMap::default();
+  let mut members = FunctionMapIdentifiers::default();
+  members.insert("a".into(), Box::new(entry()));
+  as_a_member.member_expressions.insert(
+    ImportSources::Regular(NAMESPACE.to_string()),
+    Box::new(members),
+  );
+
+  let mut as_an_identifier = FunctionMap::default();
+  as_an_identifier
+    .identifiers
+    .insert("a".into(), Box::new(entry()));
+
+  assert_ne!(
+    as_a_member.memo_fingerprint(),
+    as_an_identifier.memo_fingerprint(),
+    "a name bound as a member of a namespace is not the bare name"
+  );
 }

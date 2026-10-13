@@ -1,4 +1,7 @@
+use std::path::Path;
+
 use swc_core::ecma::ast::{BinaryOp, Decl, Expr, Lit, OptChainBase, Stmt};
+use swc_ecma_parser::{Syntax, TsSyntax};
 
 /// The ESTree node kind of an expression, as a diagnostic names it —
 /// `"CallExpression"`, `"ArrowFunctionExpression"`, `"BigIntLiteral"`.
@@ -144,6 +147,55 @@ pub fn get_stmt_node_kind(stmt: &Stmt) -> &'static str {
       Decl::TsModule(_) => "TSModuleDeclaration",
     },
   }
+}
+
+/// The extensions whose modules TypeScript reads without JSX.
+///
+/// In a `.ts`, `.mts` or `.cts` file an angle bracket opens a type parameter
+/// list or a type assertion and never an element, so `<T>(value: T) => value`
+/// and `<HTMLElement>node` are what they say. Every other extension admits
+/// JSX: `.tsx` and `.jsx` by name, and the JavaScript ones because `.js` files
+/// hold JSX across the ecosystem and nothing in them is lost by allowing it.
+/// `.d.ts` reads as `ts`, which is the answer it wants.
+const TYPESCRIPT_WITHOUT_JSX_EXTENSIONS: [&str; 3] = ["ts", "mts", "cts"];
+
+/// The syntax a module at `path` is parsed with.
+///
+/// TypeScript throughout -- it is the superset, so a JavaScript module parses
+/// under it unchanged -- with JSX admitted everywhere except in a module whose
+/// extension says TypeScript without JSX. That is `tsc`'s own rule, and the
+/// one every toolchain around this compiler applies: `@babel/preset-typescript`
+/// turns `isTSX` on for `.tsx` alone, and Next.js's SWC loader sets
+/// `tsx: !filename.endsWith('.ts')` "to prevent e.g. generic parameters and
+/// angle-bracket type assertion from being interpreted as JSX tags". Parsing
+/// every file as TSX refused exactly those two forms in `.ts` files, and the
+/// `<T,>` spelling TSX forces is what kept the refusal out of sight.
+///
+/// The extension is matched without regard to case, because macOS and Windows
+/// hand the name back as authored. A name with no extension, or with one no
+/// toolchain agrees on, keeps JSX: that is what every input was parsed with
+/// before, so nothing that compiled stops compiling.
+///
+/// One answer for the compiler and for the diagnostics code frame, which
+/// re-parses the module to place a refusal: a module the compiler parsed has to
+/// parse again there, or the refusal arrives with no frame.
+pub fn syntax_for_file(path: &Path) -> Syntax {
+  Syntax::Typescript(TsSyntax {
+    tsx: admits_jsx(path),
+    ..Default::default()
+  })
+}
+
+/// Whether an angle bracket in a module at `path` may open a JSX element.
+fn admits_jsx(path: &Path) -> bool {
+  !path
+    .extension()
+    .and_then(|extension| extension.to_str())
+    .is_some_and(|extension| {
+      TYPESCRIPT_WITHOUT_JSX_EXTENSIONS
+        .iter()
+        .any(|typescript| typescript.eq_ignore_ascii_case(extension))
+    })
 }
 
 #[cfg(test)]

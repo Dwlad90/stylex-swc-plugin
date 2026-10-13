@@ -57,7 +57,8 @@ use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
 use stylex_transform::StyleXTransform;
-use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
+use stylex_utils::swc::syntax_for_file;
+use swc_ecma_parser::{Parser, StringInput, lexer::Lexer};
 
 use swc_core::{
   common::{FileName, GLOBALS, Globals, Mark, SourceMap, comments::SingleThreadedComments},
@@ -98,7 +99,8 @@ const JAVASCRIPT_EXTENSIONS: [&str; 4] = ["js", "jsx", "mjs", "cjs"];
 /// The extension is the only thing that can say. Every input is parsed as
 /// TypeScript regardless — the parser cannot be chosen per file without already
 /// knowing the answer, and TypeScript is the superset — so nothing later in the
-/// pipeline can tell the two apart.
+/// pipeline can tell the two apart. Whether that TypeScript admits JSX is the
+/// extension's other answer, and `stylex_utils::swc::syntax_for_file` gives it.
 ///
 /// It decides one thing: whether the type-stripping pass may elide an import
 /// specifier nothing in the module references as a value. That elision is
@@ -355,11 +357,13 @@ pub fn transform(
     // `/* #__PURE__ */` annotations that minifiers need to drop dead calls.
     let comments = SingleThreadedComments::default();
 
+    // TypeScript for every input, with JSX admitted unless the extension says
+    // otherwise: a `.ts` module reads `<T>(value: T) => value` as a generic
+    // arrow and `<HTMLElement>node` as a type assertion, where a `.tsx` module
+    // reads an element. `syntax_for_file` carries the reasoning, and the
+    // diagnostics code frame re-parses the module through the same answer.
     let mut parser = Parser::new_from(Lexer::new(
-      Syntax::Typescript(TsSyntax {
-        tsx: true,
-        ..Default::default()
-      }),
+      syntax_for_file(&file_path),
       EsVersion::latest(),
       StringInput::from(&*fm),
       Some(&comments),

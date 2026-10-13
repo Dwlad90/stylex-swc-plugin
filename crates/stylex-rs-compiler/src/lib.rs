@@ -497,3 +497,44 @@ mod crate_layers_tests;
 #[cfg(test)]
 #[path = "tests/allocator_tests.rs"]
 mod allocator_tests;
+
+/// `processStylexRules(rules, config)`: the stylesheet for the rules a build's
+/// `transform` calls emitted, as `@stylexjs/babel-plugin` exports it and the
+/// bundler plugins consume it. The rules are the `metadata.stylex` rows of every
+/// transformed file, `[className, { ltr, rtl, constKey, constVal }, priority]`,
+/// in the order the files were compiled; `config` is the reference's, read as
+/// the reference reads it: a boolean standing for `useLayers`, the options
+/// object, or a value with no properties (every option at its default). A
+/// layer option outside its declared type and a circular constant are refused,
+/// the constant with the reference's message.
+///
+/// The TypeScript signature is written out here rather than derived: the rules
+/// cross as a JSON value so a tuple keeps its shape, and the type a consumer
+/// sees is the one the reference publishes.
+#[rustfmt::skip]
+#[napi(
+  ts_args_type = "rules: readonly StyleXMetadata['stylex'][number][], config?: boolean | { readonly useLayers?: boolean | { readonly before?: readonly string[]; readonly after?: readonly string[]; readonly prefix?: string } | null; readonly enableLTRRTLComments?: boolean; readonly legacyDisableLayers?: boolean; readonly useLegacyClassnamesSort?: boolean } | null",
+  ts_return_type = "string"
+)]
+pub fn process_stylex_rules(
+  rules: serde_json::Value,
+  config: Option<serde_json::Value>,
+) -> Result<String> {
+  let rules: Vec<stylex_stylesheet::process::Rule> = serde_json::from_value(rules).map_err(|error| {
+    napi::Error::from_reason(format!(
+      "processStylexRules: the rules are not an array of [className, {{ ltr, rtl, constKey, constVal }}, priority] tuples: {error}"
+    ))
+  })?;
+
+  let config: stylex_stylesheet::process::ProcessStylexRulesConfig = match config {
+    None => Default::default(),
+    Some(value) => serde_json::from_value(value).map_err(|error| {
+      napi::Error::from_reason(format!(
+        "processStylexRules: the config could not be read ({error}); useLayers.before and useLayers.after take an array of strings, useLayers.prefix a string"
+      ))
+    })?,
+  };
+
+  stylex_stylesheet::process::process_stylex_rules(&rules, &config)
+    .map_err(|error| napi::Error::from_reason(error.to_string()))
+}

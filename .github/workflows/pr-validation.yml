@@ -238,6 +238,7 @@ jobs:
               pnpm run build --filter=@stylexswc/rs-compiler
               pnpm run --filter=@stylexswc/rs-compiler parity
               pnpm run --filter=@stylexswc/rs-compiler parity:positions
+              pnpm run --filter=@stylexswc/rs-compiler parity:sheets
               pnpm run --filter=@stylexswc/rs-compiler fuzz:pseudo-order
     steps:
       - name: Checkout code

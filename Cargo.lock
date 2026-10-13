@@ -3382,6 +3382,7 @@ dependencies = [
  "stylex_regex",
  "stylex_state",
  "stylex_structures",
+ "stylex_stylesheet",
  "stylex_transform",
  "stylex_types",
  "stylex_utils",

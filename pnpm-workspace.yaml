@@ -201,6 +201,7 @@ catalogs:
     '@stylexswc/structures': '0.19.2-rc.1'
     '@stylexswc/stylex-js': '0.19.2-rc.1'
     '@stylexswc/stylex-styleq': '0.19.2-rc.1'
+    '@stylexswc/stylesheet': '0.19.2-rc.1'
     '@stylexswc/transform': '0.19.2-rc.1'
     '@stylexswc/turbopack-plugin': '0.19.2-rc.1'
     '@stylexswc/types': '0.19.2-rc.1'

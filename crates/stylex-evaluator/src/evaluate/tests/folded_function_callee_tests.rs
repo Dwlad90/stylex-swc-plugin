@@ -38,7 +38,7 @@ use stylex_state::{
   types::{FunctionConfigMap, FunctionMapIdentifiers},
 };
 use stylex_structures::{
-  named_import_source::ImportSources,
+  named_import_source::{ImportSources, NamedImportSource},
   stylex_env::{EnvEntry, JSFunction},
   stylex_options::StyleXOptions,
 };
@@ -747,5 +747,25 @@ fn the_fingerprint_reads_the_registered_names_their_kinds_and_the_import_mode() 
     as_a_member.memo_fingerprint(),
     as_an_identifier.memo_fingerprint(),
     "a name bound as a member of a namespace is not the bare name"
+  );
+
+  // A namespace bound by a named import source (`import { x as sx } from
+  // '...'`) is read by the name the module calls it, as a plain one is.
+  let mut named_members = FunctionMapIdentifiers::default();
+  named_members.insert("a".into(), Box::new(entry()));
+
+  let mut as_a_named_member = FunctionMap::default();
+  as_a_named_member.member_expressions.insert(
+    ImportSources::Named(NamedImportSource {
+      r#as: NAMESPACE.to_string(),
+      from: "@stylexjs/stylex".to_string(),
+    }),
+    Box::new(named_members),
+  );
+
+  assert_eq!(
+    as_a_named_member.memo_fingerprint(),
+    as_a_member.memo_fingerprint(),
+    "the namespace is read by its local name, however it was imported"
   );
 }

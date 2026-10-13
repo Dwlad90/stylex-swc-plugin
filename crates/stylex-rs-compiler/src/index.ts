@@ -181,11 +181,14 @@ function matchPattern(filePath: string, pattern: string | RegExp): boolean {
  * module but a `.ts`, `.mts` or `.cts` one, where it opens a type parameter
  * list or a type assertion instead. The same answer the native transform gives
  * (`stylex_utils::swc::syntax_for_file`), so a plugin pre-pass parses exactly
- * what the native pass then parses.
+ * what the native pass then parses: the extension is read without regard to
+ * case, and a name that is nothing but the extension (`.ts`, `/dir/.ts`) has
+ * no extension, as `Path::extension` reads it, so it keeps JSX. Exported for
+ * the test that holds the two rules together.
  */
-const TYPESCRIPT_WITHOUT_JSX = /\.[mc]?ts$/i;
+const TYPESCRIPT_WITHOUT_JSX = /[^/\\]\.[mc]?ts$/i;
 
-function admitsJsx(filename: string): boolean {
+export function admitsJsx(filename: string): boolean {
   return !TYPESCRIPT_WITHOUT_JSX.test(filename);
 }
 

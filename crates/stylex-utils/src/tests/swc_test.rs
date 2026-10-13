@@ -609,7 +609,9 @@ mod file_syntax {
   #[test]
   fn an_unrecognised_extension_keeps_what_every_input_was_parsed_with() {
     // The answer every input had before the extension was asked, so nothing
-    // that compiled stops compiling: JSX stays admitted.
+    // that compiled stops compiling: JSX stays admitted. A name that is nothing
+    // but the extension has none (`Path::extension` reads `.ts` as a hidden
+    // file), and the `swcPlugins` pre-pass in `index.ts` reads it the same way.
     for file in [
       "page",
       "page.",
@@ -617,6 +619,8 @@ mod file_syntax {
       "page.svelte",
       "page.mdx",
       "page.ts.txt",
+      ".ts",
+      "/dir/.mts",
     ] {
       assert!(
         admits_jsx(file),

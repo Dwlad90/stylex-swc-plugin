@@ -178,13 +178,21 @@ the source spells, and a name it does not hold stops the whole call folding.
 _Avoid_: eval config cache, helper table
 
 **Seen value**:
-A memoized evaluation, keyed by the 128-bit
-[structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`
-distinguishes a completed evaluation from one in progress, which is how cyclic
-references terminate. It acts on a hash hit without confirming equality, which
-is why the key is that wide. The key covers the whole remaining subtree and is
-taken again at every level, so the memo costs grow about quadratically with
-depth — nearly all of what folding a deep expression costs
+A memoized evaluation, keyed by `SeenKey`: the 128-bit
+[structural hash](../stylex-utils/CONTEXT.md) of the expression, beside the
+fingerprint (`FunctionMap::memo_fingerprint`) of the function map the fold ran
+under: the names it registers, the kind of entry each is bound to, and the
+import mode (`disable_imports`). The map is part of the key because the memo
+lives for the module and a subtree answers differently under each map -- an
+import binding is the theme reference where imports resolve and a refusal where
+a `stylex.props` argument is held inside the module; `stylex.firstThatWorks()`
+is a value where `create` registers the helper and a call left to the runtime
+where the merge does not.
+`resolved` distinguishes a completed evaluation from one in progress, which is
+how cyclic references terminate. It acts on a hash hit without confirming
+equality, which is why the key is that wide. The key covers the whole remaining
+subtree and is taken again at every level, so the memo costs grow about
+quadratically with depth — nearly all of what folding a deep expression costs
 ([ADR 0005](../stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md)).
 _Avoid_: cache entry, memo
 

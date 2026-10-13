@@ -68,7 +68,7 @@ use stylex_utils::{
 
 use crate::{
   functions::{FunctionMap, RuleCallFunctionMaps, RuleCallHelpers},
-  seen_value::SeenValue,
+  seen_value::{SeenKey, SeenValue},
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
 use stylex_structures::{
@@ -846,7 +846,10 @@ pub struct StateManager {
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   call_positions: Rc<CallPositions>,
   pub(crate) call_expressions: CallExpressionState,
-  pub seen: FxHashMap<u128, Rc<SeenValue>>,
+  /// The evaluator's memo: what each subtree folded to, under each import mode.
+  /// Lives for the module rather than for one evaluation, which is what the
+  /// key's second half answers for -- see [`SeenKey`].
+  pub seen: FxHashMap<SeenKey, Rc<SeenValue>>,
   /// How many expression levels the evaluator is currently inside.
   ///
   /// Lives here rather than on `EvaluationState` because the evaluator's

@@ -178,6 +178,100 @@ stylex_test!(
   "#
 );
 
+// The same marker, read by `create` and then written into a style list the
+// `props` merge reads with imports disabled. The reference implementation
+// cannot read the imported binding there, so it hands the whole call to the
+// runtime and keeps `styles`; this compiler used to hand the merge the group
+// `create` had already resolved -- the memo is keyed by the subtree, which the
+// import mode is no part of -- and abort on a style list holding a theme
+// reference ([#1341](https://github.com/Dwlad90/stylex-swc-plugin/issues/1341)).
+// Nested rather than flat, because a flat list is read element by element and
+// the identifier alone is answered `Other` whatever it folds to; only a list
+// folded as one value reaches the reader that refused.
+stylex_test!(
+  when_ancestor_with_imported_custom_marker_in_a_nested_props_list,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_filename(
+    swc_core::common::FileName::Real(
+      format!("{}/test.js", std::env::current_dir().unwrap().display()).into()
+    )
+  )),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { customMarker } from 'custom-marker.stylex';
+
+    const styles = stylex.create({
+      foo: {
+        backgroundColor: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', customMarker)]: 'red',
+        },
+      },
+      bar: {
+        color: 'red',
+      },
+    });
+
+    function Foo({ active }) {
+      return stylex.props([styles.foo, active ? [styles.bar, customMarker] : null]);
+    }
+  "#
+);
+
+// The same list as an `sx` attribute, which the transform rewrites into a
+// `props` call and sends through the same merge. Pinned on its own so a change
+// to the `sx` rewrite cannot bring the abort back without a test failing.
+stylex_test!(
+  when_ancestor_with_imported_custom_marker_in_a_nested_sx_list,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_filename(
+    swc_core::common::FileName::Real(
+      format!("{}/test.js", std::env::current_dir().unwrap().display()).into()
+    )
+  )),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { customMarker } from 'custom-marker.stylex';
+
+    const styles = stylex.create({
+      foo: {
+        backgroundColor: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', customMarker)]: 'red',
+        },
+      },
+      bar: {
+        color: 'red',
+      },
+    });
+
+    export function Foo({ active }) {
+      return <span sx={[styles.foo, active ? [styles.bar, customMarker] : null]} />;
+    }
+  "#
+);
+
+// The other input the fold reads that the subtree does not spell: the helpers
+// the function map registers. `create` folds `stylex.firstThatWorks('a', 'b')`
+// to its value; the `props` merge registers no such helper, so the reference
+// implementation leaves the call to the runtime and keeps `styles`. A memo
+// keyed by the subtree and the import mode alone handed the merge the value
+// `create` had folded, and a style list holding one aborted the build.
+stylex_test!(
+  first_that_works_folded_by_create_and_in_a_nested_props_list,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      root: { color: stylex.firstThatWorks('a', 'b') },
+      other: { padding: 0 },
+    });
+
+    export function Foo({ active }) {
+      return stylex.props([styles.other, active ? [styles.root, stylex.firstThatWorks('a', 'b')] : null]);
+    }
+  "#
+);
+
 // A marker consumed by the same file that defines it, where it has already
 // been replaced by its compiled `$$css` object before `create` evaluates it.
 stylex_test!(

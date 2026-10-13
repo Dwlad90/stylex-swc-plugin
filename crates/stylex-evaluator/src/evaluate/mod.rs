@@ -27,7 +27,7 @@ pub use rebuild::{evaluate_result_vec_to_array_expr, function_fold_to_object};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use stylex_macros::deopt_unsupported;
 use swc_core::{
   atoms::Atom,
@@ -81,7 +81,7 @@ use stylex_state::resolution::lookup::get_var_decl_parts_by_ident;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  seen_value::SeenValue,
+  seen_value::{SeenKey, SeenValue},
   state_manager::{StateManager, add_import_expression},
   theme_ref::ThemeRef,
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
@@ -178,13 +178,7 @@ pub fn evaluate_with_functions(
   traversal_state: &mut StateManager,
   fns: Rc<FunctionMap>,
 ) -> Box<EvaluateResult> {
-  let mut state = Box::new(EvaluationState {
-    confident: true,
-    deopt_path: None,
-    deopt_reason: None,
-    added_imports: FxHashSet::default(),
-    functions: Rc::clone(&fns),
-  });
+  let mut state = Box::new(EvaluationState::with_functions(Rc::clone(&fns)));
 
   let mut value = evaluate_cached(path, &mut state, traversal_state, &fns);
 

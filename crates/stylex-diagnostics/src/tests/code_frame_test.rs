@@ -562,6 +562,50 @@ fn an_unparseable_source_frames_nothing_and_does_not_abort() {
   }
 }
 
+/// The frame reads the module with the syntax the compiler parsed it under
+/// (`syntax_for_file`). A `.ts` module is TypeScript without JSX, so a generic
+/// arrow in it is an arrow and the refusal keeps its frame; read as TSX,
+/// `<T>(value: T) =>` is an unclosed JSX tag, the module fails to parse, and the
+/// refusal is reported with no position. The `.tsx` twin of the same text is
+/// the control: there the generic arrow is a parse error on either side, and
+/// the frame is lost as the unparseable case above says.
+#[test]
+fn a_refusal_in_a_ts_module_with_a_generic_arrow_keeps_its_frame() {
+  let source = "\
+const px = <T>(value: T) => `${String(value)}px`;
+let c = 'red';
+c = 'blue';
+export const styles = create({ x: { color: c, width: px(1) } });
+";
+  let path = write_fixture("framed_declaration_generic_arrow.ts", source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    Some(2),
+    "a refusal about `c` in a `.ts` module holding a generic arrow is framed at its declaration"
+  );
+
+  let twin = write_fixture("framed_declaration_generic_arrow.tsx", source);
+  let mut state = state_for_fixture(&twin);
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  let result = GLOBALS.set(&Globals::default(), || {
+    get_span_from_source_code(&target, &target, &mut state)
+  });
+
+  if let Ok((_code_frame, span)) = result {
+    assert!(
+      span.is_dummy(),
+      "read as TSX the generic arrow does not parse, so no position can be resolved, got {span:?}"
+    );
+  }
+}
+
 /// A file the compiler was told about but which is not on disk. There is no
 /// module to search, so the frame registers a synthesized one holding just the
 /// expression it was handed — and the declaration lookup finds no declaration in

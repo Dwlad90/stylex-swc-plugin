@@ -169,9 +169,24 @@ fn memoized_fold<T: Memoized>(
   // collision and a wrong folded value. It is 128 bits for that reason. A
   // confirm here would cost a subtree compare on every hit and a stored clone of
   // every memoized expression, which is the trade the ADR records rejecting.
-  let cleaned_path_hash = stable_hash_unspanned(path);
+  //
+  // The function map's fingerprint rides beside the hash because the map is
+  // the input of the fold the subtree does not spell: an import binding folds
+  // to a theme reference where imports resolve and to a refusal where
+  // `disable_imports` holds the fold inside the module, and a helper call such
+  // as `stylex.firstThatWorks(...)` folds to a value where the helper is
+  // registered and stays a call where it is not. The memo outlives the
+  // evaluation, so an entry written under one map would otherwise answer a
+  // fold made under another -- which is how a `stylex.props` argument, read
+  // with the merge's bare map as the reference does, was handed the marker and
+  // the helper value a `create` call had folded earlier. `SeenKey` and
+  // `FunctionMap::memo_fingerprint` carry the rest of the reasoning.
+  let key = SeenKey {
+    subtree: stable_hash_unspanned(path),
+    functions: state.functions_fingerprint,
+  };
 
-  let existing = traversal_state.seen.get(&cleaned_path_hash);
+  let existing = traversal_state.seen.get(&key);
 
   match existing {
     Some(evaluate_value) => {
@@ -218,29 +233,23 @@ fn memoized_fold<T: Memoized>(
         // already there costs nothing. `to_memo` deep-clones the value, and
         // this walk reaches a path it has already folded often enough for the
         // copy to be worth not making.
-        traversal_state
-          .seen
-          .entry(cleaned_path_hash)
-          .or_insert_with(|| {
-            Rc::new(SeenValue {
-              value: val.as_ref().map(T::to_memo),
-              resolved: true,
-            })
-          });
+        traversal_state.seen.entry(key).or_insert_with(|| {
+          Rc::new(SeenValue {
+            value: val.as_ref().map(T::to_memo),
+            resolved: true,
+          })
+        });
       } else if traversal_state.owns_its_refusals() {
         // Recorded so the same refusal is not re-walked, but only where the
         // refusal was about the subtree itself -- which is the one question
         // `owns_its_refusals` answers, and where the reasons it can answer `false`
         // are written down.
-        traversal_state
-          .seen
-          .entry(cleaned_path_hash)
-          .or_insert_with(|| {
-            Rc::new(SeenValue {
-              value: None,
-              resolved: false,
-            })
-          });
+        traversal_state.seen.entry(key).or_insert_with(|| {
+          Rc::new(SeenValue {
+            value: None,
+            resolved: false,
+          })
+        });
       }
 
       val

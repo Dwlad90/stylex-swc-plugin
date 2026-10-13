@@ -43,8 +43,8 @@
   },
   "devDependencies": {
     "@rspack/core": "catalog:bundlers",
-    "@stylexjs/babel-plugin": "catalog:runtime",
     "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/rs-compiler": "catalog:internal",
     "@stylexswc/typescript-config": "catalog:internal",
     "@types/node": "catalog:types",
     "css-loader": "catalog:bundlers",

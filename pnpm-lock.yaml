@@ -2604,9 +2604,6 @@ importers:
 
   packages/plugin-shared:
     dependencies:
-      '@stylexjs/babel-plugin':
-        specifier: catalog:runtime
-        version: 0.19.1(supports-color@8.1.1)
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
@@ -2632,9 +2629,6 @@ importers:
 
   packages/postcss-plugin:
     dependencies:
-      '@stylexjs/babel-plugin':
-        specifier: catalog:runtime
-        version: 0.19.1(supports-color@8.1.1)
       '@stylexswc/plugin-shared':
         specifier: catalog:internal
         version: link:../plugin-shared
@@ -2672,9 +2666,6 @@ importers:
 
   packages/rollup-plugin:
     dependencies:
-      '@stylexjs/babel-plugin':
-        specifier: catalog:runtime
-        version: 0.19.1(supports-color@8.1.1)
       '@stylexswc/plugin-shared':
         specifier: catalog:internal
         version: link:../plugin-shared
@@ -2713,12 +2704,12 @@ importers:
       '@rspack/core':
         specifier: catalog:bundlers
         version: 2.2.7(@swc/helpers@0.5.23)
-      '@stylexjs/babel-plugin':
-        specifier: catalog:runtime
-        version: 0.19.1(supports-color@8.1.1)
       '@stylexjs/stylex':
         specifier: catalog:runtime
         version: 0.19.1
+      '@stylexswc/rs-compiler':
+        specifier: catalog:internal
+        version: link:../../crates/stylex-rs-compiler
       '@stylexswc/typescript-config':
         specifier: catalog:internal
         version: link:../typescript-config
@@ -2764,9 +2755,6 @@ importers:
 
   packages/unplugin:
     dependencies:
-      '@stylexjs/babel-plugin':
-        specifier: catalog:runtime
-        version: 0.19.1(supports-color@8.1.1)
       '@stylexswc/plugin-shared':
         specifier: catalog:internal
         version: link:../plugin-shared
@@ -2844,12 +2832,12 @@ importers:
         specifier: catalog:internal
         version: link:../plugin-shared
     devDependencies:
-      '@stylexjs/babel-plugin':
-        specifier: catalog:runtime
-        version: 0.19.1(supports-color@8.1.1)
       '@stylexjs/stylex':
         specifier: catalog:runtime
         version: 0.19.1
+      '@stylexswc/rs-compiler':
+        specifier: catalog:internal
+        version: link:../../crates/stylex-rs-compiler
       '@stylexswc/typescript-config':
         specifier: catalog:internal
         version: link:../typescript-config

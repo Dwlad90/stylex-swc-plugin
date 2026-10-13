@@ -42,8 +42,8 @@
     "@stylexswc/plugin-shared": "catalog:internal"
   },
   "devDependencies": {
-    "@stylexjs/babel-plugin": "catalog:runtime",
     "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/rs-compiler": "catalog:internal",
     "@stylexswc/typescript-config": "catalog:internal",
     "@types/node": "catalog:types",
     "css-loader": "catalog:bundlers",

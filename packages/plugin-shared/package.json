@@ -75,7 +75,6 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "catalog:runtime",
     "@stylexswc/rs-compiler": "catalog:internal",
     "loader-utils": "catalog:bundlers"
   },

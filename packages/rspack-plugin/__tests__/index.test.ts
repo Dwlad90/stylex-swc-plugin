@@ -2,8 +2,8 @@ import path from 'path';
 
 import { sources } from '@rspack/core';
 import type { Compiler, RuleSetRule } from '@rspack/core';
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import { parseStylexRulesFromIdentifier } from '@stylexswc/plugin-shared';
+import type { StyleXRule } from '@stylexswc/rs-compiler';
 import { describe, expect, test, vi } from 'vitest';
 
 import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';

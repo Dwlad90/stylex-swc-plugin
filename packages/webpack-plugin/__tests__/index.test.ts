@@ -1,7 +1,7 @@
 import path from 'path';
 
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import { BUILD_INFO_STYLEX_KEY } from '@stylexswc/plugin-shared';
+import type { StyleXRule } from '@stylexswc/rs-compiler';
 import { describe, expect, test, vi } from 'vitest';
 import webpack from 'webpack';
 

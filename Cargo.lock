@@ -3358,6 +3358,7 @@ version = "0.19.2-rc.1"
 dependencies = [
  "fancy-regex",
  "once_cell",
+ "regex",
 ]
 
 [[package]]
@@ -3468,8 +3469,8 @@ dependencies = [
 name = "stylex_stylesheet"
 version = "0.19.2-rc.1"
 dependencies = [
- "fancy-regex",
  "icu_collator",
+ "indexmap",
  "rustc-hash",
  "serde",
  "serde_json",

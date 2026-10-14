@@ -74,6 +74,13 @@ ctor = "1.0.7"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
 fancy-regex = "0.19.0"
+# The plain engine, for an expression without a backreference or a look-around.
+# `fancy_regex` answers every search with a `Result`, because its backtracking
+# engine can stop at a limit; an expression without those features never runs
+# that engine, so for it the `Err` is a state the type names and the expression
+# cannot reach, an uncoverable arm in a workspace that gates on regions. `regex`
+# has no such arm. It is already in the tree as `fancy-regex`'s own engine.
+regex = "1.12.3"
 # Root collation for the pseudo-key comparator. Six of its crates are new to
 # this workspace; the other 26 in its tree already arrive through SWC's
 # `idna_adapter`. `crates/stylex-css/src/utils/pre_rule.rs` costs the choice

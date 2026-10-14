@@ -15,24 +15,18 @@ use crate::regex::{
 fn the_stylesheet_step_patterns_capture_what_they_name() {
   let reference = CONSTANT_REFERENCE
     .captures("1px solid var(--xBorder_Color-1)")
-    .unwrap()
     .unwrap();
   assert_eq!(&reference[1], "--xBorder_Color-1");
-  assert!(!CONSTANT_REFERENCE.is_match("var(--)").unwrap());
-  assert!(!CONSTANT_REFERENCE.is_match("var( --x )").unwrap());
+  assert!(!CONSTANT_REFERENCE.is_match("var(--)"));
+  assert!(!CONSTANT_REFERENCE.is_match("var( --x )"));
 
   let theme = THEME_ROOT_SELECTOR
     .captures(".xtrlmmh, .xtrlmmh:root{--x:1px;}")
-    .unwrap()
     .unwrap();
   assert_eq!(&theme[1], "xtrlmmh");
   assert_eq!(&theme[2], "xtrlmmh");
-  assert!(
-    !THEME_ROOT_SELECTOR
-      .is_match(":root, .xtrlmmh{--x:1px;}")
-      .unwrap()
-  );
-  assert!(!THEME_ROOT_SELECTOR.is_match(".a,.a:root{}").unwrap());
+  assert!(!THEME_ROOT_SELECTOR.is_match(":root, .xtrlmmh{--x:1px;}"));
+  assert!(!THEME_ROOT_SELECTOR.is_match(".a,.a:root{}"));
 }
 
 /// A style key is read as a variable reference only when it holds one, and a

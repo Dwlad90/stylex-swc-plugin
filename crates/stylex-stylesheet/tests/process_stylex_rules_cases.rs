@@ -20,6 +20,8 @@ use stylex_stylesheet::process::{ProcessStylexRulesConfig, Rule, process_stylex_
 
 #[derive(Deserialize)]
 struct Fixture {
+  // The fixture records the reference commit its cases were recorded from.
+  // The tests do not read it.
   #[allow(dead_code)]
   reference: String,
   cases: Vec<Case>,

@@ -20,8 +20,13 @@ pub static CSS_VAR_REFERENCE: Lazy<Regex> =
 // spells (`/var\((--[A-Za-z0-9_-]+)\)/g`): a dash, an underscore or a capital
 // is part of a constant's name here, where `CSS_VAR_REFERENCE` above refuses
 // them.
-pub static CONSTANT_REFERENCE: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"var\((--[A-Za-z0-9_-]+)\)").expect("Constant reference regex is valid")
+//
+// The two stylesheet-step expressions run on the plain engine (`regex::Regex`)
+// rather than `fancy_regex`: neither has a backreference or a look-around, so
+// the backtracking engine whose stop the `fancy_regex` `Result` reports never
+// runs for them, and the plain engine answers a search with no error to read.
+pub static CONSTANT_REFERENCE: Lazy<regex::Regex> = Lazy::new(|| {
+  regex::Regex::new(r"var\((--[A-Za-z0-9_-]+)\)").expect("Constant reference regex is valid")
 });
 
 // The selector list a theme's default values are written under,
@@ -30,8 +35,8 @@ pub static CONSTANT_REFERENCE: Lazy<Regex> = Lazy::new(|| {
 // default values of its variables. Both class names are captured, as the
 // reference implementation's expression captures them; the doubling reads the
 // first.
-pub static THEME_ROOT_SELECTOR: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"\.([a-zA-Z0-9]+), \.([a-zA-Z0-9]+):root")
+pub static THEME_ROOT_SELECTOR: Lazy<regex::Regex> = Lazy::new(|| {
+  regex::Regex::new(r"\.([a-zA-Z0-9]+), \.([a-zA-Z0-9]+):root")
     .expect("Theme root selector regex is valid")
 });
 

@@ -2361,9 +2361,18 @@ importers:
 
   crates/stylex-stylesheet:
     devDependencies:
+      '@stylexswc/constants':
+        specifier: catalog:internal
+        version: link:../stylex-constants
       '@stylexswc/css-parser':
         specifier: catalog:internal
         version: link:../stylex-css-parser
+      '@stylexswc/regex':
+        specifier: catalog:internal
+        version: link:../stylex-regex
+      '@stylexswc/utils':
+        specifier: catalog:internal
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0

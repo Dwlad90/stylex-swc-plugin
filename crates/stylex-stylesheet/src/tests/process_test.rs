@@ -1,10 +1,13 @@
 //! The branches of `process` the reference's own cases do not reach, and the
 //! JavaScript built-ins the port stands in for.
 
+use serde::de::{self, Unexpected};
+
 use crate::process::{
-  ConstantValue, LayerOptions, ProcessStylexRulesConfig, ProcessStylexRulesError, Rule, RuleStyle,
-  add_ancestor_selector, add_specificity_level, get_logical_float_vars, js_replace_all,
-  js_replace_first, js_substitution, process_stylex_rules, resolve_constant,
+  ConfigVisitor, ConstantValue, LayerOptions, OrderedConstants, ProcessStylexRulesConfig,
+  ProcessStylexRulesError, Rule, RuleStyle, TruthyVisitor, UseLayersVisitor, add_ancestor_selector,
+  add_specificity_level, get_logical_float_vars, js_replace_all, js_replace_first, js_substitution,
+  js_trim, process_stylex_rules, resolve_constant,
 };
 
 fn rule(class_name: &str, ltr: &str, rtl: Option<&str>, priority: f64) -> Rule {
@@ -206,7 +209,11 @@ fn a_boolean_constant_substitutes_as_its_word_and_a_null_one_is_no_constant() {
 
   assert_eq!(rules[0].style().const_val, Some(ConstantValue::Bool(true)));
   assert_eq!(
-    resolve_constant(&ConstantValue::Bool(true), &Vec::new(), &mut Vec::new()),
+    resolve_constant(
+      &ConstantValue::Bool(true),
+      &OrderedConstants::default(),
+      &mut Vec::new()
+    ),
     Ok(ConstantValue::Bool(true))
   );
   assert_eq!(sheet(&rules, &without_layers()), ".x1{--a:true false}");
@@ -227,19 +234,21 @@ fn a_boolean_constant_substitutes_as_its_word_and_a_null_one_is_no_constant() {
 
 #[test]
 fn a_constant_resolves_through_the_constants_it_refers_to_and_keeps_unknown_references() {
-  let constants = vec![
+  let constants: OrderedConstants = [
     ("var(--a)".to_string(), text("1px solid var(--b)")),
     ("var(--b)".to_string(), text("var(--c) var(--unknown)")),
     ("var(--c)".to_string(), text("red")),
     ("var(--n)".to_string(), ConstantValue::Number(2.0)),
-  ];
+  ]
+  .into_iter()
+  .collect();
 
   assert_eq!(
-    resolve_constant(&constants[0].1, &constants, &mut Vec::new()),
+    resolve_constant(&constants["var(--a)"], &constants, &mut Vec::new()),
     Ok(text("1px solid red var(--unknown)"))
   );
   assert_eq!(
-    resolve_constant(&constants[3].1, &constants, &mut Vec::new()),
+    resolve_constant(&constants["var(--n)"], &constants, &mut Vec::new()),
     Ok(ConstantValue::Number(2.0))
   );
 }
@@ -415,6 +424,112 @@ fn the_specificity_level_goes_before_a_pseudo_element_else_before_the_block() {
   // `lastIndexOf('{')` is -1 for a text with no block, and `slice(0, -1)` then
   // keeps all but the last character.
   assert_eq!(add_specificity_level("abc", 1), "ab:not(#\\#)c");
+  assert_eq!(add_specificity_level("", 1), ":not(#\\#)");
+}
+
+/// A text with no block splits before its last character, whatever its
+/// width: the plugin writes `.a:not(#\#)é`. For a character outside the
+/// Basic Multilingual Plane, JavaScript splits the UTF-16 surrogate pair
+/// (`.a\uD83D:not(#\#)\uDE00`, two lone surrogates); a `str` cannot hold half
+/// a pair, so the port splits before the whole character.
+#[test]
+fn the_specificity_level_splits_a_blockless_text_before_its_last_character() {
+  assert_eq!(add_specificity_level(".aé", 1), ".a:not(#\\#)é");
+  assert_eq!(add_specificity_level(".aé", 2), ".a:not(#\\#):not(#\\#)é");
+  assert_eq!(add_specificity_level("é", 1), ":not(#\\#)é");
+  assert_eq!(add_specificity_level(".a😀", 1), ".a:not(#\\#)😀");
+
+  // Through the sheet: the rule at group index 1, with an RTL twin.
+  let rules = [
+    rule("x", ".k{a:0}", None, 0.0),
+    rule("y", ".aé", Some(".bé"), 3000.0),
+  ];
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::default()),
+    ".k{a:0}\nhtml:not([dir='rtl']) .a:not(#\\#)é\nhtml[dir='rtl'] .b:not(#\\#)é"
+  );
+}
+
+/// `rule.slice(rule.lastIndexOf('{'))` on a text with no block is
+/// `slice(-1)`, the last character: two rules that tie on everything before
+/// it sort by that character. Measured on the plugin.
+#[test]
+fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
+  let rules = [
+    rule("a", "ab:yx", None, 3000.0),
+    rule("b", "ab:xy", None, 3000.0),
+  ];
+  assert_eq!(sheet(&rules, &without_layers()), "ab:yx\nab:xy");
+
+  let empty_first = [rule("a", "", None, 3000.0), rule("b", "x", None, 3000.0)];
+  assert_eq!(sheet(&empty_first, &without_layers()), "\nx");
+
+  let accent = [
+    rule("a", "ab:é", None, 3000.0),
+    rule("b", "ab:e", None, 3000.0),
+  ];
+  assert_eq!(sheet(&accent, &without_layers()), "ab:e\nab:é");
+
+  // JavaScript compares the low surrogates of two emoji; the port compares the
+  // whole characters, and the two agree for these.
+  let emoji = [
+    rule("a", "ab:😁", None, 3000.0),
+    rule("b", "ab:😀", None, 3000.0),
+  ];
+  assert_eq!(sheet(&emoji, &without_layers()), "ab:😀\nab:😁");
+}
+
+/// `String.prototype.trim` removes U+FEFF and keeps U+0085, where `str::trim`
+/// does the opposite: the rename target of a constant holding a `var(...)` is
+/// trimmed as JavaScript trims it. Measured on the plugin.
+#[test]
+fn the_rename_target_is_trimmed_as_javascript_trims() {
+  // ECMA-262 WhiteSpace and LineTerminator, one by one.
+  for character in [
+    '\u{9}', '\u{A}', '\u{B}', '\u{C}', '\u{D}', ' ', '\u{A0}', '\u{1680}', '\u{2000}', '\u{2003}',
+    '\u{200A}', '\u{2028}', '\u{2029}', '\u{202F}', '\u{205F}', '\u{3000}', '\u{FEFF}',
+  ] {
+    assert_eq!(
+      js_trim(&format!("{character}x{character}")),
+      "x",
+      "U+{:04X}",
+      character as u32
+    );
+  }
+  // Unicode `White_Space` characters JavaScript keeps, and a zero-width space,
+  // which neither set holds.
+  for character in ['\u{85}', '\u{200B}'] {
+    let text = format!("{character}x{character}");
+    assert_eq!(js_trim(&text), text, "U+{:04X}", character as u32);
+  }
+  assert_eq!(js_trim("\u{FEFF} --t\u{A0}\u{3000}"), "--t");
+  assert_eq!(js_trim(""), "");
+
+  let zwnbsp = [
+    constant("xA", text("var(\u{FEFF}--t)")),
+    rule("x1", ".x1{--xA:1px}", None, 3000.0),
+    rule("x2", ".x2{color:var(--xA)}", None, 3000.0),
+  ];
+  assert_eq!(
+    sheet(&zwnbsp, &without_layers()),
+    ".x1{--t:1px}\n.x2{color:var(\u{FEFF}--t)}"
+  );
+
+  let nel = [
+    constant("xA", text("var(\u{85}--t)")),
+    rule("x1", ".x1{--xA:1px}", None, 3000.0),
+    rule("x2", ".x2{color:var(--xA)}", None, 3000.0),
+  ];
+  assert_eq!(
+    sheet(&nel, &without_layers()),
+    ".x1{\u{85}--t:1px}\n.x2{color:var(\u{85}--t)}"
+  );
+
+  let both_sides = [
+    constant("xA", text("var(\u{A0}--t\u{FEFF} , red)")),
+    rule("x1", ".x1{--xA:1px}", None, 3000.0),
+  ];
+  assert_eq!(sheet(&both_sides, &without_layers()), ".x1{--t:1px}");
 }
 
 #[test]
@@ -539,15 +654,183 @@ fn layers_without_a_prefix_are_the_bare_ordinals() {
   );
 }
 
-/// A `useLayers` outside its declared type (`boolean | object`) is refused at
-/// deserialization rather than read as a flag.
+/// `rawUseLayers !== false`: every value but `false` and `null` turns the
+/// layers on, with the defaults when it is not an object (`typeof` fails for
+/// a string or a number, and an array has none of the properties). Measured on
+/// the plugin.
 #[test]
-fn a_use_layers_outside_its_type_is_refused() {
-  let parsed = serde_json::from_str::<ProcessStylexRulesConfig>(r#"{"useLayers": "yes"}"#);
+fn use_layers_is_on_for_every_value_but_false_and_null() {
+  let rules = [rule("x1", ".x1{color:red}", None, 3000.0)];
+  let with_layers = "\n@layer priority1;\n@layer priority1{\n.x1{color:red}\n}";
 
-  assert!(
-    parsed.is_err(),
-    "a string is neither a flag nor an options object"
+  for spelling in [
+    r#"{"useLayers": "yes"}"#,
+    r#"{"useLayers": 0}"#,
+    r#"{"useLayers": 1.5}"#,
+    r#"{"useLayers": -1}"#,
+    r#"{"useLayers": ["a"]}"#,
+    r#"{"useLayers": {}}"#,
+    r#"{"useLayers": true}"#,
+  ] {
+    assert_eq!(
+      sheet(&rules, &read::<ProcessStylexRulesConfig>(spelling)),
+      with_layers,
+      "{spelling}"
+    );
+  }
+
+  for spelling in [r#"{"useLayers": null}"#, r#"{"useLayers": false}"#, "{}"] {
+    assert_eq!(
+      sheet(&rules, &read::<ProcessStylexRulesConfig>(spelling)),
+      ".x1{color:red}",
+      "{spelling}"
+    );
+  }
+}
+
+/// `config ?? {}` and the property reads on it: `null`, a number, a string
+/// and an array have none of the properties, so every option is at its
+/// default; a boolean is `useLayers`. Measured on the plugin.
+#[test]
+fn a_config_that_is_not_an_object_has_every_option_at_its_default() {
+  for spelling in ["null", "1", "-1", "1.5", r#""yes""#, "[true]", "false"] {
+    assert_eq!(
+      read::<ProcessStylexRulesConfig>(spelling),
+      ProcessStylexRulesConfig::default(),
+      "{spelling}"
+    );
+  }
+
+  assert_eq!(
+    read::<ProcessStylexRulesConfig>("true"),
+    ProcessStylexRulesConfig::from(true)
+  );
+}
+
+/// `before ?? []`, `after ?? []`, `prefix ?? ''`: a `null` property is the
+/// default. A value outside the declared type is refused, where the reference
+/// would spread a string into characters or print a number (`CONTEXT.md`).
+#[test]
+fn a_null_layer_option_is_its_default_and_a_wrong_type_is_refused() {
+  assert_eq!(
+    read::<ProcessStylexRulesConfig>(
+      r#"{"useLayers": {"before": null, "after": ["z"], "prefix": null}}"#
+    ),
+    ProcessStylexRulesConfig {
+      use_layers: Some(LayerOptions {
+        before: Vec::new(),
+        after: vec!["z".to_string()],
+        prefix: String::new(),
+      }),
+      ..ProcessStylexRulesConfig::default()
+    }
+  );
+
+  for spelling in [
+    r#"{"useLayers": {"before": "reset"}}"#,
+    r#"{"useLayers": {"prefix": 5}}"#,
+    r#"{"useLayers": {"after": [1]}}"#,
+  ] {
+    assert!(
+      serde_json::from_str::<ProcessStylexRulesConfig>(spelling).is_err(),
+      "{spelling} is outside the declared type"
+    );
+  }
+}
+
+/// A value a format hands the visitors outside JSON's types (bytes, a wide
+/// integer) is refused with the message that names what each one reads.
+#[test]
+fn the_config_visitors_name_what_they_expect() {
+  let refusal = |expected: &dyn de::Expected| {
+    <serde_json::Error as de::Error>::invalid_type(Unexpected::Bytes(b"x"), expected).to_string()
+  };
+
+  assert_eq!(
+    refusal(&ConfigVisitor),
+    "invalid type: byte array, expected a boolean, null, or the options object"
+  );
+  assert_eq!(
+    refusal(&UseLayersVisitor),
+    "invalid type: byte array, expected a boolean, null, or the layer options object"
+  );
+  assert_eq!(
+    refusal(&TruthyVisitor),
+    "invalid type: byte array, expected a value read for its truthiness"
+  );
+}
+
+/// A sequence or an object the reference reads no element of is drained, and
+/// a fault inside it is the parse error it is.
+#[test]
+fn a_fault_inside_an_ignored_sequence_or_object_is_reported() {
+  for spelling in [
+    "[1,",
+    r#"{"useLayers": [1,"#,
+    r#"{"enableLTRRTLComments": [1,"#,
+    r#"{"enableLTRRTLComments": {"a":"#,
+  ] {
+    assert!(
+      serde_json::from_str::<ProcessStylexRulesConfig>(spelling).is_err(),
+      "{spelling} is cut short"
+    );
+  }
+}
+
+/// The three flags are read as `if (flag)` reads them: JavaScript truthiness.
+/// Measured on the plugin (`enableLTRRTLComments: 1` writes the comments,
+/// `""` and `null` do not).
+#[test]
+fn the_flags_are_read_for_their_truthiness() {
+  let truthy = [
+    "true",
+    "1",
+    "-1",
+    "0.5",
+    r#""no""#,
+    "[]",
+    r#"{"a": 1}"#,
+    r#"[1, 2]"#,
+  ];
+  let falsy = ["false", "null", "0", "0.0", r#""""#];
+
+  for spelling in truthy {
+    let config = read::<ProcessStylexRulesConfig>(&format!(
+      r#"{{"enableLTRRTLComments": {spelling}, "legacyDisableLayers": {spelling}, "useLegacyClassnamesSort": {spelling}}}"#
+    ));
+    assert!(
+      config.enable_ltr_rtl_comments
+        && config.legacy_disable_layers
+        && config.use_legacy_classnames_sort,
+      "{spelling} is truthy"
+    );
+  }
+
+  for spelling in falsy {
+    let config = read::<ProcessStylexRulesConfig>(&format!(
+      r#"{{"enableLTRRTLComments": {spelling}, "legacyDisableLayers": {spelling}, "useLegacyClassnamesSort": {spelling}}}"#
+    ));
+    assert_eq!(
+      config,
+      ProcessStylexRulesConfig::default(),
+      "{spelling} is falsy"
+    );
+  }
+
+  let rules = [rule("x1", ".x1{a:0}", Some(".x1{b:0}"), 3000.0)];
+  assert_eq!(
+    sheet(
+      &rules,
+      &read::<ProcessStylexRulesConfig>(r#"{"useLayers": false, "enableLTRRTLComments": 1}"#)
+    ),
+    "/* @ltr begin */.x1{a:0}/* @ltr end */\n/* @rtl begin */.x1{b:0}/* @rtl end */"
+  );
+  assert_eq!(
+    sheet(
+      &rules,
+      &read::<ProcessStylexRulesConfig>(r#"{"useLayers": false, "enableLTRRTLComments": ""}"#)
+    ),
+    "html:not([dir='rtl']) .x1{a:0}\nhtml[dir='rtl'] .x1{b:0}"
   );
 }
 

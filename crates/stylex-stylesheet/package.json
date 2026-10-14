@@ -31,7 +31,10 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/constants": "catalog:internal",
     "@stylexswc/css-parser": "catalog:internal",
+    "@stylexswc/regex": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"
   },

@@ -53,6 +53,21 @@ layers in the `@layer` header, and a `prefix` for their names
 an absent key are no layers.
 _Avoid_: layer config
 
+**Config**:
+The reference's `config` argument, read as the reference reads it
+(`typeof config === 'boolean' ? { useLayers: config } : config ?? {}`, then one
+property read each): a boolean is `useLayers`; `null` and a value that is not an
+object have no properties, so every option is at its default. `useLayers` is on
+for every value but `false` and `null` (`!== false`), with the defaults when
+the value is not an object; the three flags are read by JavaScript truthiness
+(`null`, `0` and `""` are off). Inside the object, a `null` property is its
+default (`?? []`, `?? ''`). Where the port is stricter than the runtime:
+`before` and `after` take an array of strings and `prefix` a string, the
+declared type; the reference would spread a string `before` into its
+characters and print a number `prefix`, and the port refuses both at
+deserialization.
+_Avoid_: options bag, loose config
+
 **RTL twin**:
 A style whose `rtl` text differs is written twice, under
 `html:not([dir='rtl'])` and `html[dir='rtl']` (inside the innermost at-rule;

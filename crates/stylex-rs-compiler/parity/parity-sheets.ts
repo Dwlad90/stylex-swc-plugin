@@ -31,33 +31,26 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import chalk from 'chalk';
 
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
 import {
   baseStyleXOptions,
+  loadBabelPlugin,
   loadRustCompiler,
+  messageOf,
   resolveVersions,
   subjectBlock,
 } from './lib/compilers.js';
 import { loadCorpus } from './lib/corpus.js';
+import { WIDTH_SORT_KEY_MATRIX, stylesheetFixturesDir } from './lib/fixtures.js';
 import { isRecord } from './lib/guards.js';
 import { writeJsonReport } from './lib/harness-cli.js';
 import { moduleFor } from './lib/subject.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(parityDir, '..');
-const workspaceRoot = path.resolve(packageDir, '../..');
-const matrixFixture = path.join(
-  workspaceRoot,
-  'crates/stylex-stylesheet/tests/fixtures/width-sort-key-matrix.json'
-);
-
-type ProcessStylexRules = (
-  rules: readonly StyleXRule[],
-  config?: boolean | ProcessStylexRulesConfig | null
-) => string;
+const matrixFixture = path.join(stylesheetFixturesDir(packageDir), WIDTH_SORT_KEY_MATRIX);
 
 /** Every configuration the reference's signature admits, each in its own shape. */
 const CONFIGURATIONS: Record<string, boolean | ProcessStylexRulesConfig | null> = {
@@ -79,27 +72,6 @@ interface SheetVerdict {
   verdict: 'identical' | 'divergent' | 'rust refused' | 'babel refused' | 'both refused';
   bytes: number;
   detail?: string;
-}
-
-/**
- * The reference's export. The plugin is published as a function carrying it as
- * a property, and some resolutions wrap that function in `default`.
- */
-function loadBabelProcessStylexRules(): ProcessStylexRules {
-  const pluginModule: unknown = stylexBabelPluginModule;
-  const carrier: unknown =
-    isRecord(pluginModule) && pluginModule.default !== undefined
-      ? pluginModule.default
-      : pluginModule;
-  const candidate =
-    typeof carrier === 'function' || isRecord(carrier)
-      ? (carrier as { processStylexRules?: unknown }).processStylexRules
-      : undefined;
-  if (typeof candidate !== 'function') {
-    throw new Error('@stylexjs/babel-plugin did not export processStylexRules');
-  }
-
-  return candidate as ProcessStylexRules;
 }
 
 /** The at-rule chains of the matrix, each wrapped around one rule of its own. */
@@ -140,7 +112,7 @@ function attempt(run: () => string): { ok: true; sheet: string } | { ok: false; 
   try {
     return { ok: true, sheet: run() };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    return { ok: false, message: messageOf(error) };
   }
 }
 
@@ -150,19 +122,13 @@ async function main(): Promise<void> {
     strict: true,
   });
 
-  const { transform, distEntry } = await loadRustCompiler(packageDir);
-  const rustModule: unknown = await import(path.join(packageDir, 'dist/index.js'));
-  const rustProcess = isRecord(rustModule) ? rustModule.processStylexRules : undefined;
-  if (typeof rustProcess !== 'function') {
-    throw new Error(`${distEntry} does not export processStylexRules — run \`pnpm build\` first.`);
-  }
-  const processWithRust = rustProcess as ProcessStylexRules;
-  const processWithBabel = loadBabelProcessStylexRules();
-  const versions = resolveVersions(
-    packageDir,
+  const {
+    transform,
+    processStylexRules: processWithRust,
     distEntry,
-    (await import('node:module')).createRequire(import.meta.url).resolve('@stylexjs/babel-plugin')
-  );
+  } = await loadRustCompiler(packageDir);
+  const { processStylexRules: processWithBabel, pluginEntry } = loadBabelPlugin();
+  const versions = resolveVersions(packageDir, distEntry, pluginEntry);
 
   // The corpus, compiled by this compiler: the sheet step reads rules, and the
   // value harness already holds the two compilers to the same rules.

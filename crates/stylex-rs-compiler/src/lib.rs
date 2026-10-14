@@ -44,6 +44,7 @@ mod enums;
 mod structs;
 mod utils;
 use log::{info, warn};
+use napi::bindgen_prelude::Unknown;
 use napi::{Env, Result};
 use std::{
   env, panic,
@@ -56,6 +57,7 @@ use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
 use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
+use stylex_stylesheet::process;
 use stylex_transform::StyleXTransform;
 use stylex_utils::swc::syntax_for_file;
 use swc_ecma_parser::{Parser, StringInput, lexer::Lexer};
@@ -486,6 +488,51 @@ pub fn transform(
   }
 }
 
+/// `processStylexRules(rules, config)`: the stylesheet for the rules a build's
+/// `transform` calls emitted, as `@stylexjs/babel-plugin` exports it and the
+/// bundler plugins consume it. The rules are the `metadata.stylex` rows of every
+/// transformed file, `[className, { ltr, rtl, constKey, constVal }, priority]`,
+/// in the order the files were compiled; `config` is the reference's.
+///
+/// Both arguments are read as the reference reads them (`stylex_stylesheet`'s
+/// `CONTEXT.md`, "Rule" and "Config"): a tuple's first three elements and no
+/// more, a priority as JavaScript arithmetic reads it (`NaN` for a missing
+/// one), `useLayers` by the `!== false` rule, the flags by truthiness. Where
+/// the reference writes a sheet from a value outside its published types (a
+/// numeric class name, a layer option that is not a string) the port refuses
+/// it; a style rule with no `ltr` text and a circular constant are refused as
+/// the reference throws on them. The README lists the differences.
+///
+/// The arguments arrive as JavaScript values and are read in the function
+/// body, so every refusal carries the `processStylexRules:` prefix. The
+/// TypeScript signature is written out here rather than derived: the type a
+/// consumer sees is a superset of the one the reference publishes (readonly
+/// arrays, `null`, `useLegacyClassnamesSort`; `src/index.ts` lists them).
+#[rustfmt::skip]
+#[napi(
+  ts_args_type = "rules: readonly StyleXMetadata['stylex'][number][], config?: boolean | { readonly useLayers?: boolean | { readonly before?: readonly string[]; readonly after?: readonly string[]; readonly prefix?: string } | null; readonly enableLTRRTLComments?: boolean; readonly legacyDisableLayers?: boolean; readonly useLegacyClassnamesSort?: boolean } | null",
+  ts_return_type = "string"
+)]
+pub fn process_stylex_rules(
+  env: Env,
+  rules: Unknown<'_>,
+  config: Option<Unknown<'_>>,
+) -> Result<String> {
+  let rules: Vec<process::Rule> = env.from_js_value(rules).map_err(|error| {
+    napi::Error::from_reason(format!("processStylexRules: the rules could not be read: {error}"))
+  })?;
+
+  let config: process::ProcessStylexRulesConfig = match config {
+    None => Default::default(),
+    Some(value) => env.from_js_value(value).map_err(|error| {
+      napi::Error::from_reason(format!("processStylexRules: the config could not be read: {error}"))
+    })?,
+  };
+
+  process::process_stylex_rules(&rules, &config)
+    .map_err(|error| napi::Error::from_reason(format!("processStylexRules: {error}")))
+}
+
 #[cfg(test)]
 #[path = "tests/lib_tests.rs"]
 mod tests;
@@ -497,44 +544,3 @@ mod crate_layers_tests;
 #[cfg(test)]
 #[path = "tests/allocator_tests.rs"]
 mod allocator_tests;
-
-/// `processStylexRules(rules, config)`: the stylesheet for the rules a build's
-/// `transform` calls emitted, as `@stylexjs/babel-plugin` exports it and the
-/// bundler plugins consume it. The rules are the `metadata.stylex` rows of every
-/// transformed file, `[className, { ltr, rtl, constKey, constVal }, priority]`,
-/// in the order the files were compiled; `config` is the reference's, read as
-/// the reference reads it: a boolean standing for `useLayers`, the options
-/// object, or a value with no properties (every option at its default). A
-/// layer option outside its declared type and a circular constant are refused,
-/// the constant with the reference's message.
-///
-/// The TypeScript signature is written out here rather than derived: the rules
-/// cross as a JSON value so a tuple keeps its shape, and the type a consumer
-/// sees is the one the reference publishes.
-#[rustfmt::skip]
-#[napi(
-  ts_args_type = "rules: readonly StyleXMetadata['stylex'][number][], config?: boolean | { readonly useLayers?: boolean | { readonly before?: readonly string[]; readonly after?: readonly string[]; readonly prefix?: string } | null; readonly enableLTRRTLComments?: boolean; readonly legacyDisableLayers?: boolean; readonly useLegacyClassnamesSort?: boolean } | null",
-  ts_return_type = "string"
-)]
-pub fn process_stylex_rules(
-  rules: serde_json::Value,
-  config: Option<serde_json::Value>,
-) -> Result<String> {
-  let rules: Vec<stylex_stylesheet::process::Rule> = serde_json::from_value(rules).map_err(|error| {
-    napi::Error::from_reason(format!(
-      "processStylexRules: the rules are not an array of [className, {{ ltr, rtl, constKey, constVal }}, priority] tuples: {error}"
-    ))
-  })?;
-
-  let config: stylex_stylesheet::process::ProcessStylexRulesConfig = match config {
-    None => Default::default(),
-    Some(value) => serde_json::from_value(value).map_err(|error| {
-      napi::Error::from_reason(format!(
-        "processStylexRules: the config could not be read ({error}); useLayers.before and useLayers.after take an array of strings, useLayers.prefix a string"
-      ))
-    })?,
-  };
-
-  stylex_stylesheet::process::process_stylex_rules(&rules, &config)
-    .map_err(|error| napi::Error::from_reason(error.to_string()))
-}

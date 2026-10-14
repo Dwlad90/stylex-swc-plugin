@@ -57,20 +57,149 @@ impl ConstantValue {
 }
 
 /// What one rule injects: its LTR text, its RTL text where the two differ,
-/// and, for a `defineConsts` rule, the constant it declares. A constant rule
-/// may carry no text at all (the reference reads neither field of one), so
-/// `ltr` defaults to empty.
-#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+/// and, for a `defineConsts` rule, the constant it declares.
+///
+/// It deserializes as the reference reads a rule's style object. A constant
+/// rule (both `constKey` and `constVal` set and not `null`) is filtered out
+/// before any text is read, so its `ltr` and `rtl` may be anything and are
+/// kept only when they are strings. A style rule's `ltr` is read with
+/// `.replace`, so a missing, `null` or non-string `ltr` is refused where the
+/// reference throws; its `rtl` is read behind `if (rtlRule)`, so a falsy
+/// value (`null`, `undefined`, `false`, `0`, `""`) is no RTL text and a
+/// truthy value that is not a string is refused where the reference throws.
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuleStyle {
-  #[serde(default)]
   pub ltr: String,
-  #[serde(default)]
   pub rtl: Option<String>,
-  #[serde(default)]
   pub const_key: Option<String>,
-  #[serde(default)]
   pub const_val: Option<ConstantValue>,
+}
+
+/// The style object as it arrives, before the reference's reads are applied.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuleStyleSpelling {
+  #[serde(default, deserialize_with = "deserialize_loose")]
+  ltr: Loose,
+  #[serde(default, deserialize_with = "deserialize_loose")]
+  rtl: Loose,
+  #[serde(default)]
+  const_key: Option<String>,
+  #[serde(default)]
+  const_val: Option<ConstantValue>,
+}
+
+/// A value read for how the reference's `.replace` and `if (value)` treat
+/// it: a string, a falsy value, or something else.
+#[derive(Default)]
+enum Loose {
+  Text(String),
+  #[default]
+  Falsy,
+  Other(&'static str),
+}
+
+fn deserialize_loose<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Loose, D::Error> {
+  deserializer.deserialize_any(LooseVisitor)
+}
+
+struct LooseVisitor;
+
+impl<'de> Visitor<'de> for LooseVisitor {
+  type Value = Loose;
+
+  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str("a string, or a value read for its truthiness")
+  }
+
+  fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+    Ok(Loose::Text(value.to_string()))
+  }
+
+  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+    Ok(Loose::Falsy)
+  }
+
+  fn visit_bool<E: de::Error>(self, value: bool) -> Result<Self::Value, E> {
+    Ok(if value {
+      Loose::Other("a boolean")
+    } else {
+      Loose::Falsy
+    })
+  }
+
+  fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
+    Ok(if value == 0 {
+      Loose::Falsy
+    } else {
+      Loose::Other("a number")
+    })
+  }
+
+  fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
+    Ok(if value == 0 {
+      Loose::Falsy
+    } else {
+      Loose::Other("a number")
+    })
+  }
+
+  fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
+    Ok(if value == 0.0 || value.is_nan() {
+      Loose::Falsy
+    } else {
+      Loose::Other("a number")
+    })
+  }
+
+  fn visit_seq<A: SeqAccess<'de>>(self, sequence: A) -> Result<Self::Value, A::Error> {
+    ignore_sequence(sequence)?;
+    Ok(Loose::Other("an array"))
+  }
+
+  fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
+    ignore_map(map)?;
+    Ok(Loose::Other("an object"))
+  }
+}
+
+impl<'de> Deserialize<'de> for RuleStyle {
+  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    let spelling = RuleStyleSpelling::deserialize(deserializer)?;
+    let is_constant = spelling.const_key.is_some() && spelling.const_val.is_some();
+
+    let ltr = match spelling.ltr {
+      Loose::Text(text) => text,
+      // `ltrRule.replace(...)`: the reference throws on a style rule with no
+      // text to read.
+      Loose::Falsy | Loose::Other(_) if is_constant => String::new(),
+      Loose::Falsy => return Err(de::Error::custom("a style rule has no ltr text")),
+      Loose::Other(kind) => {
+        return Err(de::Error::custom(format!(
+          "a style rule's ltr text is {kind}, not a string"
+        )));
+      },
+    };
+    let rtl = match spelling.rtl {
+      Loose::Text(text) => Some(text),
+      Loose::Falsy => None,
+      Loose::Other(_) if is_constant => None,
+      // `rtlRule.replace(...)` behind `if (rtlRule)`: the reference throws on
+      // a truthy value that is not a string.
+      Loose::Other(kind) => {
+        return Err(de::Error::custom(format!(
+          "a style rule's rtl text is {kind}, not a string"
+        )));
+      },
+    };
+
+    Ok(RuleStyle {
+      ltr,
+      rtl,
+      const_key: spelling.const_key,
+      const_val: spelling.const_val,
+    })
+  }
 }
 
 impl RuleStyle {
@@ -93,8 +222,170 @@ impl RuleStyle {
 
 /// One emitted rule: `[className, { ltr, rtl, constKey, constVal }, priority]`,
 /// the reference's `Rule` tuple.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+///
+/// It deserializes as the reference destructures the tuple
+/// (`([key, { ...styleObj }, priority])`): the first three elements are read
+/// and any further element is not; a missing style is the empty object, which
+/// has no `ltr` and is refused as the reference throws on it; the priority is
+/// read as the arithmetic reads it ([`JsNumber`]), so a missing priority is
+/// `NaN` and a numeric string is its number. The class name is a string: the
+/// reference writes a rule whose class name is a number, and the port refuses
+/// it (`CONTEXT.md`, "Rule").
+#[derive(Clone, Debug, PartialEq)]
 pub struct Rule(pub String, pub RuleStyle, pub f64);
+
+impl<'de> Deserialize<'de> for Rule {
+  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    deserializer.deserialize_seq(RuleVisitor)
+  }
+}
+
+struct RuleVisitor;
+
+impl<'de> Visitor<'de> for RuleVisitor {
+  type Value = Rule;
+
+  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str("a [className, { ltr, rtl, constKey, constVal }, priority] tuple")
+  }
+
+  fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
+    let Some(class_name) = sequence.next_element::<String>()? else {
+      return Err(de::Error::custom("a rule has no class name"));
+    };
+    let Some(style) = sequence.next_element::<RuleStyle>()? else {
+      return Err(de::Error::custom("a rule has no style object"));
+    };
+    let priority = match sequence.next_element::<JsNumber>()? {
+      Some(priority) => priority.0,
+      None => f64::NAN,
+    };
+    ignore_sequence(sequence)?;
+
+    Ok(Rule(class_name, style, priority))
+  }
+}
+
+/// A value read as JavaScript arithmetic reads it (`Number(value)`): a number
+/// as itself, `null` as 0, a boolean as 0 or 1, `undefined` as `NaN`, a
+/// string as the number it spells (the decimal, hexadecimal, octal and binary
+/// spellings, `Infinity`, and the empty string as 0) or `NaN`. An array or an
+/// object is refused: the reference reads one as 0, its element or `NaN`, and
+/// no rule carries one.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct JsNumber(pub(crate) f64);
+
+impl<'de> Deserialize<'de> for JsNumber {
+  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    deserializer.deserialize_any(JsNumberVisitor)
+  }
+}
+
+struct JsNumberVisitor;
+
+impl<'de> Visitor<'de> for JsNumberVisitor {
+  type Value = JsNumber;
+
+  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str("a number, or a value JavaScript arithmetic reads as one")
+  }
+
+  fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
+    Ok(JsNumber(value))
+  }
+
+  fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
+    Ok(JsNumber(value as f64))
+  }
+
+  fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
+    Ok(JsNumber(value as f64))
+  }
+
+  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+    // `null` is 0 and `undefined` is `NaN`; a format that tells the two apart
+    // hands `null` to `visit_none` through `Option`, and the tuple reader
+    // takes an absent element as `NaN`. Here both arrive as a unit: 0 is the
+    // reading of the one spelled out (`null`).
+    Ok(JsNumber(0.0))
+  }
+
+  fn visit_bool<E: de::Error>(self, value: bool) -> Result<Self::Value, E> {
+    Ok(JsNumber(if value { 1.0 } else { 0.0 }))
+  }
+
+  fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+    Ok(JsNumber(js_string_to_number(value)))
+  }
+}
+
+/// `Number(text)` for a string (ECMA-262 StringToNumber).
+pub(crate) fn js_string_to_number(text: &str) -> f64 {
+  let text = js_trim(text);
+
+  if text.is_empty() {
+    return 0.0;
+  }
+
+  let (negative, unsigned) = match text.strip_prefix('-') {
+    Some(rest) => (true, rest),
+    None => (false, text.strip_prefix('+').unwrap_or(text)),
+  };
+
+  let magnitude = if unsigned == "Infinity" {
+    f64::INFINITY
+  } else if let Some(digits) = unsigned
+    .strip_prefix("0x")
+    .or_else(|| unsigned.strip_prefix("0X"))
+  {
+    // A sign in front of a non-decimal literal is `NaN` in JavaScript.
+    if negative || text.starts_with('+') {
+      return f64::NAN;
+    }
+    return radix_digits(digits, 16);
+  } else if let Some(digits) = unsigned
+    .strip_prefix("0o")
+    .or_else(|| unsigned.strip_prefix("0O"))
+  {
+    if negative || text.starts_with('+') {
+      return f64::NAN;
+    }
+    return radix_digits(digits, 8);
+  } else if let Some(digits) = unsigned
+    .strip_prefix("0b")
+    .or_else(|| unsigned.strip_prefix("0B"))
+  {
+    if negative || text.starts_with('+') {
+      return f64::NAN;
+    }
+    return radix_digits(digits, 2);
+  } else if unsigned.starts_with(|c: char| c.is_ascii_digit() || c == '.') {
+    // A decimal literal; Rust's parser also reads `inf`, `infinity` and
+    // `nan`, which the guard above keeps out.
+    unsigned.parse::<f64>().unwrap_or(f64::NAN)
+  } else {
+    f64::NAN
+  };
+
+  if negative { -magnitude } else { magnitude }
+}
+
+/// The digits of a non-decimal literal, each in its radix, or `NaN`.
+fn radix_digits(digits: &str, radix: u32) -> f64 {
+  if digits.is_empty() {
+    return f64::NAN;
+  }
+
+  let mut value = 0.0;
+  for character in digits.chars() {
+    match character.to_digit(radix) {
+      Some(digit) => value = value * f64::from(radix) + f64::from(digit),
+      None => return f64::NAN,
+    }
+  }
+
+  value
+}
 
 impl Rule {
   pub fn class_name(&self) -> &str {
@@ -351,7 +642,8 @@ impl<'de> Visitor<'de> for TruthyVisitor {
   }
 
   fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
-    Ok(value != 0.0)
+    // `NaN` is falsy, as 0 is.
+    Ok(value != 0.0 && !value.is_nan())
   }
 
   fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {

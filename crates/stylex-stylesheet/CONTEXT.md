@@ -18,13 +18,27 @@ ladder in [STRUCTURE.md](../../guidelines/STRUCTURE.md), above
 [stylex-regex](../stylex-regex/CONTEXT.md) and
 [stylex-utils](../stylex-utils/CONTEXT.md).
 
+The fixtures in `tests/fixtures/` have readers outside this crate:
+`@stylexswc/rs-compiler` reads `process-stylex-rules-cases.json` from
+`__test__/processStylexRules.spec.ts` and `width-sort-key-matrix.json` from
+`parity/parity-sheets.ts`, through the one constant in its `parity/lib/fixtures.ts`;
+a rename here moves that constant.
+
 ## Language
 
 **Rule**:
 One emitted rule as the reference's `Rule` tuple: `[className, { ltr, rtl?,
 constKey?, constVal? }, priority]`, the rows of a compile's `metadata.stylex`.
 A rule with both `constKey` and `constVal` is a **constant** (a `defineConsts`
-value) and injects no text; every other rule is a style.
+value) and injects no text; every other rule is a style. A rule deserializes as
+the reference destructures it: the first three elements and no more, the
+priority as JavaScript arithmetic reads it (`Number(value)`: a missing one is
+`NaN`, `null` is 0, a numeric string is its number), a style rule's `ltr`
+required as a string (the reference throws without it), its `rtl` a string or
+a falsy value read as no RTL text. The class name is a string and a constant's
+value a string, a number or a boolean; the reference coerces other values into
+the sheet (`[object Object]`) and the port refuses them, which the rs-compiler
+README lists.
 _Avoid_: injectable style (the producer-side type in stylex-types), entry
 
 **Constant substitution**:

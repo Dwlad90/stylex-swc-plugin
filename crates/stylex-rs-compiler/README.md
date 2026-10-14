@@ -137,7 +137,37 @@ const css = processStylexRules(rules, { useLayers: true });
 It takes the options `@stylexjs/babel-plugin`'s export takes -- `useLayers`
 (`true`, `false` or `{ before, after, prefix }`), `enableLTRRTLComments`,
 `legacyDisableLayers`, `useLegacyClassnamesSort`, or a bare boolean standing for
-`useLayers` -- and writes the same bytes for the same rules.
+`useLayers` -- and writes the same bytes for the same rules. It also reads the
+arguments as loosely as the reference does: a tuple's elements after the third
+are not read, a missing priority is `NaN` (a group of its own outside the
+layers), a numeric-string priority is its number, `useLayers` is on for every
+value but `false` and `null`, the flags are read by truthiness, and a `null`
+layer option is its default.
+
+#### Where it differs from `@stylexjs/babel-plugin`
+
+For a value outside the published types, the reference writes a sheet by
+coercion and this export refuses the call with a `processStylexRules:` error.
+Every call that typechecks against the reference's `index.d.ts` is read the
+same way by both.
+
+| Input                                                 | `@stylexjs/babel-plugin` 0.19.1               | `@stylexswc/rs-compiler`                                     |
+| ----------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------ |
+| `useLayers: { prefix: 5 }`, `{ prefix: true }`        | `@layer 5.priority1`, `true.priority1`        | refused: `prefix` is a string                                |
+| `useLayers: { before: 'ab' }`, `{ before: ['a', 5] }` | `@layer a, b, priority1`, `a, 5, …`           | refused: `before`/`after` are strings                        |
+| a class name that is not a string (`[12, …]`)         | writes the rule                               | refused                                                      |
+| `constVal: {}`, `constVal: ['a', 'b']`                | `color:[object Object]`, `color:a,b`          | refused: a string, a number or a boolean                     |
+| `rules = { length: 0 }`                               | `""`                                          | refused: an array                                            |
+| a priority that is an array or an object              | `NaN`, `0` or the element                     | refused                                                      |
+| a `BigInt` priority                                   | throws on mixed arithmetic                    | read as a number                                             |
+| a style rule's `rtl` that is a truthy non-string      | throws                                        | refused (the same)                                           |
+| a `NaN` priority among others                         | sorted by a comparator that is not consistent | the same order for small inputs; not promised for large ones |
+
+The signature is a superset of the published one: `rules` is `readonly`,
+`config` and `useLayers` also take `null` (read as absent, as the runtime
+reads them), `useLegacyClassnamesSort` is declared (the reference's Flow
+source reads it, its `.d.ts` omits it), and the tuple type is named
+`StyleXRule`.
 
 The `map` above is abridged; by default it also carries `sourcesContent` and
 column-accurate `mappings` — see [`inlineSourcesContent`](#inlinesourcescontent)

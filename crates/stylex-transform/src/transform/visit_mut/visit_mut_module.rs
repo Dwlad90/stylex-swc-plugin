@@ -27,6 +27,9 @@ use stylex_ast::ast::imports::local_binding_of;
 use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 use stylex_enums::core::TransformationCycle;
 use stylex_state::state_manager::{BindingWrites, flush_pending_insertions};
+// Only the doc links in this file use this import.
+#[cfg(doc)]
+use stylex_state::state_manager::StateManager;
 
 /// Span covering the whole source, used for the module-level scope frame so
 /// top-level bindings enclose every `sx` site. The scope stack is seeded with
@@ -116,17 +119,17 @@ struct ModuleBindingsCollector {
   declared_bindings: FxHashSet<Id>,
   /// For each name bound by a non-import declaration, the spans of the scopes
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
-  /// spans encloses that site (see [`StateManager::is_locally_rebound_at`](stylex_state::state_manager::StateManager::is_locally_rebound_at)).
+  /// spans encloses that site (see [`StateManager::is_locally_rebound_at`]).
   local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
   /// Bindings rebound anywhere in the module. See
-  /// [`StateManager::binding_reassignments`](stylex_state::state_manager::StateManager::binding_reassignments).
+  /// [`StateManager::binding_reassignments`].
   binding_reassignments: FxHashSet<Id>,
   /// Bindings whose referenced value is mutated in place anywhere in the
-  /// module. See [`StateManager::binding_mutations`](stylex_state::state_manager::StateManager::binding_mutations).
+  /// module. See [`StateManager::binding_mutations`].
   binding_mutations: FxHashSet<Id>,
   /// Bindings whose referenced value is mutated further down a member chain
   /// than the reference implementation looks. See
-  /// [`StateManager::binding_deep_mutations`](stylex_state::state_manager::StateManager::binding_deep_mutations).
+  /// [`StateManager::binding_deep_mutations`].
   binding_deep_mutations: FxHashSet<Id>,
   /// Stack of enclosing lexical scopes, outermost (module) first.
   scope_stack: Vec<ScopeFrame>,

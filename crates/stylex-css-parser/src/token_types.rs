@@ -469,9 +469,9 @@ impl TokenList {
   /// Consume the next token from an in-memory TokenList.
   ///
   /// `TokenList::consume_next_token` is backed by a `Vec<SimpleToken>` and always
-  /// returns Ok(…); the Result wrapper exists only for trait compatibility.
+  /// returns `Ok(…)`; the `Result` wrapper exists only for trait compatibility.
   /// This wrapper makes the infallibility explicit so call sites don't need a
-  /// `?` operator whose Err branch can never be reached.
+  /// `?` operator whose `Err` branch can never be reached.
   pub fn consume_next_token_infallible(&mut self) -> Option<SimpleToken> {
     self.consume_next_token().ok().flatten()
   }

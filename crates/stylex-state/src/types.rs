@@ -21,6 +21,10 @@ use crate::{functions::FunctionConfigType, state_manager::StateManager};
 use stylex_state_index::key_span_index::KeySpanIndex;
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
+// Only the doc links in this file use this import.
+#[cfg(doc)]
+use crate::functions::FunctionConfig;
+
 pub type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
 pub type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
 
@@ -52,7 +56,7 @@ pub type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
 /// `createTheme` call sets its evaluation up, holds a handful of entries keyed by
 /// API name, and is dropped with it -- nothing builds one per declaration or
 /// walks one in a loop.
-/// The value is a [`FunctionConfigType`] and not a bare [`FunctionConfig`](crate::functions::FunctionConfig)
+/// The value is a [`FunctionConfigType`] and not a bare [`FunctionConfig`]
 /// because this map holds the StyleX API surface reachable off one namespace,
 /// and that surface is not all functions: `when` is a config, and `env` is an
 /// object of values and functions from the `env` option. The member-expression

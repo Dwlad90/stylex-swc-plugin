@@ -441,9 +441,7 @@ impl<'a> Reader<'a> {
   }
 }
 
-/// Runs `read` as a [speculative
-/// read](../../../../../CONTEXT.md#speculative-read), and puts back everything it
-/// refused.
+/// Runs `read` as a [speculative read], and puts back everything it refused.
 ///
 /// `None` where the read refused, so a caller cannot mistake a refusal for a
 /// value: the confidence that says which it was is gone by the time the caller
@@ -454,6 +452,8 @@ impl<'a> Reader<'a> {
 /// Written as one function taking a closure rather than as a save, a call and a
 /// restore at the call site, because the restore is the contract and a `return`
 /// added between the halves would silently drop it.
+///
+/// [speculative read]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 fn speculate(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
@@ -1147,10 +1147,9 @@ impl<'r> Walk<'_, 'r> {
     }
   }
 
-  /// What `expr` holds, where a [dead
-  /// operand](../../../../../CONTEXT.md#dead-operand) beside it may be decided
-  /// from the module at all — and `None` where it may not, which both callers
-  /// take for "walk both sides".
+  /// What `expr` holds, where a [dead operand] beside it may be decided from the
+  /// module at all — and `None` where it may not, which both callers take for
+  /// "walk both sides".
   ///
   /// Deciding is the correctness rather than a saving, and the glossary entry
   /// above is where that is argued. What is decided here is only *whether the
@@ -1166,6 +1165,8 @@ impl<'r> Walk<'_, 'r> {
   /// twice. Both readings go through the evaluator's memo, so the second is a
   /// hash of the subtree and a lookup rather than an evaluation, and it is paid
   /// only where a short-circuiting form was written.
+  ///
+  /// [dead operand]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn deciding_value_of(&mut self, expr: &Expr) -> Option<EvaluateResultValue> {
     match self.guard.scope.inside_a_callback() {
       true => None,
@@ -1235,17 +1236,19 @@ impl<'r> Walk<'_, 'r> {
   ///
   /// An argument with no compile-time value is a rule *inside a callback* and a
   /// shape handed back outside one, which is the same question the [applied
-  /// global](../../../../../CONTEXT.md#applied-global) answers by owning every one
-  /// of its calls. Inside a callback nothing below the fold can answer: the array
-  /// methods that would have run the body moved into the engine, so handing the
-  /// call on ends it at a sentence about the *method*, naming neither the argument
-  /// nor the reason. Outside one the dispatch may still own the call around this
-  /// one, and a rule raised here would take a fold away from it.
+  /// global] answers by owning every one of its calls. Inside a callback nothing
+  /// below the fold can answer: the array methods that would have run the body
+  /// moved into the engine, so handing the call on ends it at a sentence about
+  /// the *method*, naming neither the argument nor the reason. Outside one the
+  /// dispatch may still own the call around this one, and a rule raised here
+  /// would take a fold away from it.
   ///
   /// A call written on its own never reaches here at all: the fold walks a value,
   /// and the outermost call stays the dispatch's. That is deliberate — it resolves
   /// its arguments this compiler's own way, a theme reference included, and the
   /// engine holds no value for one of those.
+  ///
+  /// [applied global]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn admit_a_stylex_function(
     &mut self,
     callable: &EngineCallable,

@@ -1,10 +1,10 @@
 //! The StyleX functions the compile-time engine is allowed to call.
 //!
-//! The [folded function map](../../../../../CONTEXT.md#folded-function-map) is
-//! not JavaScript: its values are this compiler's own Rust functions, and most
-//! of them answer by writing into the build — `keyframes` injects a rule and
-//! hands back the name it hashed. Carrying the map into the engine as a value
-//! was measured and rejected for exactly that reason.
+//! The [folded function map] is not JavaScript: its values are this compiler's
+//! own Rust functions, and most of them answer by writing into the build —
+//! `keyframes` injects a rule and hands back the name it hashed. Carrying the
+//! map into the engine as a value was measured and rejected for exactly that
+//! reason.
 //!
 //! One of them answers from its arguments and nothing else. `firstThatWorks`
 //! reorders the fallbacks it was handed and folds the CSS variables among them
@@ -12,13 +12,15 @@
 //! stop the engine running it — and nothing an author could reach through it
 //! that they could not reach by calling it directly. It travels as a function of
 //! the engine's own, built over the same [shared
-//! core](../../stylex_first_that_works.rs) the evaluator's
-//! own path calls, so the two cannot come to answer differently.
+//! core](crate::stylex_first_that_works) the evaluator's own path calls, so the
+//! two cannot come to answer differently.
 //!
 //! What that buys is a callback: `a.map(x => firstThatWorks(x, 'serif'))` is
 //! one JavaScript call per element, which is the engine's job and not this
 //! compiler's. Every other StyleX function stays where it was — the fold hands
 //! its call back, and the dispatch behind the fold calls it as it always has.
+//!
+//! [folded function map]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 
 use boa_engine::{
   Context, JsResult, JsString, JsValue, native_function::NativeFunctionPointer,

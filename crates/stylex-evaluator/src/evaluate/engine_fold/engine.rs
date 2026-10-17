@@ -166,14 +166,15 @@ impl FoldKey {
   }
 }
 
-/// A thread's engine and the [fold memo](../../../../../CONTEXT.md) that may only
-/// live as long as it does.
+/// A thread's engine and the [fold memo] that may only live as long as it does.
 ///
 /// The two are one value because their lifetimes are one lifetime. A compiled
 /// script belongs to a particular engine's realm, so a memo that outlived its
 /// engine would hand a later engine a script from a realm that no longer exists,
 /// and a memo built before the engine would have nothing to parse against.
 /// Holding them together is what makes both impossible to write.
+///
+/// [fold memo]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 pub(super) struct Engine {
   pub(super) context: Context,
   /// One compiled script per distinct printed expression.

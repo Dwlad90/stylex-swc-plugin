@@ -3,9 +3,9 @@
 //!
 //! Third-party code. Copyright (c) Bogdan Chadkin <trysound@yandex.ru>,
 //! `postcss-value-parser` v4.2.0 at revision `43ae6d3`. MIT licensed; the full
-//! notice ships beside this crate in `LICENSE`, the repository's
-//! [`NOTICE.md`](../../NOTICE.md) lists it alongside everything else here that
-//! somebody else wrote, and the behaviour is that library's, quirks and all.
+//! notice ships beside this crate in `LICENSE`, the repository's [`NOTICE.md`]
+//! lists it alongside everything else here that somebody else wrote, and the
+//! behaviour is that library's, quirks and all.
 //!
 //! It has a crate to itself for that reason. It is somebody else's work, it is
 //! left reading the way it was written rather than idiomatised, and a crate
@@ -75,6 +75,8 @@
 //! not the JavaScript's own tests, and not the normalizers, which reach the
 //! list they want to restructure directly instead. [`walk()`] spells out what
 //! follows from that.
+//!
+//! [`NOTICE.md`]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/NOTICE.md
 
 mod parse;
 mod stringify;

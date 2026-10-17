@@ -12,6 +12,9 @@
 //!   (CSS rule emission, debug snapshots, etc.). Document the reason with a
 //!   `// JS-parity:` comment citing the JS source line.
 
+// Do not copy the indexmap docs into the docs of this crate. They hold relative
+// links to pages that only the indexmap docs have.
+#[doc(no_inline)]
 pub use indexmap::{IndexMap, IndexSet, map::Entry as IndexMapEntry};
 pub use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet, FxHasher};
 

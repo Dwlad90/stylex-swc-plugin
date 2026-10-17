@@ -134,10 +134,12 @@ fn index_slot(key: &str) -> Option<usize> {
 /// The caller finds the element and this answers for its absence. The two
 /// receivers hold their elements differently -- one holds the element, and the
 /// other a slot that a hole or a spread could occupy -- so each reads its own
-/// shape down to an element first. Neither ever carries either, because both are
-/// [evaluator-written arrays](../../../CONTEXT.md#evaluator-written-array); the
-/// slot reader stops trusting that rather than resting on it, because the answer
-/// a hole or a spread would be read as is a value and not a refusal.
+/// shape down to an element first. Neither ever carries either, because both
+/// are [evaluator-written arrays]; the slot reader stops trusting that rather
+/// than resting on it, because the answer a hole or a spread would be read as
+/// is a value and not a refusal.
+///
+/// [evaluator-written arrays]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 fn index_answer<T>(
   element: Option<&T>,
   read: impl FnOnce(&T) -> EvaluateResultValue,

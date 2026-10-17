@@ -333,9 +333,9 @@ impl Walk<'_, '_> {
   ///
   /// A literal is answered where it stands, because that is the common spelling
   /// and reading it costs nothing. Anything else is resolved through the
-  /// evaluator, which is a [speculative read](../../../../../CONTEXT.md) like
-  /// every other the guard makes — and one the fold would pay for anyway, since a
-  /// call it admits evaluates the same argument a moment later.
+  /// evaluator, which is a [speculative read] like every other the guard makes —
+  /// and one the fold would pay for anyway, since a call it admits evaluates the
+  /// same argument a moment later.
   ///
   /// Whatever it resolves to then goes through the compiler's own `ToNumber`,
   /// because that is what the language does to it: `'x'.repeat('3')` repeats three
@@ -348,6 +348,8 @@ impl Walk<'_, '_> {
   /// receiver's index one step along. Neither has a value here — the engine binds
   /// both — but each has a *ceiling*, taken off the same measurement the repeats
   /// were, and a ceiling is all a bound ever needed.
+  ///
+  /// [speculative read]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn count_bound(&mut self, expr: &Expr) -> Option<u64> {
     if let Expr::Lit(_) = expr {
       return count_written(expr);

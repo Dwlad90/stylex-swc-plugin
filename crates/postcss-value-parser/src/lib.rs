@@ -73,7 +73,7 @@
 //! A walk callback is handed the node and its index, but not the list holding
 //! it: Rust cannot lend out both at once. Nothing reads that third argument —
 //! not the JavaScript's own tests, and not the normalizers, which reach the
-//! list they want to restructure directly instead. [`walk`] spells out what
+//! list they want to restructure directly instead. [`walk()`] spells out what
 //! follows from that.
 
 mod parse;

@@ -206,7 +206,7 @@ pub(super) struct Engine {
   /// every group in the build reads through.
   pub(super) var_group: JsFunction,
   /// The reader and the caller every printed fold that needs one is handed —
-  /// see [`backstop`](super::backstop).
+  /// see [`backstop`].
   pub(super) backstops: Backstops,
 }
 
@@ -234,7 +234,7 @@ impl Engine {
   /// A context with the one runtime limit its default leaves open, without the
   /// one thing the language provides that this compiler cannot — function source
   /// text — with the `Math` statics of Node in place of the ones that differ
-  /// (see [`math`](super::math)), and with an empty memo.
+  /// (see [`math`]), and with an empty memo.
   ///
   /// Answers a refusal rather than asserting, because the assignment runs inside
   /// an evaluation whose whole contract is that it may fail — and because an
@@ -448,7 +448,7 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
 }
 
 /// One tree of the printed source with each `**` changed into a call of the
-/// native that computes it as Node does (see [`math`](super::math)), and with
+/// native that computes it as Node does (see [`math`]), and with
 /// the fold's two checks put in. Answers whether the tree needs the checks.
 fn prepared_for_the_engine(tree: &mut Expr) -> bool {
   math::exponentiation_as_native_calls(tree);

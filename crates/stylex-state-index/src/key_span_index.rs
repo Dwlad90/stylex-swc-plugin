@@ -71,7 +71,7 @@ impl FileOffset {
   /// the "rank by earliest in the file" failure this type exists to prevent.
   ///
   /// Crate-visible rather than private so the suite beside this module can
-  /// reach it -- unconditionally, unlike [`Self::at`], because production calls
+  /// reach it -- unconditionally, unlike `Self::at`, because production calls
   /// it. The invariant is unchanged either way: a caller still has to supply a
   /// [`ModuleBase`], which is the whole of what the type asks.
   pub(crate) fn of(position: BytePos, base: ModuleBase) -> Self {

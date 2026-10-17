@@ -915,7 +915,7 @@ enum Declared {
 /// that argument *is* a number: `Array(3)` is three holes, where `Array('3')` is
 /// one element holding a string and `Array('a', 'b')` is two elements. So the
 /// number is read as the language reads it rather than through `ToNumber`, which
-/// is where this parts company with [`resolved_count`] — `'x'.repeat('3')`
+/// is where this parts company with [`count_resolved`] — `'x'.repeat('3')`
 /// repeats three times and `Array('3')` does not.
 ///
 /// A number that is not a valid array length — fractional, negative, `NaN`,

@@ -282,7 +282,7 @@ fn dynamic_namespace_fn(
 /// rewritten as the function that entry is called as.
 ///
 /// The namespaces arrive as the named list
-/// [`compiled_namespaces`](crate::shared::utils::core::js_to_ast::compiled_namespaces)
+/// [`compiled_namespaces`]
 /// wrote a step earlier, so the shape of each one is settled by its type and
 /// nothing here asks about it again.
 pub(super) fn apply_dynamic_style_functions(

@@ -52,7 +52,7 @@ pub type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
 /// `createTheme` call sets its evaluation up, holds a handful of entries keyed by
 /// API name, and is dropped with it -- nothing builds one per declaration or
 /// walks one in a loop.
-/// The value is a [`FunctionConfigType`] and not a bare [`FunctionConfig`]
+/// The value is a [`FunctionConfigType`] and not a bare [`FunctionConfig`](crate::functions::FunctionConfig)
 /// because this map holds the StyleX API surface reachable off one namespace,
 /// and that surface is not all functions: `when` is a config, and `env` is an
 /// object of values and functions from the `env` option. The member-expression

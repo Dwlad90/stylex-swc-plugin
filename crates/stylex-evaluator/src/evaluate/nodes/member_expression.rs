@@ -48,7 +48,7 @@ enum ArrayLikeLookup {
 /// The property an evaluated key names, which is `String(key)`.
 ///
 /// One reading for every key a member read is written with, and the same one
-/// [`evaluate_obj_key`](crate::evaluate::evaluate_obj_key) writes a key with:
+/// [`evaluate_obj_key`] writes a key with:
 /// `{ [true]: 'red' }` names the property `true`, so `obj[true]` has to look
 /// for that one. Three readers answered this before -- an array-like lookup, an
 /// object read and the `env` object -- and none of them named a boolean, `null`

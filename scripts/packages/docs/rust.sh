@@ -27,7 +27,9 @@ if [ "$build_rust" = true ]; then
   else
     verbose_flag=""
   fi
-  export RUSTDOCFLAGS="--enable-index-page -Zunstable-options"
+  # These docs include private items, so a link from a public item to a
+  # private item resolves on the site. Allow the lint that reports it.
+  export RUSTDOCFLAGS="--enable-index-page -Zunstable-options -A rustdoc::private_intra_doc_links"
 
   cargo doc --no-deps --document-private-items $verbose_flag $open_docs || handle_error "Failed to build cargo docs"
 fi

@@ -137,31 +137,30 @@ const css = processStylexRules(rules, { useLayers: true });
 It takes the options `@stylexjs/babel-plugin`'s export takes -- `useLayers`
 (`true`, `false` or `{ before, after, prefix }`), `enableLTRRTLComments`,
 `legacyDisableLayers`, `useLegacyClassnamesSort`, or a bare boolean standing for
-`useLayers` -- and writes the same bytes for the same rules. It also reads the
-arguments as loosely as the reference does: a tuple's elements after the third
-are not read, a missing priority is `NaN` (a group of its own outside the
-layers), a numeric-string priority is its number, `useLayers` is on for every
-value but `false` and `null`, the flags are read by truthiness, and a `null`
-layer option is its default.
+`useLayers` -- and writes the same bytes for the same rules. It reads the
+arguments as the reference's JavaScript reads them, also for a value outside
+the published types: a priority as `Number(...)` reads it (a missing or
+`undefined` one is `NaN`, `null` is 0), a class name, a constant and a layer
+option as `String(...)` spells them, `before` and `after` as a spread reads
+them (a string gives its characters), a class name as a `Map` key
+(`SameValueZero`, so `1` and `'1'` are two), and a hole in the rules is skipped
+as `filter` skips it. The rules are sorted with V8's own sort algorithm, so a
+comparison that is not a consistent order (a `NaN` priority) gives the order
+Node gives. Where the reference throws, this export throws too, with a
+`processStylexRules:` message of its own.
 
 #### Where it differs from `@stylexjs/babel-plugin`
 
-For a value outside the published types, the reference writes a sheet by
-coercion and this export refuses the call with a `processStylexRules:` error.
-Every call that typechecks against the reference's `index.d.ts` is read the
-same way by both.
-
-| Input                                                 | `@stylexjs/babel-plugin` 0.19.1               | `@stylexswc/rs-compiler`                                     |
-| ----------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| `useLayers: { prefix: 5 }`, `{ prefix: true }`        | `@layer 5.priority1`, `true.priority1`        | refused: `prefix` is a string                                |
-| `useLayers: { before: 'ab' }`, `{ before: ['a', 5] }` | `@layer a, b, priority1`, `a, 5, …`           | refused: `before`/`after` are strings                        |
-| a class name that is not a string (`[12, …]`)         | writes the rule                               | refused                                                      |
-| `constVal: {}`, `constVal: ['a', 'b']`                | `color:[object Object]`, `color:a,b`          | refused: a string, a number or a boolean                     |
-| `rules = { length: 0 }`                               | `""`                                          | refused: an array                                            |
-| a priority that is an array or an object              | `NaN`, `0` or the element                     | refused                                                      |
-| a `BigInt` priority                                   | throws on mixed arithmetic                    | read as a number                                             |
-| a style rule's `rtl` that is a truthy non-string      | throws                                        | refused (the same)                                           |
-| a `NaN` priority among others                         | sorted by a comparator that is not consistent | the same order for small inputs; not promised for large ones |
+| Input                                                                                                         | `@stylexjs/babel-plugin` 0.19.1              | `@stylexswc/rs-compiler`          |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------- |
+| a function, a symbol or a `BigInt` anywhere in the arguments                                                  | read where it is used, else ignored          | refused                           |
+| a value that contains itself, or nests more than 64 levels deep                                               | read where it is used, else ignored          | refused                           |
+| an object that owns `toString` or `valueOf`, spelled as text                                                  | calls or rejects that property               | `[object Object]`                 |
+| an object that is not plain: a class instance, a boxed primitive, a getter, an inherited or a hidden property | read through its prototype and its `valueOf` | read as its enumerable properties |
+| one object or array used twice as a class name                                                                | one `Map` key                                | two keys                          |
+| an `ltr` text that is an array, compared as the second of a pair                                              | read through the array methods               | refused at the comparison         |
+| non-ASCII text in the sort                                                                                    | the build machine's locale                   | the root locale                   |
+| a text with no `{` that ends in a character outside the BMP                                                   | `slice(-1)` splits the surrogate pair        | the whole character               |
 
 The signature is a superset of the published one: `rules` is `readonly`,
 `config` and `useLayers` also take `null` (read as absent, as the runtime

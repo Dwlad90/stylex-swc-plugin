@@ -56,6 +56,7 @@ use stylex_logs::initializer::initialize as initialize_logger;
 use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
+use stylex_js::value::JsValue;
 use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
 use stylex_stylesheet::process;
 use stylex_transform::StyleXTransform;
@@ -75,7 +76,7 @@ use swc_core::{
 };
 
 use napi_derive::napi;
-use utils::extract_stylex_metadata;
+use utils::{extract_stylex_metadata, read_js_value};
 
 use crate::enums::SourceMaps;
 
@@ -494,20 +495,16 @@ pub fn transform(
 /// transformed file, `[className, { ltr, rtl, constKey, constVal }, priority]`,
 /// in the order the files were compiled; `config` is the reference's.
 ///
-/// Both arguments are read as the reference reads them (`stylex_stylesheet`'s
-/// `CONTEXT.md`, "Rule" and "Config"): a tuple's first three elements and no
-/// more, a priority as JavaScript arithmetic reads it (`NaN` for a missing
-/// one), `useLayers` by the `!== false` rule, the flags by truthiness. Where
-/// the reference writes a sheet from a value outside its published types (a
-/// numeric class name, a layer option that is not a string) the port refuses
-/// it; a style rule with no `ltr` text and a circular constant are refused as
-/// the reference throws on them. The README lists the differences.
+/// Both arguments are read as JavaScript values (`utils::js_value_reader`) and
+/// then as the reference reads them (`stylex_stylesheet`'s `CONTEXT.md`,
+/// "Rule" and "Config"): a value outside the published types writes the sheet
+/// the reference writes, and a value the reference throws on is refused. The
+/// README lists what differs.
 ///
-/// The arguments arrive as JavaScript values and are read in the function
-/// body, so every refusal carries the `processStylexRules:` prefix. The
-/// TypeScript signature is written out here rather than derived: the type a
-/// consumer sees is a superset of the one the reference publishes (readonly
-/// arrays, `null`, `useLegacyClassnamesSort`; `src/index.ts` lists them).
+/// Every refusal carries the `processStylexRules:` prefix. The TypeScript
+/// signature is written out here rather than derived: the type a consumer sees
+/// is a superset of the one the reference publishes (readonly arrays, `null`,
+/// `useLegacyClassnamesSort`; `src/index.ts` lists them).
 #[rustfmt::skip]
 #[napi(
   ts_args_type = "rules: readonly StyleXMetadata['stylex'][number][], config?: boolean | { readonly useLayers?: boolean | { readonly before?: readonly string[]; readonly after?: readonly string[]; readonly prefix?: string } | null; readonly enableLTRRTLComments?: boolean; readonly legacyDisableLayers?: boolean; readonly useLegacyClassnamesSort?: boolean } | null",
@@ -518,18 +515,13 @@ pub fn process_stylex_rules(
   rules: Unknown<'_>,
   config: Option<Unknown<'_>>,
 ) -> Result<String> {
-  let rules: Vec<process::Rule> = env.from_js_value(rules).map_err(|error| {
-    napi::Error::from_reason(format!("processStylexRules: the rules could not be read: {error}"))
-  })?;
-
-  let config: process::ProcessStylexRulesConfig = match config {
-    None => Default::default(),
-    Some(value) => env.from_js_value(value).map_err(|error| {
-      napi::Error::from_reason(format!("processStylexRules: the config could not be read: {error}"))
-    })?,
+  let rules = read_js_value(&env, rules, "the rules")?;
+  let config = match config {
+    Some(config) => read_js_value(&env, config, "the config")?,
+    None => JsValue::Undefined,
   };
 
-  process::process_stylex_rules(&rules, &config)
+  process::process_stylex_rule_values(rules, &config)
     .map_err(|error| napi::Error::from_reason(format!("processStylexRules: {error}")))
 }
 

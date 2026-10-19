@@ -14,7 +14,8 @@ it sorts by. [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) exports it
 beside `transform` as `processStylexRules`. The crate sits on rung 3 of the
 ladder in [STRUCTURE.md](../../guidelines/STRUCTURE.md), above
 [stylex-css-parser](../stylex-css-parser/CONTEXT.md),
-[stylex-constants](../stylex-constants/CONTEXT.md),
+[stylex-js](../stylex-js/CONTEXT.md) (the JavaScript value it reads and V8's
+sort), [stylex-constants](../stylex-constants/CONTEXT.md),
 [stylex-regex](../stylex-regex/CONTEXT.md) and
 [stylex-utils](../stylex-utils/CONTEXT.md).
 
@@ -29,17 +30,26 @@ a rename here moves that constant.
 **Rule**:
 One emitted rule as the reference's `Rule` tuple: `[className, { ltr, rtl?,
 constKey?, constVal? }, priority]`, the rows of a compile's `metadata.stylex`.
-A rule with both `constKey` and `constVal` is a **constant** (a `defineConsts`
-value) and injects no text; every other rule is a style. A rule deserializes as
-the reference destructures it: the first three elements and no more, the
-priority as JavaScript arithmetic reads it (`Number(value)`: a missing one is
-`NaN`, `null` is 0, a numeric string is its number), a style rule's `ltr`
-required as a string (the reference throws without it), its `rtl` a string or
-a falsy value read as no RTL text. The class name is a string and a constant's
-value a string, a number or a boolean; the reference coerces other values into
-the sheet (`[object Object]`) and the port refuses them, which the rs-compiler
-README lists.
+A rule with both `constKey` and `constVal` not `null` is a **constant** (a
+`defineConsts` value) and injects no text; every other rule is a style. A rule
+is read from a JavaScript value as the reference destructures it: the first
+three items of an iterable (an array, or a string's characters), the style
+spread (so only an object gives an `ltr`; `null` and `undefined` throw), the
+priority as `Number(...)` reads it (a missing one is `NaN`). The class name is
+kept as it arrived: `String(...)` spells it in a constant's name, and it is a
+`Map` key by `SameValueZero` in the dedupe. A constant's value of any kind
+substitutes as `String(...)` spells it. A style rule's `ltr` must be a string
+where it is read (in the sort, and where it is written), and a truthy `rtl`
+too; a rule that is never read there is never refused.
 _Avoid_: injectable style (the producer-side type in stylex-types), entry
+
+**Value reading**:
+The reading of the two arguments from a `JsValue`, in the reference's order:
+the early return on `rules.length === 0` (an empty array, an empty string, or
+an object whose `length` is 0), then the config, then the rules, with a hole
+skipped as `filter` skips it. A value the reference throws on is refused with
+a `ProcessStylexRulesError` of the port's own wording.
+_Avoid_: deserialization, parsing, validation
 
 **Constant substitution**:
 Before the sort, every constant's value is resolved through the constants it
@@ -52,19 +62,25 @@ replacement, dollar patterns included, as the reference calls them.
 _Avoid_: inlining, expansion
 
 **Priority group**:
-The sorted rules cut at each change of `floor(priority / 1000)`; one group is
+The sorted rules cut at each change of `floor(priority / 1000)` (a `NaN` level
+equals no level, so each `NaN` rule is a group of its own); one group is
 one `@layer priorityN` when layers are on (a group whose first rule has
 priority 0 stays outside every layer), else one run of rules carrying N - 1
 copies of the **specificity level** `:not(#\#)` unless `legacyDisableLayers`
 asks for neither. Within a group a class name appears once, at its first
-position with its last style, as `new Map(...)` keeps it.
+position with its last style, as `new Map(...)` keeps it. The reference's
+grouping starts at level -1 with no group, so a first rule at level -1 (a
+priority from -1000 to less than 0) is refused, as the reference throws.
 _Avoid_: layer bucket, tier
 
 **Layer options**:
 `useLayers` as an object: layers to declare `before` and `after` the priority
 layers in the `@layer` header, and a `prefix` for their names
 (`prefix.priorityN`). `true` is the object with nothing set; `false`, `null` and
-an absent key are no layers.
+an absent key are no layers. `before` and `after` are read as the header
+spreads them (an array gives its elements and a string its characters; any
+other value throws) and spelled as `join` spells them (`null` as nothing). The
+prefix is read by truthiness and then spelled with `String(...)`.
 _Avoid_: layer config
 
 **Config**:
@@ -74,13 +90,19 @@ property read each): a boolean is `useLayers`; `null` and a value that is not an
 object have no properties, so every option is at its default. `useLayers` is on
 for every value but `false` and `null` (`!== false`), with the defaults when
 the value is not an object; the three flags are read by JavaScript truthiness
-(`null`, `0` and `""` are off). Inside the object, a `null` property is its
-default (`?? []`, `?? ''`). Where the port is stricter than the runtime:
-`before` and `after` take an array of strings and `prefix` a string, the
-declared type; the reference would spread a string `before` into its
-characters and print a number `prefix`, and the port refuses both at
-deserialization.
+(`null`, `0`, `NaN` and `""` are off). Inside the object, a `null` property is
+its default (`?? []`, `?? ''`).
 _Avoid_: options bag, loose config
+
+**Sort**:
+`Array.prototype.sort` with the reference's comparator, which answers a number:
+the priority difference, then -1, 0 or 1 from `localeCompare`, or a width bound
+difference. A priority difference that is `NaN` (a missing priority, or two
+equal infinities) is returned as it is and read as a tie, so the comparator is
+not a consistent order for such rules. The port sorts with V8's TimSort
+([stylex-js](../stylex-js/CONTEXT.md), "Array sort"), so each comparison is the
+one Node makes and the order is the one Node gives.
+_Avoid_: stable sort, ordering
 
 **RTL twin**:
 A style whose `rtl` text differs is written twice, under

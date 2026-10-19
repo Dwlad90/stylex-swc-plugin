@@ -61,6 +61,11 @@ function answers(rules: readonly StyleXRule[], config?: unknown): [Answer, Answe
 
 const STYLE: StyleXRule[1] = { ltr: '.x1{color:red}', rtl: null };
 
+/** A style with this `ltr` text and no RTL text. */
+function styleOf(ltr: string): StyleXRule[1] {
+  return { ltr, rtl: null };
+}
+
 /** The message a call refuses with; a call that answers fails the test. */
 function refused(run: () => string): string {
   try {
@@ -150,45 +155,25 @@ describe('processStylexRules', () => {
     );
   });
 
-  test('refuses a value outside the published types with the processStylexRules: prefix', () => {
+  test('refuses what the reference throws on, with the processStylexRules: prefix', () => {
     const rules: StyleXRule[] = [['x1', { ltr: '.x1{color:red}', rtl: null }, 3000]];
 
-    // The rules are not an array of tuples.
-    expect(refused(() => processStylexRules([{ ltr: '.x{}' }] as unknown as StyleXRule[]))).toMatch(
-      /^processStylexRules: the rules could not be read/
+    expect(refused(() => processStylexRules([{ ltr: '.x{}' }] as unknown as StyleXRule[]))).toBe(
+      'processStylexRules: rule 0 is an object, not a [className, style, priority] list'
     );
-    expect(refused(() => processStylexRules({ length: 0 } as unknown as StyleXRule[]))).toMatch(
-      /^processStylexRules: the rules could not be read/
+    expect(refused(() => processStylexRules('ab' as unknown as StyleXRule[]))).toBe(
+      'processStylexRules: the rules are a string, not a list'
     );
-    // A layer option outside its declared type (the README lists these).
-    for (const useLayers of [
-      { prefix: 5 },
-      { prefix: true },
-      { before: 'ab' },
-      { before: ['a', 5] },
-    ]) {
-      expect(
-        refused(() =>
-          processStylexRules(rules, { useLayers } as unknown as ProcessStylexRulesConfig)
-        )
-      ).toMatch(/^processStylexRules: the config could not be read/);
-      // The reference writes a sheet from each of them.
-      expect(typeof babelProcessStylexRules(rules, { useLayers } as never)).toBe('string');
-    }
-    // A class name that is not a string, a constant whose value is not a
-    // string, a number or a boolean.
-    expect(
-      refused(() => processStylexRules([[12, { ltr: '.x1{color:red}' }, 3000]] as never))
-    ).toMatch(/^processStylexRules: the rules could not be read/);
     expect(
       refused(() =>
-        processStylexRules([
-          ['xA', { constKey: 'xA', constVal: {} }, 0],
-          ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
-        ] as never)
+        processStylexRules(rules, {
+          useLayers: { before: 5 },
+        } as unknown as ProcessStylexRulesConfig)
       )
-    ).toMatch(/^processStylexRules: the rules could not be read/);
-    // A refusal the reference shares, now under the same prefix.
+    ).toBe('processStylexRules: the layer option before is a number, not a list or a string');
+    expect(refused(() => processStylexRules([['x1', { ltr: 5 }, 3000]] as never))).toBe(
+      'processStylexRules: the ltr text of class x1 is a number, not a string'
+    );
     expect(
       refused(() =>
         processStylexRules([
@@ -198,6 +183,120 @@ describe('processStylexRules', () => {
         ])
       )
     ).toBe('processStylexRules: circular reference detected for constant --xB');
+  });
+
+  test('refuses a value that has no JavaScript data form, wherever it sits', () => {
+    const style = { ltr: '.x1{color:red}', rtl: null };
+    const selfHolding: Record<string, unknown> = { ...style };
+    selfHolding.self = selfHolding;
+    let deep: unknown = 'x';
+    for (let level = 0; level < 70; level++) {
+      deep = [deep];
+    }
+
+    for (const [rules, message] of [
+      [[['x1', style, 3000, () => 0]], 'the rules hold a function, which cannot be read'],
+      [[['x1', style, Symbol('s')]], 'the rules hold a symbol, which cannot be read'],
+      [
+        [['x1', style, 10n]],
+        'the rules hold a big integer or a value of an unknown kind, which cannot be read',
+      ],
+      [
+        [['x1', selfHolding, 3000]],
+        'the rules hold a value that contains itself, which cannot be read',
+      ],
+      [[['x1', style, deep]], 'the rules nest more than 64 levels deep, which cannot be read'],
+    ] as const) {
+      expect(refused(() => processStylexRules(rules as never))).toBe(
+        `processStylexRules: ${message}`
+      );
+    }
+    expect(refused(() => processStylexRules([['x1', style, 3000]], { a: () => 0 } as never))).toBe(
+      'processStylexRules: the config hold a function, which cannot be read'
+    );
+    // One object in two places is not a cycle.
+    const shared = { ltr: '.x1{color:red}', rtl: null };
+    expect(
+      processStylexRules([
+        ['x1', shared, 3000],
+        ['x1', shared, 3000],
+      ])
+    ).toBe(
+      babelProcessStylexRules([
+        ['x1', shared, 3000],
+        ['x1', shared, 3000],
+      ])
+    );
+  });
+
+  test('reads undefined, null, -0 and a number past 2^63 as JavaScript holds them', () => {
+    const cases: unknown[][] = [
+      // An undefined priority is NaN and a null one is 0.
+      [
+        ['x1', styleOf('.x1{a:0}'), 1000],
+        ['x2', styleOf('.x2{b:0}'), undefined],
+      ],
+      [
+        ['x1', styleOf('.x1{a:0}'), 1000],
+        ['x2', styleOf('.x2{b:0}'), null],
+      ],
+      // `String(undefined)` and `String(null)` name two constants.
+      [
+        [undefined, { constKey: 'k', constVal: 'red' }, 0],
+        [null, { constKey: 'k', constVal: 'blue' }, 0],
+        ['x1', styleOf('.x1{a:var(--undefined);b:var(--null)}'), 3000],
+      ],
+      // A number past 2^63 is spelled with an exponent.
+      [
+        [1e21, { constKey: 'k', constVal: 1e21 }, 0],
+        ['x1', styleOf('.x1{a:var(--1e+21)}'), 3000],
+      ],
+      [[-0, styleOf('.a{a:0}'), -0]],
+      [
+        [0, styleOf('.a{a:0}'), 3000],
+        [-0, styleOf('.b{a:0}'), 3000],
+      ],
+      // A key with a NUL character is a key like any other.
+      [['x1', { ltr: '.x1{a:0}', 'a\u0000b': 1 }, 3000]],
+    ];
+    for (const rules of cases) {
+      for (const config of [true, false]) {
+        const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+        expect(rust).toEqual(babel);
+      }
+    }
+  });
+
+  test('skips a hole in the rules as filter does, and writes the header for no rules', () => {
+    const rule: StyleXRule = ['x1', { ltr: '.x1{a:0}', rtl: null }, 3000];
+    // oxlint-disable-next-line no-sparse-arrays -- a hole is the input under test
+    const holes: unknown[] = [, ,];
+    const withHole: unknown[] = [];
+    withHole[1] = rule;
+    for (const rules of [holes, withHole, [undefined, rule], '', { length: 0 }, { length: 1 }]) {
+      for (const config of [true, false, { useLayers: { before: ['a'], after: ['b'] } }]) {
+        const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+        expect(rust).toEqual(babel);
+      }
+    }
+  });
+
+  test('sorts as V8 sorts when NaN priorities make the order inconsistent', () => {
+    const properties = ['color', 'margin', 'padding', 'top', 'left'];
+    const rules: unknown[] = [];
+    for (let i = 0; i < 80; i++) {
+      const priority =
+        i % 7 === 3 ? Number.NaN : i % 11 === 5 ? undefined : (i % 3) * 1000 + (i % 4) * 100;
+      rules.push([
+        `x${i}`,
+        { ltr: `.x${i}{${properties[(i * 7) % 5]}:${(i * 13) % 17}}`, rtl: null },
+        priority,
+      ]);
+    }
+    for (const config of [true, false, { useLegacyClassnamesSort: true }]) {
+      const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+      expect(rust).toEqual(babel);
+    }
   });
 
   test('reads a config as loosely as the reference does', () => {
@@ -211,6 +310,17 @@ describe('processStylexRules', () => {
       { useLayers: { before: null, prefix: null } }, // `?? []`, `?? ''`
       { useLayers: false, enableLTRRTLComments: 1, legacyDisableLayers: null }, // truthiness
       { useLayers: false, enableLTRRTLComments: NaN }, // NaN is falsy
+      { useLayers: [1] }, // an array is an object with none of the properties
+      { useLayers: { before: 'a😀', after: [true, {}, null, [1, 2]] } }, // spread, then join
+      { useLayers: { before: ['a', 5, null, undefined] } },
+      { useLayers: { before: 5 } }, // not iterable: both throw
+      { useLayers: { after: {} } },
+      { useLayers: { prefix: 5 } }, // truthiness, then `String(...)`
+      { useLayers: { prefix: 0 } },
+      { useLayers: { prefix: [] } },
+      { useLayers: { prefix: {} } },
+      { useLayers: { prefix: NaN } },
+      { useLayers: { prefix: true } },
     ];
     const withRtl: StyleXRule[] = [['x1', { ltr: '.x1{a:0}', rtl: '.x1{b:0}' }, 3000]];
     for (const config of loose) {
@@ -259,18 +369,131 @@ describe('processStylexRules', () => {
         ['xA', { constKey: 'xA', constVal: 'red', ltr: 5, rtl: 7 }, 0],
         ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
       ],
+      // NaN and Infinity priorities: a comparator that is not a consistent order.
+      [
+        ['x1', { ltr: '.x1{b:0}' }],
+        ['x2', { ltr: '.x2{a:0}' }],
+      ],
+      [
+        ['x1', { ltr: '.x1{b:0}' }, Infinity],
+        ['x2', { ltr: '.x2{a:0}' }, Infinity],
+      ],
+      // A priority, a class name or a constant of any kind, coerced.
+      [
+        ['x1', style, [1000]],
+        ['x2', { ltr: '.x2{b:0}' }, 3000],
+      ],
+      [
+        ['x1', style, {}],
+        ['x2', { ltr: '.x2{b:0}' }, 3000],
+      ],
+      [
+        ['x1', style, [1, 2]],
+        ['x2', { ltr: '.x2{b:0}' }, 3000],
+      ],
+      [[12, { ltr: '.x12{a:0}' }, 3000]],
+      [
+        [1, { ltr: '.a{a:0}' }, 3000],
+        ['1', { ltr: '.b{a:0}' }, 3000],
+      ],
+      [
+        [NaN, { ltr: '.a{a:0}' }, 3000],
+        [NaN, { ltr: '.b{a:0}' }, 3000],
+      ],
+      [
+        [{}, { ltr: '.a{a:0}' }, 3000],
+        [{}, { ltr: '.b{a:0}' }, 3000],
+      ],
+      [
+        ['xA', { constKey: 5, constVal: 'red' }, 0],
+        ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+      ],
+      [
+        ['xA', { constKey: 'xA', constVal: {} }, 0],
+        ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+      ],
+      [
+        ['xA', { constKey: 'xA', constVal: ['a', ['b', null]] }, 0],
+        ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+      ],
+      // A string rule is iterable, and its style is a character.
+      [['ab']],
+      [['ab1', ['a', { ltr: '.a{x:0}' }, 1]]],
+      // A style that is not an object has no ltr.
+      [['x1', 5, 3000]],
+      [['x1', ['a'], 3000]],
+      // A text that is never read is never refused.
+      [
+        ['x1', { ltr: 5 }, 1000],
+        ['x1', { ltr: '.x1{a:0}' }, 1500],
+      ],
+      [
+        ['x1', { ltr: 5 }, 1000],
+        ['x2', { ltr: '.x2{a:0}' }, 1500],
+      ],
+      [
+        ['x1', { ltr: '.x1{a:0}', rtl: 5 }, 1000],
+        ['x1', { ltr: '.x1{b:0}' }, 1500],
+      ],
+      [
+        ['x1', { ltr: ['var(--stylex-logical-start)'] }, 1000],
+        ['x1', { ltr: '.x1{a:0}' }, 1500],
+      ],
+      // A first rule at priority level -1 has no group in the reference.
+      [['x1', style, -1]],
+      [['x1', style, -1000]],
+      [['x1', style, -1001]],
+      [
+        ['x0', style],
+        ['x1', style, -1],
+      ],
+      // A prelude is trimmed as `trimEnd` trims.
+      [
+        ['x1', { ltr: '@media (min-width: 10px)\u0085{.x1{a:0}}' }, 3000],
+        ['x2', { ltr: '@media (min-width: 5px)\u0085{.x2{a:0}}' }, 3000],
+      ],
+      [
+        ['x1', { ltr: '@media (min-width: 10px)\uFEFF{.x1{a:0}}' }, 3000],
+        ['x2', { ltr: '@media (min-width: 5px)\uFEFF{.x2{a:0}}' }, 3000],
+      ],
     ];
     for (const rules of cases) {
       for (const config of [
         true,
         { useLayers: false },
         { useLayers: false, legacyDisableLayers: true },
+        { useLegacyClassnamesSort: true },
       ]) {
         {
           const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
           expect(rust).toEqual(babel);
         }
       }
+    }
+  });
+
+  test('refuses a legacy sort receiver that is not a string, as V8 compares the pair', () => {
+    const legacy = { useLegacyClassnamesSort: true };
+    for (const rules of [
+      [
+        [1, { ltr: '.a{a:0}' }, 3000],
+        ['b', { ltr: '.b{a:0}' }, 3000],
+      ],
+      [
+        ['b', { ltr: '.b{a:0}' }, 3000],
+        [1, { ltr: '.a{a:0}' }, 3000],
+      ],
+      [
+        ['b', { ltr: '.b{a:0}' }, 3000],
+        [{}, { ltr: '.a{a:0}' }, 3000],
+      ],
+      [
+        [1, { ltr: '.a{a:0}' }, 3000],
+        ['b', { ltr: '.b{a:0}' }, 1000],
+      ],
+    ]) {
+      const [rust, babel] = answers(rules as unknown as StyleXRule[], legacy);
+      expect(rust).toEqual(babel);
     }
   });
 
@@ -291,7 +514,7 @@ describe('processStylexRules', () => {
       }
     }
     expect(() => processStylexRules([['x1', { rtl: '.x1{color:red}' }, 3000]] as never)).toThrow(
-      /^processStylexRules: the rules could not be read: .*a style rule has no ltr text/
+      'processStylexRules: the ltr text of class x1 is undefined, not a string'
     );
   });
 });

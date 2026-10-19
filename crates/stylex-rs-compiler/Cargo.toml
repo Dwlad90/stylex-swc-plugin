@@ -45,6 +45,7 @@ napi-derive = "3.5.6"
 serde_json = { workspace = true, features = ["preserve_order"] }
 stylex_ast = { path = "../stylex-ast" }
 stylex_enums = { path = "../stylex-enums" }
+stylex_js = { path = "../stylex-js" }
 stylex_logs = { path = "../stylex-logs" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_regex = { path = "../stylex-regex" }

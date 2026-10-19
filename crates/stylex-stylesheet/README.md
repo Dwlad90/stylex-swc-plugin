@@ -14,10 +14,11 @@ sheet in the order the browser needs them. A port of `processStylexRules` from
   the rules sorted (priority, declared property, breakpoint, text), grouped by
   thousand of priority, and written as `@layer` blocks or with the specificity
   polyfill, RTL twins included
-- `ProcessStylexRulesConfig` deserializes every shape the reference accepts
-  from JavaScript: a boolean standing for `useLayers`, `null`, or the options
-  object with `useLayers` read by the `!== false` rule, the flags by
-  truthiness and a `null` layer option as its default (`CONTEXT.md`, "Config")
+- `process_stylex_rule_values(rules, config)`: the same step over two
+  JavaScript values, read as the reference's JavaScript reads them, a value
+  outside the published types included (`CONTEXT.md`, "Value reading")
+- The rules sorted with V8's sort algorithm, so a `NaN` priority gives the
+  order Node gives (`CONTEXT.md`, "Sort")
 - The media-query width sort key and its total order (mobile first: `min-width`
   ascending, then `max-width` descending, then rules with no single px bound)
 - The default collation the reference sorts with (`localeCompare`): a table for

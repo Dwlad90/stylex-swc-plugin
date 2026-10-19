@@ -1,42 +1,43 @@
 //! The branches of `process` the reference's own cases do not reach, and the
-//! JavaScript built-ins the port stands in for.
+//! JavaScript built-ins the port stands in for. An expectation that says
+//! "measured on the plugin" is what `@stylexjs/babel-plugin` 0.19.1 answers
+//! for the same input in Node 24.
 
-use serde::de::{self, Unexpected, Visitor};
+use stylex_js::value::JsValue;
 
 use crate::process::{
-  ConfigVisitor, ConstantValue, JsNumber, JsNumberVisitor, LayerOptions, Loose, LooseVisitor,
-  OrderedConstants, ProcessStylexRulesConfig, ProcessStylexRulesError, Rule, RuleStyle,
-  RuleVisitor, TruthyVisitor, UseLayersVisitor, add_ancestor_selector, add_specificity_level,
-  get_logical_float_vars, js_replace_all, js_replace_first, js_substitution, js_trim,
-  process_stylex_rules, resolve_constant,
+  ClassName, LayerOptions, OrderedConstants, ProcessStylexRulesConfig, ProcessStylexRulesError,
+  Rule, RuleStyle, add_ancestor_selector, add_specificity_level, get_logical_float_vars,
+  js_replace_all, js_replace_first, js_substitution, process_stylex_rule_values,
+  process_stylex_rules, read_rules, resolve_constant,
 };
 
 fn rule(class_name: &str, ltr: &str, rtl: Option<&str>, priority: f64) -> Rule {
   Rule(
-    class_name.to_string(),
+    class_name.into(),
     RuleStyle {
-      ltr: ltr.to_string(),
-      rtl: rtl.map(str::to_string),
+      ltr: ltr.into(),
+      rtl: rtl.map_or(JsValue::Null, JsValue::from),
       ..RuleStyle::default()
     },
     priority,
   )
 }
 
-fn constant(class_name: &str, value: ConstantValue) -> Rule {
+fn constant(class_name: &str, value: JsValue) -> Rule {
   Rule(
-    class_name.to_string(),
+    class_name.into(),
     RuleStyle {
-      const_key: Some(class_name.to_string()),
-      const_val: Some(value),
+      const_key: class_name.into(),
+      const_val: value,
       ..RuleStyle::default()
     },
     0.0,
   )
 }
 
-fn text(value: &str) -> ConstantValue {
-  ConstantValue::String(value.to_string())
+fn text(value: &str) -> JsValue {
+  value.into()
 }
 
 fn without_layers() -> ProcessStylexRulesConfig {
@@ -53,15 +54,55 @@ fn sheet(rules: &[Rule], config: &ProcessStylexRulesConfig) -> String {
   }
 }
 
-/// Reads `json` as the type, or fails the test naming the parse error.
-fn read<T: serde::de::DeserializeOwned>(json: &str) -> T {
+/// `json` as a JavaScript value. JSON has no `undefined`, `NaN` or hole; a
+/// test that needs one builds the value itself.
+fn json(json: &str) -> JsValue {
   match serde_json::from_str(json) {
     Ok(value) => value,
-    Err(error) => panic!("the JSON is the shape the test expects: {error}"),
+    Err(error) => panic!("the JSON reads: {error}"),
   }
 }
 
-// ==================== the config's spellings ====================
+fn rules_of(rules: &str) -> Vec<Rule> {
+  match read_rules(json(rules)) {
+    Ok(rules) => rules,
+    Err(error) => panic!("the rules read: {error}"),
+  }
+}
+
+fn config_of(config: &str) -> ProcessStylexRulesConfig {
+  match ProcessStylexRulesConfig::read(&json(config)) {
+    Ok(config) => config,
+    Err(error) => panic!("the config reads: {error}"),
+  }
+}
+
+/// What the whole call answers for two JavaScript values.
+fn answer(rules: JsValue, config: JsValue) -> Result<String, ProcessStylexRulesError> {
+  process_stylex_rule_values(rules, &config)
+}
+
+/// The sheet the whole call writes, or the test fails naming the refusal.
+fn answer_sheet(rules: JsValue, config: JsValue) -> String {
+  match answer(rules, config) {
+    Ok(sheet) => sheet,
+    Err(error) => panic!("the sheet assembles: {error}"),
+  }
+}
+
+fn array(elements: Vec<JsValue>) -> JsValue {
+  JsValue::Array(elements)
+}
+
+fn style(ltr: &str) -> JsValue {
+  json(&format!(r#"{{"ltr": {ltr:?}, "rtl": null}}"#))
+}
+
+fn tuple(class_name: JsValue, style: JsValue, priority: JsValue) -> JsValue {
+  array(vec![class_name, style, priority])
+}
+
+// ==================== the config as the reference reads it ====================
 
 #[test]
 fn a_bare_boolean_config_is_use_layers() {
@@ -80,37 +121,32 @@ fn a_bare_boolean_config_is_use_layers() {
 
 #[test]
 fn use_layers_reads_every_spelling_javascript_gives_it() {
+  assert_eq!(config_of("true"), ProcessStylexRulesConfig::from(true));
+  assert_eq!(config_of("false"), ProcessStylexRulesConfig::default());
+  assert_eq!(config_of("{}"), ProcessStylexRulesConfig::default());
   assert_eq!(
-    read::<ProcessStylexRulesConfig>("true"),
+    config_of(r#"{"useLayers": null}"#),
+    ProcessStylexRulesConfig::default()
+  );
+  assert_eq!(
+    ProcessStylexRulesConfig::read(&JsValue::Undefined),
+    Ok(ProcessStylexRulesConfig::default())
+  );
+  assert_eq!(
+    config_of(r#"{"useLayers": false}"#),
+    ProcessStylexRulesConfig::default()
+  );
+  assert_eq!(
+    config_of(r#"{"useLayers": true}"#),
     ProcessStylexRulesConfig::from(true)
   );
   assert_eq!(
-    read::<ProcessStylexRulesConfig>("false"),
-    ProcessStylexRulesConfig::default()
-  );
-  assert_eq!(
-    read::<ProcessStylexRulesConfig>("{}"),
-    ProcessStylexRulesConfig::default()
-  );
-  assert_eq!(
-    read::<ProcessStylexRulesConfig>(r#"{"useLayers": null}"#),
-    ProcessStylexRulesConfig::default()
-  );
-  assert_eq!(
-    read::<ProcessStylexRulesConfig>(r#"{"useLayers": false}"#),
-    ProcessStylexRulesConfig::default()
-  );
-  assert_eq!(
-    read::<ProcessStylexRulesConfig>(r#"{"useLayers": true}"#),
-    ProcessStylexRulesConfig::from(true)
-  );
-  assert_eq!(
-    read::<ProcessStylexRulesConfig>(
+    config_of(
       r#"{"useLayers": {"prefix": "x"}, "enableLTRRTLComments": true, "legacyDisableLayers": true, "useLegacyClassnamesSort": true}"#
     ),
     ProcessStylexRulesConfig {
       use_layers: Some(LayerOptions {
-        prefix: "x".to_string(),
+        prefix: Some("x".to_string()),
         ..LayerOptions::default()
       }),
       enable_ltr_rtl_comments: true,
@@ -120,25 +156,93 @@ fn use_layers_reads_every_spelling_javascript_gives_it() {
   );
 }
 
+/// The layer options are read as the header spreads and joins them: a string
+/// gives its characters (an emoji is one), an array element is spelled by
+/// `join` (`null` as nothing, an object as `[object Object]`), and the prefix
+/// is read by truthiness and then spelled, so an empty array is a prefix that
+/// spells as nothing. Measured on the plugin.
 #[test]
-fn a_rule_reads_the_reference_tuple_with_an_absent_or_null_text() {
-  let rules: Vec<Rule> = read(
-    r#"[
-      ["x1", {"ltr": ".x1{color:red}", "rtl": null}, 3000],
-      ["c", {"constKey": "c", "constVal": 10}, 0],
-      ["x2", {"ltr": ".x2{float:left}", "rtl": ".x2{float:right}"}, 3000.5]
-    ]"#,
-  );
+fn layer_options_are_spread_and_spelled_as_the_header_reads_them() {
+  let rules = || json(r#"[["x1", {"ltr": ".x1{a:0}", "rtl": null}, 3000]]"#);
+  let with_layers =
+    |options: &str| answer(rules(), json(&format!(r#"{{"useLayers": {options}}}"#)));
 
-  assert_eq!(rules[0], rule("x1", ".x1{color:red}", None, 3000.0));
-  assert_eq!(rules[1], constant("c", ConstantValue::Number(10.0)));
-  assert_eq!(rules[1].style().ltr, "");
   assert_eq!(
-    rules[2],
-    rule("x2", ".x2{float:left}", Some(".x2{float:right}"), 3000.5)
+    with_layers(r#"{"before": "a😀", "after": [true, {}]}"#),
+    Ok("\n@layer a, 😀, priority1, true, [object Object];\n@layer priority1{\n.x1{a:0}\n}".into())
   );
-  assert_eq!(rules[2].class_name(), "x2");
-  assert_eq!(rules[2].priority(), 3000.5);
+  assert_eq!(
+    with_layers(r#"{"before": ["a", 5, null, [1, 2]]}"#),
+    Ok("\n@layer a, 5, , 1,2, priority1;\n@layer priority1{\n.x1{a:0}\n}".into())
+  );
+  assert_eq!(
+    with_layers(r#"{"prefix": 5}"#),
+    Ok("\n@layer 5.priority1;\n@layer 5.priority1{\n.x1{a:0}\n}".into())
+  );
+  assert_eq!(
+    with_layers(r#"{"prefix": true}"#),
+    Ok("\n@layer true.priority1;\n@layer true.priority1{\n.x1{a:0}\n}".into())
+  );
+  assert_eq!(
+    with_layers(r#"{"prefix": {}}"#),
+    Ok(
+      "\n@layer [object Object].priority1;\n@layer [object Object].priority1{\n.x1{a:0}\n}".into()
+    )
+  );
+  assert_eq!(
+    with_layers(r#"{"prefix": []}"#),
+    Ok("\n@layer .priority1;\n@layer .priority1{\n.x1{a:0}\n}".into())
+  );
+  for falsy in ["0", "\"\"", "false", "null"] {
+    assert_eq!(
+      with_layers(&format!(r#"{{"prefix": {falsy}}}"#)),
+      Ok("\n@layer priority1;\n@layer priority1{\n.x1{a:0}\n}".into()),
+      "{falsy}"
+    );
+  }
+  assert_eq!(
+    answer(
+      rules(),
+      JsValue::object([(
+        "useLayers".to_string(),
+        JsValue::object([("prefix".to_string(), f64::NAN.into())])
+      )])
+    ),
+    Ok("\n@layer priority1;\n@layer priority1{\n.x1{a:0}\n}".into())
+  );
+}
+
+/// A layer option that is not iterable throws at the spread, once there are
+/// rules to write; with no rules the reference returns before the header.
+#[test]
+fn a_layer_option_that_is_not_iterable_is_refused() {
+  let rules = || json(r#"[["x1", {"ltr": ".x1{a:0}", "rtl": null}, 3000]]"#);
+
+  for (options, option, kind) in [
+    (r#"{"before": 5}"#, "before", "a number"),
+    (r#"{"before": true}"#, "before", "a boolean"),
+    (r#"{"after": {}}"#, "after", "an object"),
+  ] {
+    let refusal = answer(rules(), json(&format!(r#"{{"useLayers": {options}}}"#)));
+
+    assert_eq!(
+      refusal,
+      Err(ProcessStylexRulesError::LayerOptionNotAList { option, kind }),
+      "{options}"
+    );
+  }
+  assert_eq!(
+    answer(json("[]"), json(r#"{"useLayers": {"before": 5}}"#)),
+    Ok(String::new())
+  );
+  assert_eq!(
+    ProcessStylexRulesError::LayerOptionNotAList {
+      option: "before",
+      kind: "a number"
+    }
+    .to_string(),
+    "the layer option before is a number, not a list or a string"
+  );
 }
 
 // ==================== the JavaScript built-ins ====================
@@ -187,8 +291,8 @@ fn replace_all_replaces_every_occurrence_each_with_its_own_surroundings() {
 #[test]
 fn a_number_constant_substitutes_as_javascript_spells_it() {
   let rules = [
-    constant("xN", ConstantValue::Number(10.0)),
-    constant("xF", ConstantValue::Number(1.5)),
+    constant("xN", 10.0.into()),
+    constant("xF", 1.5.into()),
     rule("xA", ".xA{margin:var(--xN)px var(--xF)px}", None, 3000.0),
   ];
 
@@ -200,7 +304,7 @@ fn a_number_constant_substitutes_as_javascript_spells_it() {
 /// (with an empty text) and a reference to it stays as written.
 #[test]
 fn a_boolean_constant_substitutes_as_its_word_and_a_null_one_is_no_constant() {
-  let rules: Vec<Rule> = read(
+  let rules = rules_of(
     r#"[
       ["xT", {"constKey": "xT", "constVal": true}, 0],
       ["xF", {"constKey": "xF", "constVal": false}, 0],
@@ -208,25 +312,25 @@ fn a_boolean_constant_substitutes_as_its_word_and_a_null_one_is_no_constant() {
     ]"#,
   );
 
-  assert_eq!(rules[0].style().const_val, Some(ConstantValue::Bool(true)));
+  assert_eq!(rules[0].style().constant(), Some(&JsValue::from(true)));
   assert_eq!(
     resolve_constant(
-      &ConstantValue::Bool(true),
+      &JsValue::from(true),
       &OrderedConstants::default(),
       &mut Vec::new()
     ),
-    Ok(ConstantValue::Bool(true))
+    Ok(JsValue::from(true))
   );
   assert_eq!(sheet(&rules, &without_layers()), ".x1{--a:true false}");
 
-  let null_constant: Vec<Rule> = read(
+  let null_constant = rules_of(
     r#"[
       ["xN", {"constKey": "xN", "constVal": null, "ltr": "", "rtl": null}, 0],
       ["x1", {"ltr": ".x1{--a:var(--xN)}", "rtl": null}, 3000]
     ]"#,
   );
 
-  assert_eq!(null_constant[0].style().const_val, None);
+  assert_eq!(null_constant[0].style().constant(), None);
   assert_eq!(
     sheet(&null_constant, &without_layers()),
     "\n.x1{--a:var(--xN)}"
@@ -239,7 +343,7 @@ fn a_constant_resolves_through_the_constants_it_refers_to_and_keeps_unknown_refe
     ("var(--a)".to_string(), text("1px solid var(--b)")),
     ("var(--b)".to_string(), text("var(--c) var(--unknown)")),
     ("var(--c)".to_string(), text("red")),
-    ("var(--n)".to_string(), ConstantValue::Number(2.0)),
+    ("var(--n)".to_string(), 2.0.into()),
   ]
   .into_iter()
   .collect();
@@ -250,7 +354,7 @@ fn a_constant_resolves_through_the_constants_it_refers_to_and_keeps_unknown_refe
   );
   assert_eq!(
     resolve_constant(&constants["var(--n)"], &constants, &mut Vec::new()),
-    Ok(ConstantValue::Number(2.0))
+    Ok(2.0.into())
   );
 }
 
@@ -341,7 +445,7 @@ fn the_rtl_text_is_substituted_renamed_and_wrapped_like_the_ltr_text() {
 #[test]
 fn a_number_reached_through_a_chain_and_a_trailing_dollar_substitute_verbatim() {
   let rules = [
-    constant("xN", ConstantValue::Number(4.0)),
+    constant("xN", 4.0.into()),
     constant("xA", text("var(--xN)px")),
     constant("xD", text("1px$")),
     rule("x1", ".x1{margin:var(--xA) var(--xD)}", None, 3000.0),
@@ -485,27 +589,6 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
 /// trimmed as JavaScript trims it. Measured on the plugin.
 #[test]
 fn the_rename_target_is_trimmed_as_javascript_trims() {
-  // ECMA-262 WhiteSpace and LineTerminator, one by one.
-  for character in [
-    '\u{9}', '\u{A}', '\u{B}', '\u{C}', '\u{D}', ' ', '\u{A0}', '\u{1680}', '\u{2000}', '\u{2003}',
-    '\u{200A}', '\u{2028}', '\u{2029}', '\u{202F}', '\u{205F}', '\u{3000}', '\u{FEFF}',
-  ] {
-    assert_eq!(
-      js_trim(&format!("{character}x{character}")),
-      "x",
-      "U+{:04X}",
-      character as u32
-    );
-  }
-  // Unicode `White_Space` characters JavaScript keeps, and a zero-width space,
-  // which neither set holds.
-  for character in ['\u{85}', '\u{200B}'] {
-    let text = format!("{character}x{character}");
-    assert_eq!(js_trim(&text), text, "U+{:04X}", character as u32);
-  }
-  assert_eq!(js_trim("\u{FEFF} --t\u{A0}\u{3000}"), "--t");
-  assert_eq!(js_trim(""), "");
-
   let zwnbsp = [
     constant("xA", text("var(\u{FEFF}--t)")),
     rule("x1", ".x1{--xA:1px}", None, 3000.0),
@@ -630,7 +713,7 @@ fn layers_name_the_groups_by_ordinal_under_the_prefix_between_the_layers_before_
     use_layers: Some(LayerOptions {
       before: vec!["reset".to_string()],
       after: vec!["overrides".to_string()],
-      prefix: "x".to_string(),
+      prefix: Some("x".to_string()),
     }),
     ..ProcessStylexRulesConfig::default()
   };
@@ -674,7 +757,7 @@ fn use_layers_is_on_for_every_value_but_false_and_null() {
     r#"{"useLayers": true}"#,
   ] {
     assert_eq!(
-      sheet(&rules, &read::<ProcessStylexRulesConfig>(spelling)),
+      sheet(&rules, &config_of(spelling)),
       with_layers,
       "{spelling}"
     );
@@ -682,7 +765,7 @@ fn use_layers_is_on_for_every_value_but_false_and_null() {
 
   for spelling in [r#"{"useLayers": null}"#, r#"{"useLayers": false}"#, "{}"] {
     assert_eq!(
-      sheet(&rules, &read::<ProcessStylexRulesConfig>(spelling)),
+      sheet(&rules, &config_of(spelling)),
       ".x1{color:red}",
       "{spelling}"
     );
@@ -696,86 +779,30 @@ fn use_layers_is_on_for_every_value_but_false_and_null() {
 fn a_config_that_is_not_an_object_has_every_option_at_its_default() {
   for spelling in ["null", "1", "-1", "1.5", r#""yes""#, "[true]", "false"] {
     assert_eq!(
-      read::<ProcessStylexRulesConfig>(spelling),
+      config_of(spelling),
       ProcessStylexRulesConfig::default(),
       "{spelling}"
     );
   }
 
-  assert_eq!(
-    read::<ProcessStylexRulesConfig>("true"),
-    ProcessStylexRulesConfig::from(true)
-  );
+  assert_eq!(config_of("true"), ProcessStylexRulesConfig::from(true));
 }
 
 /// `before ?? []`, `after ?? []`, `prefix ?? ''`: a `null` property is the
-/// default. A value outside the declared type is refused, where the reference
-/// would spread a string into characters or print a number (`CONTEXT.md`).
+/// default.
 #[test]
-fn a_null_layer_option_is_its_default_and_a_wrong_type_is_refused() {
+fn a_null_layer_option_is_its_default() {
   assert_eq!(
-    read::<ProcessStylexRulesConfig>(
-      r#"{"useLayers": {"before": null, "after": ["z"], "prefix": null}}"#
-    ),
+    config_of(r#"{"useLayers": {"before": null, "after": ["z"], "prefix": null}}"#),
     ProcessStylexRulesConfig {
       use_layers: Some(LayerOptions {
         before: Vec::new(),
         after: vec!["z".to_string()],
-        prefix: String::new(),
+        prefix: None,
       }),
       ..ProcessStylexRulesConfig::default()
     }
   );
-
-  for spelling in [
-    r#"{"useLayers": {"before": "reset"}}"#,
-    r#"{"useLayers": {"prefix": 5}}"#,
-    r#"{"useLayers": {"after": [1]}}"#,
-  ] {
-    assert!(
-      serde_json::from_str::<ProcessStylexRulesConfig>(spelling).is_err(),
-      "{spelling} is outside the declared type"
-    );
-  }
-}
-
-/// A value a format hands the visitors outside JSON's types (bytes, a wide
-/// integer) is refused with the message that names what each one reads.
-#[test]
-fn the_config_visitors_name_what_they_expect() {
-  let refusal = |expected: &dyn de::Expected| {
-    <serde_json::Error as de::Error>::invalid_type(Unexpected::Bytes(b"x"), expected).to_string()
-  };
-
-  assert_eq!(
-    refusal(&ConfigVisitor),
-    "invalid type: byte array, expected a boolean, null, or the options object"
-  );
-  assert_eq!(
-    refusal(&UseLayersVisitor),
-    "invalid type: byte array, expected a boolean, null, or the layer options object"
-  );
-  assert_eq!(
-    refusal(&TruthyVisitor),
-    "invalid type: byte array, expected a value read for its truthiness"
-  );
-}
-
-/// A sequence or an object the reference reads no element of is drained, and
-/// a fault inside it is the parse error it is.
-#[test]
-fn a_fault_inside_an_ignored_sequence_or_object_is_reported() {
-  for spelling in [
-    "[1,",
-    r#"{"useLayers": [1,"#,
-    r#"{"enableLTRRTLComments": [1,"#,
-    r#"{"enableLTRRTLComments": {"a":"#,
-  ] {
-    assert!(
-      serde_json::from_str::<ProcessStylexRulesConfig>(spelling).is_err(),
-      "{spelling} is cut short"
-    );
-  }
 }
 
 /// The three flags are read as `if (flag)` reads them: JavaScript truthiness.
@@ -796,7 +823,7 @@ fn the_flags_are_read_for_their_truthiness() {
   let falsy = ["false", "null", "0", "0.0", r#""""#];
 
   for spelling in truthy {
-    let config = read::<ProcessStylexRulesConfig>(&format!(
+    let config = config_of(&format!(
       r#"{{"enableLTRRTLComments": {spelling}, "legacyDisableLayers": {spelling}, "useLegacyClassnamesSort": {spelling}}}"#
     ));
     assert!(
@@ -808,7 +835,7 @@ fn the_flags_are_read_for_their_truthiness() {
   }
 
   for spelling in falsy {
-    let config = read::<ProcessStylexRulesConfig>(&format!(
+    let config = config_of(&format!(
       r#"{{"enableLTRRTLComments": {spelling}, "legacyDisableLayers": {spelling}, "useLegacyClassnamesSort": {spelling}}}"#
     ));
     assert_eq!(
@@ -822,14 +849,14 @@ fn the_flags_are_read_for_their_truthiness() {
   assert_eq!(
     sheet(
       &rules,
-      &read::<ProcessStylexRulesConfig>(r#"{"useLayers": false, "enableLTRRTLComments": 1}"#)
+      &config_of(r#"{"useLayers": false, "enableLTRRTLComments": 1}"#)
     ),
     "/* @ltr begin */.x1{a:0}/* @ltr end */\n/* @rtl begin */.x1{b:0}/* @rtl end */"
   );
   assert_eq!(
     sheet(
       &rules,
-      &read::<ProcessStylexRulesConfig>(r#"{"useLayers": false, "enableLTRRTLComments": ""}"#)
+      &config_of(r#"{"useLayers": false, "enableLTRRTLComments": ""}"#)
     ),
     "html:not([dir='rtl']) .x1{a:0}\nhtml[dir='rtl'] .x1{b:0}"
   );
@@ -983,155 +1010,348 @@ fn a_constant_holding_a_variable_without_a_fallback_renames_to_the_whole_name() 
 
 // ==================== a rule as the reference reads it ====================
 
-/// `([key, { ...styleObj }, priority])`: the first three elements are read,
-/// a fourth is not, and a missing priority is `NaN`. Measured on the plugin:
-/// a four-element tuple and a two-element tuple both write the rule.
+/// `([key, { ...styleObj }, priority])`: the first three items are read, a
+/// fourth is not, and an item past the end is `undefined`.
 #[test]
-fn a_rule_reads_three_elements_and_ignores_the_rest() {
-  let four: Rule = read(r#"["x1", {"ltr": ".x1{color:red}"}, 3000, "extra"]"#);
-  assert_eq!(four, rule("x1", ".x1{color:red}", None, 3000.0));
+fn a_rule_reads_three_items_and_ignores_the_rest() {
+  let rules = rules_of(
+    r#"[
+      ["x1", {"ltr": ".x1{color:red}", "rtl": null}, 3000, "extra"],
+      ["x2", {"ltr": ".x2{color:red}"}],
+      ["c", {"constKey": "c", "constVal": 10}, 0],
+      ["x3", {"ltr": ".x3{float:left}", "rtl": ".x3{float:right}"}, 3000.5]
+    ]"#,
+  );
 
-  let two: Rule = read(r#"["x1", {"ltr": ".x1{color:red}"}]"#);
-  assert_eq!(two.class_name(), "x1");
-  assert!(two.priority().is_nan());
-
-  for spelling in [
-    "[]",
-    r#"["x1"]"#,
-    r#"["x1", null, 3000]"#,
-    r#"["x1", "style", 3000]"#,
-  ] {
-    assert!(
-      serde_json::from_str::<Rule>(spelling).is_err(),
-      "{spelling}: the reference throws on a rule with no style object"
-    );
-  }
-  // A class name is a string; the reference writes a rule with a numeric one.
-  assert!(serde_json::from_str::<Rule>(r#"[12, {"ltr": ".x1{color:red}"}, 3000]"#).is_err());
+  assert_eq!(rules[0], rule("x1", ".x1{color:red}", None, 3000.0));
+  assert_eq!(rules[1].class_name(), &ClassName::from("x2"));
+  assert_eq!(rules[1].style().rtl, JsValue::Undefined);
+  assert!(rules[1].priority().is_nan());
+  assert_eq!(rules[2], constant("c", 10.0.into()));
+  assert_eq!(rules[2].style().ltr, JsValue::Undefined);
+  assert_eq!(
+    rules[3],
+    rule("x3", ".x3{float:left}", Some(".x3{float:right}"), 3000.5)
+  );
+  assert_eq!(rules[3].priority(), 3000.5);
 }
 
-/// A style rule's `ltr` is read with `.replace`: a missing, `null` or
-/// non-string one is refused as the reference throws. A constant rule is
-/// filtered out before any text is read, so its texts may be anything.
+/// A string rule is iterable: its characters are the class name, the style
+/// and the priority. A character as the style has no `ltr`, so the rule
+/// throws where it is written, unless a later rule of its class takes its
+/// place. Measured on the plugin.
 #[test]
-fn a_style_rule_needs_an_ltr_text_and_a_constant_rule_does_not() {
-  for spelling in [
-    r#"{"rtl": ".x1{color:red}"}"#,
-    r#"{}"#,
-    r#"{"ltr": null}"#,
-    r#"{"ltr": 5}"#,
-    r#"{"ltr": 0}"#,
-    r#"{"ltr": false}"#,
-    r#"{"ltr": true}"#,
-    r#"{"ltr": []}"#,
-    r#"{"ltr": {}}"#,
-    r#"{"constKey": "xA"}"#,
-    r#"{"constVal": "red"}"#,
+fn a_string_rule_reads_its_characters() {
+  let rules = rules_of(r#"["ab1", "ab"]"#);
+
+  assert_eq!(rules[0].class_name(), &ClassName::from("a"));
+  assert_eq!(rules[0].style(), &RuleStyle::default());
+  assert_eq!(rules[0].priority(), 1.0);
+  assert_eq!(rules[1].class_name(), &ClassName::from("a"));
+  assert!(rules[1].priority().is_nan());
+  // One character has no style item, and `undefined` cannot be spread.
+  assert_eq!(
+    read_rules(json(r#"["a"]"#)),
+    Err(ProcessStylexRulesError::NoStyleObject {
+      index: 0,
+      kind: "undefined"
+    })
+  );
+
+  assert_eq!(
+    answer(json(r#"["ab"]"#), true.into()),
+    Err(ProcessStylexRulesError::LtrNotAString {
+      class_name: "a".into(),
+      kind: "undefined"
+    })
+  );
+  assert_eq!(
+    answer(
+      json(r#"["ab1", ["a", {"ltr": ".a{x:0}"}, 1]]"#),
+      json(r#"{"useLegacyClassnamesSort": true, "useLayers": false}"#)
+    ),
+    Ok(".a{x:0}".into())
+  );
+}
+
+/// `{ ...styleObj }` copies an object's properties, and nothing of a string,
+/// a number or an array: the rule has no `ltr`. `null` and `undefined` cannot
+/// be spread, and a rule that is not iterable cannot be destructured.
+#[test]
+fn a_style_that_is_not_an_object_reads_as_the_spread_reads_it() {
+  for style in [r#""ab""#, "5", "true", r#"["a"]"#] {
+    let rules = rules_of(&format!(r#"[["x1", {style}, 3000]]"#));
+    assert_eq!(rules[0].style(), &RuleStyle::default(), "{style}");
+  }
+
+  assert_eq!(
+    read_rules(json(r#"[["x0", {"ltr": ""}], ["x1", null, 3000]]"#)),
+    Err(ProcessStylexRulesError::NoStyleObject {
+      index: 1,
+      kind: "null"
+    })
+  );
+  assert_eq!(
+    read_rules(json(r#"[["x1"]]"#)),
+    Err(ProcessStylexRulesError::NoStyleObject {
+      index: 0,
+      kind: "undefined"
+    })
+  );
+  for (rule, kind) in [
+    ("5", "a number"),
+    ("null", "null"),
+    ("true", "a boolean"),
+    (r#"{"0": "x1"}"#, "an object"),
   ] {
+    assert_eq!(
+      read_rules(json(&format!("[{rule}]"))),
+      Err(ProcessStylexRulesError::RuleNotAList { index: 0, kind }),
+      "{rule}"
+    );
+  }
+  assert_eq!(
+    read_rules(array(vec![JsValue::Undefined])),
+    Err(ProcessStylexRulesError::RuleNotAList {
+      index: 0,
+      kind: "undefined"
+    })
+  );
+  assert_eq!(
+    ProcessStylexRulesError::RuleNotAList {
+      index: 3,
+      kind: "a number"
+    }
+    .to_string(),
+    "rule 3 is a number, not a [className, style, priority] list"
+  );
+  assert_eq!(
+    ProcessStylexRulesError::NoStyleObject {
+      index: 1,
+      kind: "null"
+    }
+    .to_string(),
+    "rule 1 has null in place of its style object"
+  );
+}
+
+/// `rules.length === 0` returns before anything else is read: an empty array,
+/// an empty string, or an object whose `length` is 0. Any other value that is
+/// not an array has no `filter`, and the reference throws. Measured on the
+/// plugin.
+#[test]
+fn the_rules_are_an_array_or_have_no_length() {
+  for rules in [JsValue::from(""), json("[]"), json(r#"{"length": 0}"#)] {
+    assert_eq!(answer(rules, true.into()), Ok(String::new()));
+  }
+
+  for (rules, kind) in [
+    (JsValue::from("ab"), "a string"),
+    (json(r#"{"length": 1}"#), "an object"),
+    (json(r#"{"length": "0"}"#), "an object"),
+    (JsValue::Null, "null"),
+    (JsValue::Undefined, "undefined"),
+    (5.0.into(), "a number"),
+  ] {
+    assert_eq!(
+      answer(rules, true.into()),
+      Err(ProcessStylexRulesError::RulesNotAList(kind))
+    );
+  }
+  assert_eq!(
+    ProcessStylexRulesError::RulesNotAList("null").to_string(),
+    "the rules are null, not a list"
+  );
+}
+
+/// `filter` skips a hole. A list of holes alone still has a length, so the
+/// reference goes on and writes the `@layer` header with no group; so does a
+/// list of constants alone. Measured on the plugin.
+#[test]
+fn a_hole_in_the_rules_is_skipped() {
+  let rule_value = tuple("x1".into(), style(".x1{a:0}"), 3000.0.into());
+
+  assert_eq!(
+    answer_sheet(array(vec![JsValue::Hole, rule_value]), true.into()),
+    "\n@layer priority1;\n@layer priority1{\n.x1{a:0}\n}"
+  );
+  let holes = || array(vec![JsValue::Hole, JsValue::Hole]);
+  assert_eq!(answer_sheet(holes(), true.into()), "\n@layer ;\n");
+  assert_eq!(
+    answer_sheet(
+      holes(),
+      json(r#"{"useLayers": {"before": ["a"], "after": ["b"]}}"#)
+    ),
+    "\n@layer a, b;\n"
+  );
+  assert_eq!(answer_sheet(holes(), false.into()), "");
+  assert_eq!(
+    answer_sheet(
+      json(r#"[["xA", {"constKey": "xA", "constVal": "red"}, 0]]"#),
+      true.into()
+    ),
+    "\n@layer ;\n"
+  );
+  // Inside a rule, a hole is `undefined`.
+  let rules = match read_rules(array(vec![array(vec![
+    "x1".into(),
+    style(".x1{a:0}"),
+    JsValue::Hole,
+  ])])) {
+    Ok(rules) => rules,
+    Err(error) => panic!("the rule reads: {error}"),
+  };
+  assert!(rules[0].priority().is_nan());
+}
+
+/// A style rule's `ltr` is read with string methods where the sort compares
+/// it and where it is written. A rule that the sort decides by priority alone
+/// and that a later rule of its class replaces in its group is never read, so
+/// a text that is not a string is refused only where it is read. Measured on
+/// the plugin.
+#[test]
+fn an_ltr_text_that_is_not_a_string_is_refused_where_it_is_read() {
+  for ltr in ["5", "null", "true", "{}", "[\".x{}\"]"] {
+    let rules = json(&format!(
+      r#"[["x1", {{"ltr": {ltr}}}, 1000], ["x2", {{"ltr": ".x2{{a:0}}"}}, 1500]]"#
+    ));
     assert!(
-      serde_json::from_str::<RuleStyle>(spelling).is_err(),
-      "{spelling}: the reference throws reading `ltr`"
+      matches!(
+        answer(rules, false.into()),
+        Err(ProcessStylexRulesError::LtrNotAString { .. })
+      ),
+      "{ltr}"
     );
   }
 
-  let constant: RuleStyle = read(r#"{"constKey": "xA", "constVal": "red", "ltr": 5, "rtl": 7}"#);
+  // Replaced in its group by the later rule of its class.
   assert_eq!(
-    constant,
-    RuleStyle {
-      ltr: String::new(),
-      rtl: None,
-      const_key: Some("xA".to_string()),
-      const_val: Some(text("red")),
-    }
+    answer(
+      json(r#"[["x1", {"ltr": 5}, 1000], ["x1", {"ltr": ".x1{a:0}"}, 1500]]"#),
+      false.into()
+    ),
+    Ok(".x1{a:0}".into())
   );
-  let constant_with_texts: RuleStyle =
-    read(r#"{"constKey": "xA", "constVal": "red", "ltr": "a", "rtl": "b"}"#);
-  assert_eq!(constant_with_texts.ltr, "a");
-  assert_eq!(constant_with_texts.rtl, Some("b".to_string()));
+  // The legacy sort compares class names, not texts.
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": 5}, 1000], ["x1", {"ltr": ".x1{a:0}"}, 1000]]"#),
+      json(r#"{"useLegacyClassnamesSort": true}"#)
+    ),
+    Ok(".x1{a:0}".into())
+  );
+  // Compared within one priority: refused in the sort, which compares the
+  // second rule with the first, so either one can be the refused operand.
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": 5}, 1000]]"#),
+      false.into()
+    ),
+    Err(ProcessStylexRulesError::LtrNotAString {
+      class_name: "x2".into(),
+      kind: "a number"
+    })
+  );
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": 5}, 1000], ["x2", {"ltr": ".x2{a:0}"}, 1000]]"#),
+      false.into()
+    ),
+    Err(ProcessStylexRulesError::LtrNotAString {
+      class_name: "x1".into(),
+      kind: "a number"
+    })
+  );
+  // `String(ltr)` finds a logical float variable in an array text, though the
+  // text is replaced before it is written.
+  assert!(
+    answer_sheet(
+      json(
+        r#"[["x1", {"ltr": ["var(--stylex-logical-start)"]}, 1000], ["x1", {"ltr": ".x1{a:0}"}, 1500]]"#
+      ),
+      false.into()
+    )
+    .starts_with(":root, [dir=\"ltr\"] {")
+  );
+  assert_eq!(
+    ProcessStylexRulesError::LtrNotAString {
+      class_name: "x1".into(),
+      kind: "a number"
+    }
+    .to_string(),
+    "the ltr text of class x1 is a number, not a string"
+  );
 }
 
 /// A style rule's `rtl` is read behind `if (rtlRule)`: a falsy value is no
-/// RTL text, a truthy value that is not a string is refused as the reference
-/// throws. Measured on the plugin (`rtl: false` and `rtl: 0` write the LTR
+/// RTL text, and a truthy value that is not a string is refused where it is
+/// written. Measured on the plugin (`rtl: false` and `rtl: 0` write the LTR
 /// text alone; `rtl: true`, `{}` and `[]` throw).
 #[test]
 fn a_falsy_rtl_is_no_rtl_text_and_a_truthy_non_string_is_refused() {
-  for spelling in [
-    r#"{"ltr": ".x1{a:0}", "rtl": null}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": false}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": 0}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": 0.0}"#,
-    r#"{"ltr": ".x1{a:0}"}"#,
-  ] {
-    let style: RuleStyle = read(spelling);
-    assert_eq!(style.rtl, None, "{spelling}");
+  for rtl in ["null", "false", "0", "0.0", "\"\""] {
+    let rules = json(&format!(
+      r#"[["x1", {{"ltr": ".x1{{a:0}}", "rtl": {rtl}}}, 3000]]"#
+    ));
+    assert_eq!(answer(rules, false.into()), Ok(".x1{a:0}".into()), "{rtl}");
   }
-  let empty: RuleStyle = read(r#"{"ltr": ".x1{a:0}", "rtl": ""}"#);
-  assert_eq!(empty.rtl, Some(String::new()));
+  let nan_rtl = array(vec![tuple(
+    "x1".into(),
+    JsValue::object([
+      ("ltr".to_string(), ".x1{a:0}".into()),
+      ("rtl".to_string(), f64::NAN.into()),
+    ]),
+    3000.0.into(),
+  )]);
+  assert_eq!(answer(nan_rtl, false.into()), Ok(".x1{a:0}".into()));
 
-  for spelling in [
-    r#"{"ltr": ".x1{a:0}", "rtl": true}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": 5}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": -5}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": 1.5}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": {}}"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": []}"#,
+  for (rtl, kind) in [
+    ("true", "a boolean"),
+    ("5", "a number"),
+    ("-5", "a number"),
+    ("{}", "an object"),
+    ("[]", "an array"),
   ] {
-    assert!(
-      serde_json::from_str::<RuleStyle>(spelling).is_err(),
-      "{spelling}: the reference throws reading `rtl`"
-    );
+    for config in ["false", "true", r#"{"legacyDisableLayers": true}"#] {
+      let rules = json(&format!(
+        r#"[["x1", {{"ltr": ".x1{{a:0}}", "rtl": {rtl}}}, 3000]]"#
+      ));
+      assert_eq!(
+        answer(rules, json(config)),
+        Err(ProcessStylexRulesError::RtlNotAString {
+          class_name: "x1".into(),
+          kind
+        }),
+        "{rtl} under {config}"
+      );
+    }
   }
-}
-
-/// `NaN` is falsy where the reference reads a text behind `if (value)`.
-#[test]
-fn a_nan_text_is_falsy() {
-  let Ok(Loose::Falsy) = LooseVisitor.visit_f64::<serde_json::Error>(f64::NAN) else {
-    panic!("NaN is falsy");
-  };
-  let Ok(Loose::Other(kind)) = LooseVisitor.visit_f64::<serde_json::Error>(2.5) else {
-    panic!("2.5 is truthy");
-  };
-  assert_eq!(kind, "a number");
-  let Ok(Loose::Other(kind)) = LooseVisitor.visit_u64::<serde_json::Error>(7) else {
-    panic!("7 is truthy");
-  };
-  assert_eq!(kind, "a number");
-  let Ok(false) = TruthyVisitor.visit_f64::<serde_json::Error>(f64::NAN) else {
-    panic!("NaN is falsy");
-  };
-  // A format that hands 0 as a signed integer (JSON hands it unsigned).
-  let Ok(Loose::Falsy) = LooseVisitor.visit_i64::<serde_json::Error>(0) else {
-    panic!("0 is falsy");
-  };
-  // A fault inside an array or an object the reference never reads is still
-  // a parse error.
-  for spelling in [
-    r#"{"ltr": ".x1{a:0}", "rtl": [1,"#,
-    r#"{"ltr": ".x1{a:0}", "rtl": {"a":"#,
-    r#"{"constKey": "xA", "constVal": "red", "ltr": [1,"#,
-  ] {
-    assert!(
-      serde_json::from_str::<RuleStyle>(spelling).is_err(),
-      "{spelling} is cut short"
-    );
-  }
-  let refusal =
-    <serde_json::Error as de::Error>::invalid_type(Unexpected::Bytes(b"x"), &LooseVisitor)
-      .to_string();
+  // Replaced in its group by the later rule of its class.
   assert_eq!(
-    refusal,
-    "invalid type: byte array, expected a string, or a value read for its truthiness"
+    answer(
+      json(r#"[["x1", {"ltr": ".x1{a:0}", "rtl": 5}, 1000], ["x1", {"ltr": ".x1{b:0}"}, 1500]]"#),
+      false.into()
+    ),
+    Ok(".x1{b:0}".into())
+  );
+  assert_eq!(
+    ProcessStylexRulesError::RtlNotAString {
+      class_name: "x1".into(),
+      kind: "a boolean"
+    }
+    .to_string(),
+    "the rtl text of class x1 is a boolean, not a string"
   );
 }
 
-/// The priority is read as the arithmetic reads it (`Number(value)`).
+// ==================== the values a rule holds, coerced as the reference coerces them ====================
+
+/// The priority is read as the arithmetic reads it (`Number(value)`): an array
+/// through its text, an object as `NaN`.
 #[test]
 fn a_priority_is_read_as_javascript_arithmetic_reads_it() {
   let priority = |spelling: &str| -> f64 {
-    let rule: Rule = read(&format!(r#"["x1", {{"ltr": ".x1{{a:0}}"}}, {spelling}]"#));
-    rule.priority()
+    rules_of(&format!(r#"[["x1", {{"ltr": ".x1{{a:0}}"}}, {spelling}]]"#))[0].priority()
   };
 
   assert_eq!(priority("3000"), 3000.0);
@@ -1149,6 +1369,9 @@ fn a_priority_is_read_as_javascript_arithmetic_reads_it() {
   assert_eq!(priority(r#""Infinity""#), f64::INFINITY);
   assert_eq!(priority(r#""-Infinity""#), f64::NEG_INFINITY);
   assert_eq!(priority(r#""+.5""#), 0.5);
+  assert_eq!(priority("[]"), 0.0);
+  assert_eq!(priority("[1000]"), 1000.0);
+  assert_eq!(priority(r#"["2000"]"#), 2000.0);
   for spelling in [
     r#""abc""#,
     r#""inf""#,
@@ -1160,80 +1383,53 @@ fn a_priority_is_read_as_javascript_arithmetic_reads_it() {
     r#""0xg""#,
     r#""1e""#,
     r#""+Infinityx""#,
+    r#""-0o7""#,
+    r#""0b2""#,
+    "[1, 2]",
+    "{}",
   ] {
     assert!(priority(spelling).is_nan(), "{spelling} is NaN");
   }
-  let refusal =
-    <serde_json::Error as de::Error>::invalid_type(Unexpected::Bytes(b"x"), &JsNumberVisitor)
-      .to_string();
-  assert_eq!(
-    refusal,
-    "invalid type: byte array, expected a number, or a value JavaScript arithmetic reads as one"
-  );
-  for spelling in ["[]", "[5]", "{}"] {
-    assert!(
-      serde_json::from_str::<JsNumber>(spelling).is_err(),
-      "{spelling}: an array or an object is refused"
-    );
-  }
-  // The refusal reaches the rule, and a fault after the third element too.
-  for spelling in [
-    r#"["x1", {"ltr": ".x1{a:0}"}, [5]]"#,
-    r#"["x1", {"ltr": ".x1{a:0}"}, 3000, [1,"#,
-  ] {
-    assert!(
-      serde_json::from_str::<Rule>(spelling).is_err(),
-      "{spelling}"
-    );
-  }
-  let refusal =
-    <serde_json::Error as de::Error>::invalid_type(Unexpected::Bytes(b"x"), &RuleVisitor)
-      .to_string();
-  assert_eq!(
-    refusal,
-    "invalid type: byte array, expected a [className, { ltr, rtl, constKey, constVal }, priority] tuple"
-  );
-  // A signed non-decimal literal is NaN in every radix.
-  for spelling in [r#""-0o7""#, r#""+0o7""#, r#""-0b1""#, r#""0o""#, r#""0b2""#] {
-    assert!(priority(spelling).is_nan(), "{spelling} is NaN");
-  }
+  // A priority past 2^63 keeps its value.
+  assert_eq!(priority("1e21"), 1e21);
 }
 
-/// A `NaN` priority is its own group outside every layer and compares equal
-/// to everything in the sort; a `null` priority is 0; a numeric-string
-/// priority is its number; two infinite priorities share a group. Measured on
-/// the plugin.
+/// A priority that is no number writes the sheet the reference writes: an
+/// array or an object priority is coerced, and an `undefined` one is `NaN`
+/// where a `null` one is 0. Measured on the plugin.
 #[test]
 fn a_loose_priority_writes_the_sheet_the_reference_writes() {
-  let sheet_of = |json: &str, config: &ProcessStylexRulesConfig| -> String {
-    let rules: Vec<Rule> = read(json);
-    sheet(&rules, config)
-  };
   let layers = ProcessStylexRulesConfig::from(true);
+  let sheet_of = |rules: &str, config: &ProcessStylexRulesConfig| sheet(&rules_of(rules), config);
 
+  assert_eq!(
+    sheet_of(
+      r#"[["x1", {"ltr": ".x1{a:0}"}, [1000]], ["x2", {"ltr": ".x2{b:0}"}, 3000]]"#,
+      &layers
+    ),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.x1{a:0}\n}\n@layer priority2{\n.x2{b:0}\n}"
+  );
+  assert_eq!(
+    sheet_of(
+      r#"[["x1", {"ltr": ".x1{a:0}"}, {}], ["x2", {"ltr": ".x2{b:0}"}, 3000]]"#,
+      &layers
+    ),
+    "\n@layer priority1, priority2;\n.x1{a:0}\n@layer priority2{\n.x2{b:0}\n}"
+  );
+  assert_eq!(
+    sheet_of(
+      r#"[["x1", {"ltr": ".x1{a:0}"}, [1, 2]], ["x2", {"ltr": ".x2{b:0}"}, 3000]]"#,
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x1{a:0}\n.x2:not(#\\#){b:0}"
+  );
   assert_eq!(
     sheet_of(r#"[["x1", {"ltr": ".x1{color:red}"}]]"#, &layers),
     "\n@layer priority1;\n.x1{color:red}"
   );
   assert_eq!(
     sheet_of(
-      r#"[["x1", {"ltr": ".x1{color:red}"}], ["x2", {"ltr": ".x2{margin:0}"}]]"#,
-      &layers
-    ),
-    "\n@layer priority1, priority2;\n.x1{color:red}\n.x2{margin:0}"
-  );
-  assert_eq!(
-    sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}], ["x3", {"ltr": ".x3{c:0}"}, 1000]]"#,
-      &layers
-    ),
-    "\n@layer priority1, priority2, priority3;\n@layer priority1{\n.x1{a:0}\n}\n.x2{b:0}\n@layer priority3{\n.x3{c:0}\n}"
-  );
-  // The reference's comparator answers 0 for a NaN against anything, which is
-  // not a consistent order; its sort and this one both leave these in place.
-  assert_eq!(
-    sheet_of(
-      r#"[["x1", {"ltr": ".x1{a:0}"}, 3000], ["x2", {"ltr": ".x2{b:0}"}], ["x3", {"ltr": ".x3{c:0}"}, 1000]]"#,
       &layers
     ),
     "\n@layer priority1, priority2, priority3;\n@layer priority1{\n.x1{a:0}\n}\n.x2{b:0}\n@layer priority3{\n.x3{c:0}\n}"
@@ -1266,13 +1462,6 @@ fn a_loose_priority_writes_the_sheet_the_reference_writes() {
     ),
     "\n@layer priority1, priority2;\n@layer priority1{\n.x1{color:red}\n}\n@layer priority2{\n.x2{margin:0}\n}"
   );
-  assert_eq!(
-    sheet_of(
-      r#"[["x1", {"ltr": ".x1{a:0}"}, "Infinity"], ["x2", {"ltr": ".x2{b:0}"}, "Infinity"]]"#,
-      &layers
-    ),
-    "\n@layer priority1;\n@layer priority1{\n.x1{a:0}\n.x2{b:0}\n}"
-  );
   // A constant rule with no priority declares its constant all the same.
   assert_eq!(
     sheet_of(
@@ -1281,4 +1470,315 @@ fn a_loose_priority_writes_the_sheet_the_reference_writes() {
     ),
     ".x1{color:red}"
   );
+  // `undefined` is NaN, so the two rules tie and keep their order.
+  let undefined_priority = array(vec![
+    tuple("x1".into(), style(".x1{a:0}"), 1000.0.into()),
+    tuple("x2".into(), style(".x2{b:0}"), JsValue::Undefined),
+  ]);
+  assert_eq!(
+    answer_sheet(undefined_priority, false.into()),
+    ".x1{a:0}\n.x2:not(#\\#){b:0}"
+  );
+}
+
+/// `firstPriority - secondPriority` is `NaN` for a missing priority and for
+/// two equal infinities, and the reference returns it: the sort reads it as a
+/// tie, and the later keys are not read. Measured on the plugin, where these
+/// keep their order.
+#[test]
+fn a_nan_priority_comparison_is_a_tie_that_reads_no_later_key() {
+  assert_eq!(
+    sheet(
+      &rules_of(r#"[["x1", {"ltr": ".x1{b:0}"}], ["x2", {"ltr": ".x2{a:0}"}]]"#),
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x1{b:0}\n.x2:not(#\\#){a:0}"
+  );
+  assert_eq!(
+    sheet(
+      &rules_of(
+        r#"[["x1", {"ltr": ".x1{b:0}"}, "Infinity"], ["x2", {"ltr": ".x2{a:0}"}, "Infinity"]]"#
+      ),
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x1{b:0}\n.x2{a:0}"
+  );
+  // Two infinite media bounds subtract to NaN too.
+  assert_eq!(
+    sheet(
+      &[
+        rule("x1", "@media (min-width: 1e999px){.x1{a:0}}", None, 3000.0),
+        rule("x2", "@media (min-width: 1e999px){.x2{a:0}}", None, 3000.0),
+      ],
+      &ProcessStylexRulesConfig::default()
+    ),
+    "@media (min-width: 1e999px){.x1{a:0}}\n@media (min-width: 1e999px){.x2{a:0}}"
+  );
+}
+
+/// Eighty rules with `NaN` priorities among them: the sort is not a
+/// consistent order, so only V8's algorithm gives the reference's sheet.
+/// Each pair is the class number and the number of `:not(#\#)` copies, which
+/// is the index of its group. Measured on the plugin.
+#[test]
+fn eighty_rules_with_nan_priorities_sort_as_the_reference_sorts() {
+  let properties = ["color", "margin", "padding", "top", "left"];
+  let rules: Vec<Rule> = (0..80_usize)
+    .map(|i| {
+      let priority = if i % 7 == 3 || i % 11 == 5 {
+        f64::NAN
+      } else {
+        ((i % 3) * 1000 + (i % 4) * 100) as f64
+      };
+      rule(
+        &format!("x{i}"),
+        &format!(".x{i}{{{}:{}}}", properties[(i * 7) % 5], (i * 13) % 17),
+        None,
+        priority,
+      )
+    })
+    .collect();
+
+  let written: Vec<String> = sheet(&rules, &ProcessStylexRulesConfig::default())
+    .lines()
+    .map(|line| {
+      let class_number = line[2..]
+        .split(|c: char| !c.is_ascii_digit())
+        .next()
+        .unwrap_or("");
+      format!("{class_number}/{}", line.matches(":not").count())
+    })
+    .collect();
+
+  assert_eq!(
+    written.join(" "),
+    "0/0 36/0 21/0 9/0 1/1 2/2 3/3 4/4 5/5 12/6 33/6 30/6 18/6 6/6 15/6 39/6 28/7 25/7 37/7 13/7 \
+     22/7 34/7 7/7 20/8 8/8 10/9 32/10 29/10 26/10 14/10 11/10 16/11 17/12 19/13 35/14 23/14 24/15 \
+     27/16 31/17 38/18 72/19 48/19 57/19 69/19 42/19 78/19 54/19 75/19 63/19 51/19 40/20 76/20 \
+     64/20 61/20 70/20 58/20 46/20 55/20 67/20 43/20 68/21 56/21 44/21 41/21 45/22 79/23 65/24 \
+     77/24 53/24 50/24 62/24 74/24 47/24 49/25 52/26 59/27 60/28 66/29 71/30 73/31"
+  );
+}
+
+/// The class name is a `Map` key by `SameValueZero`: `NaN` is one key, `0`
+/// and `-0` are one key, `true` and `'true'` are two, and two objects are two.
+/// Measured on the plugin.
+#[test]
+fn a_class_name_is_a_map_key_by_same_value_zero() {
+  let two = |first: JsValue, second: JsValue| {
+    answer_sheet(
+      array(vec![
+        tuple(first, style(".a{a:0}"), 3000.0.into()),
+        tuple(second, style(".b{a:0}"), 3000.0.into()),
+      ]),
+      false.into(),
+    )
+  };
+
+  assert_eq!(two(f64::NAN.into(), f64::NAN.into()), ".b{a:0}");
+  assert_eq!(two(0.0.into(), (-0.0).into()), ".b{a:0}");
+  assert_eq!(two(1.0.into(), "1".into()), ".a{a:0}\n.b{a:0}");
+  assert_eq!(two(true.into(), "true".into()), ".a{a:0}\n.b{a:0}");
+  assert_eq!(two(json("{}"), json("{}")), ".a{a:0}\n.b{a:0}");
+  assert_eq!(two(JsValue::Undefined, JsValue::Null), ".a{a:0}\n.b{a:0}");
+  assert_eq!(
+    answer_sheet(json(r#"[[12, {"ltr": ".x12{a:0}"}, 3000]]"#), true.into()),
+    "\n@layer priority1;\n@layer priority1{\n.x12{a:0}\n}"
+  );
+}
+
+/// A constant's key is only tested against `null`, and its value is spelled
+/// with `String(...)` and `.toString()`: an array joins, an object is
+/// `[object Object]`. Its name is `var(--${String(className)})`. Measured on
+/// the plugin.
+#[test]
+fn a_constant_of_any_kind_substitutes_as_its_text() {
+  let sheet_of = |rules: &str| answer_sheet(json(rules), false.into());
+
+  assert_eq!(
+    sheet_of(
+      r#"[["xA", {"constKey": 0, "constVal": "red"}, 0], ["x1", {"ltr": ".x1{color:var(--xA)}"}, 3000]]"#
+    ),
+    ".x1{color:red}"
+  );
+  assert_eq!(
+    sheet_of(
+      r#"[["xA", {"constKey": "xA", "constVal": [1, [2, null]]}, 0], ["x1", {"ltr": ".x1{m:var(--xA)}"}, 3000]]"#
+    ),
+    ".x1{m:1,2,}"
+  );
+  assert_eq!(
+    sheet_of(
+      r#"[["xA", {"constKey": "xA", "constVal": {}}, 0], ["x1", {"ltr": ".x1{color:var(--xA)}"}, 3000]]"#
+    ),
+    ".x1{color:[object Object]}"
+  );
+  assert_eq!(
+    sheet_of(
+      r#"[[7, {"constKey": "k", "constVal": "red"}, 0], ["x1", {"ltr": ".x1{color:var(--7)}"}, 3000]]"#
+    ),
+    ".x1{color:red}"
+  );
+  assert_eq!(
+    sheet_of(
+      r#"[["xA", {"constKey": "xA", "constVal": {}}, 0], ["xB", {"constKey": "xB", "constVal": "a var(--xA) b"}, 0], ["x1", {"ltr": ".x1{c:var(--xB)}"}, 3000]]"#
+    ),
+    ".x1{c:a [object Object] b}"
+  );
+}
+
+/// `classname1.localeCompare(classname2)` under the legacy sort: the receiver
+/// must be a string, and the argument is spelled. V8's sort compares the
+/// second item with the first, so the receiver is the later rule. Measured on
+/// the plugin.
+#[test]
+fn the_legacy_sort_refuses_a_receiver_that_is_not_a_string() {
+  let legacy = || json(r#"{"useLegacyClassnamesSort": true}"#);
+  let rules = |first: &str, second: &str| {
+    json(&format!(
+      r#"[[{first}, {{"ltr": ".a{{a:0}}"}}, 3000], [{second}, {{"ltr": ".b{{a:0}}"}}, 3000]]"#
+    ))
+  };
+
+  assert_eq!(
+    answer(rules("1", r#""b""#), legacy()),
+    Ok(".a{a:0}\n.b{a:0}".into())
+  );
+  assert_eq!(
+    answer(rules(r#""b""#, "{}"), legacy()),
+    Err(ProcessStylexRulesError::ClassNameNotAString {
+      class_name: "[object Object]".into(),
+      kind: "an object"
+    })
+  );
+  assert_eq!(
+    answer(rules("1", "2"), legacy()),
+    Err(ProcessStylexRulesError::ClassNameNotAString {
+      class_name: "2".into(),
+      kind: "a number"
+    })
+  );
+  // A different priority decides before the class names are read.
+  assert_eq!(
+    answer(
+      json(r#"[[1, {"ltr": ".a{a:0}"}, 3000], ["b", {"ltr": ".b{a:0}"}, 1000]]"#),
+      legacy()
+    ),
+    Ok(".b{a:0}\n.a:not(#\\#){a:0}".into())
+  );
+  assert_eq!(
+    ProcessStylexRulesError::ClassNameNotAString {
+      class_name: "2".into(),
+      kind: "a number"
+    }
+    .to_string(),
+    "the legacy sort cannot compare class 2: it is a number, not a string"
+  );
+}
+
+/// The reference's grouping starts at level -1 with no group, so a first rule
+/// at level -1 (a priority from -1000 to less than 0) has no group to join,
+/// and the reference throws. A rule at that level after another one is
+/// grouped. Measured on the plugin.
+#[test]
+fn a_first_rule_at_priority_level_minus_one_is_refused() {
+  for priority in [-1.0, -0.5, -1000.0, -999.999] {
+    assert_eq!(
+      process_stylex_rules(
+        &[
+          rule("x1", ".x1{a:0}", None, priority),
+          rule("x2", ".x2{a:0}", None, 10.0)
+        ],
+        &ProcessStylexRulesConfig::default()
+      ),
+      Err(ProcessStylexRulesError::FirstRuleBelowZero {
+        class_name: "x1".into()
+      }),
+      "{priority}"
+    );
+  }
+
+  assert_eq!(
+    sheet(
+      &[rule("x1", ".x1{a:0}", None, -1001.0)],
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x1{a:0}"
+  );
+  assert_eq!(
+    sheet(
+      &[
+        rule("x1", ".x1{a:0}", None, -2000.0),
+        rule("x2", ".x2{a:0}", None, -1.0)
+      ],
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x1{a:0}\n.x2:not(#\\#){a:0}"
+  );
+  assert_eq!(
+    sheet(
+      &[
+        rule("x0", ".x0{a:0}", None, f64::NAN),
+        rule("x1", ".x1{a:0}", None, -1.0)
+      ],
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x0{a:0}\n.x1:not(#\\#){a:0}"
+  );
+  assert_eq!(
+    sheet(
+      &[rule("x1", ".x1{a:0}", None, -0.0)],
+      &ProcessStylexRulesConfig::default()
+    ),
+    ".x1{a:0}"
+  );
+  assert_eq!(
+    ProcessStylexRulesError::FirstRuleBelowZero {
+      class_name: "x1".into()
+    }
+    .to_string(),
+    "class x1 sorts first with a priority from -1000 to less than 0, which cannot be grouped; use \
+     a priority of 0 or more"
+  );
+}
+
+// ==================== extreme inputs ====================
+
+/// Many rules, many constants and long texts write one sheet without a
+/// refusal, and every rule is written once.
+#[test]
+fn a_large_sheet_writes_every_rule_once() {
+  let mut rules: Vec<Rule> = (0..300)
+    .map(|i| constant(&format!("c{i}"), text(&format!("{i}px"))))
+    .collect();
+  rules.extend((0..20_000).map(|i| {
+    let ltr = format!(
+      "@media (min-width: {}px){{.x{i}{{margin:var(--c{}) {}}}}}",
+      i % 50,
+      i % 300,
+      "a".repeat(i % 40)
+    );
+    rule(&format!("x{i}"), &ltr, None, (i % 5) as f64 * 1000.0)
+  }));
+
+  let written = sheet(&rules, &ProcessStylexRulesConfig::from(true));
+
+  for i in [0, 1, 299, 19_999] {
+    assert_eq!(written.matches(&format!(".x{i}{{")).count(), 1, "x{i}");
+  }
+  assert!(!written.contains("var(--c"));
+  assert_eq!(written.matches("@layer priority").count(), 5);
+}
+
+/// A long chain of constants, each the next one's reference, resolves to the
+/// last value.
+#[test]
+fn a_long_chain_of_constants_resolves() {
+  let mut rules: Vec<Rule> = (0..200)
+    .map(|i| constant(&format!("c{i}"), text(&format!("var(--c{})", i + 1))))
+    .collect();
+  rules.push(constant("c200", text("red")));
+  rules.push(rule("x1", ".x1{color:var(--c0)}", None, 3000.0));
+
+  assert_eq!(sheet(&rules, &without_layers()), ".x1{color:red}");
 }

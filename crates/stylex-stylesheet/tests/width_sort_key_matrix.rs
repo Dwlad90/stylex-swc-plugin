@@ -86,7 +86,11 @@ fn every_pair_of_the_matrix_orders_as_the_reference_orders_it() {
   for (i, a) in matrix.chains.iter().enumerate() {
     for (j, b) in matrix.chains.iter().enumerate().skip(i + 1) {
       let expected = oracle_order(a.rank, b.rank);
-      let actual = compare_width_sort_keys(keys[i].as_ref(), keys[j].as_ref());
+      // The sign of the comparator's number; `NaN` is a tie, as the sort
+      // reads it.
+      let actual = compare_width_sort_keys(keys[i].as_ref(), keys[j].as_ref())
+        .partial_cmp(&0.0)
+        .unwrap_or(Ordering::Equal);
 
       if expected != actual {
         disagreements.push(format!(

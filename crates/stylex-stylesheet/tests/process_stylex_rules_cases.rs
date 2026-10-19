@@ -6,8 +6,9 @@
 //! snapshot. The fixture was recorded by running the test file itself against
 //! the published plugin; its header names the version.
 //!
-//! Each test here asserts that `process_stylex_rules` answers the same string
-//! for the same input. The reference's two structural cases hold as well: a
+//! Each test here asserts that `process_stylex_rule_values` answers the same
+//! string for the same input, read from the fixture as JavaScript values, as
+//! the addon reads them. The reference's two structural cases hold as well: a
 //! Rust caller's rules are borrowed, so `no mutation of rules` is the
 //! signature, and the deterministic-order cases run their permutations.
 
@@ -16,7 +17,8 @@ use std::path::Path;
 use std::sync::OnceLock;
 
 use serde::Deserialize;
-use stylex_stylesheet::process::{ProcessStylexRulesConfig, Rule, process_stylex_rules};
+use stylex_js::value::JsValue;
+use stylex_stylesheet::process::process_stylex_rule_values;
 
 #[derive(Deserialize)]
 struct Fixture {
@@ -35,8 +37,10 @@ struct Case {
 
 #[derive(Deserialize)]
 struct Call {
-  rules: Vec<Rule>,
-  config: Option<ProcessStylexRulesConfig>,
+  rules: JsValue,
+  // A call with no config passes none: `config ?? {}`.
+  #[serde(default)]
+  config: JsValue,
   output: String,
 }
 
@@ -66,9 +70,7 @@ fn assert_case(name: &str) {
   assert!(!case.calls.is_empty(), "{name:?} makes at least one call");
 
   for (index, call) in case.calls.iter().enumerate() {
-    // `config ?? {}`: a call with no config reads every option as unset.
-    let config = call.config.clone().unwrap_or_default();
-    let sheet = match process_stylex_rules(&call.rules, &config) {
+    let sheet = match process_stylex_rule_values(call.rules.clone(), &call.config) {
       Ok(sheet) => sheet,
       Err(error) => panic!("{name:?}, call {index}: {error}"),
     };

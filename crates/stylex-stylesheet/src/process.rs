@@ -9,386 +9,132 @@
 //! substitution, the sort, the groups, the output), so that a change upstream
 //! maps onto one function. Where the reference leans on a JavaScript built-in
 //! whose behaviour shapes the output -- `localeCompare`,
-//! `String.prototype.replace` with a string replacement, `trim`,
-//! `Array.prototype.sort`'s stability, `new Map(...)`'s keeping of the first
-//! position under the last value, `slice(-1)` -- the port names the built-in
-//! and does what it does.
+//! `String.prototype.replace` with a string replacement, `trim`, V8's
+//! `Array.prototype.sort`, `new Map(...)`'s keeping of the first position
+//! under the last value, `slice(-1)`, and the coercions `String(...)` and
+//! `Number(...)` -- the port names the built-in and does what it does.
 
 use std::borrow::Cow;
-use std::cmp::Ordering;
-use std::fmt;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use serde::Deserialize;
-use serde::de::{self, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
+use stylex_js::array_sort::array_tim_sort;
+use stylex_js::value::{JsValue, MapKey};
 use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR};
-use stylex_utils::number;
+use stylex_utils::number::is_js_whitespace;
 
-use crate::collation::compare as locale_compare;
+use crate::collation::locale_compare;
 use crate::width_sort_key::{
   WidthSortKey, at_rule_preludes, compare_width_sort_keys, declared_property_name,
   width_sort_key_for_chain,
 };
 
-/// The value a `defineConsts` constant holds. The reference's type says
-/// `string | number`; its runtime is wider, a boolean crosses too (a
-/// `defineConsts({ d: true })` keeps the kind the author gave it), and
-/// substitutes as `String(true)`. A `null` is no constant at all
-/// (`constVal != null` fails), and deserializes as an absent one.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum ConstantValue {
-  Number(f64),
-  String(String),
-  Bool(bool),
+// ==================== the rules and the config as the reference reads them ====================
+//
+// The reference reads its arguments with plain JavaScript: destructuring, a
+// spread, property reads, `String(...)` and `Number(...)`. The port reads a
+// `JsValue` the same way, so a value outside the published types writes the
+// sheet the reference writes. A read the reference throws on is refused here.
+// Where the reference throws only when a value is used (a class name compared
+// under the legacy sort, an `ltr` text rendered), the value is kept as it is
+// and refused at that use.
+
+/// A rule's class name, which the reference uses three ways: spelled with
+/// `String(...)` in a constant's name, as a `Map` key in the dedupe
+/// (`SameValueZero`, so `1` and `'1'` are two class names), and as the
+/// receiver of `localeCompare` under the legacy sort.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClassName(pub JsValue);
+
+impl ClassName {
+  /// `String(className)`.
+  pub fn spelling(&self) -> Cow<'_, str> {
+    self.0.to_js_string()
+  }
+
+  /// The class name as a `Map` key, or `None` for an array or an object,
+  /// which is a key of its own.
+  fn map_key(&self) -> Option<MapKey<'_>> {
+    self.0.same_value_zero_key()
+  }
+
+  /// The class name as the receiver of `localeCompare`, which only a string
+  /// is.
+  fn as_receiver(&self) -> Result<&str, ProcessStylexRulesError> {
+    match &self.0 {
+      JsValue::String(class_name) => Ok(class_name),
+      other => Err(ProcessStylexRulesError::ClassNameNotAString {
+        class_name: self.spelling().into_owned(),
+        kind: other.describe(),
+      }),
+    }
+  }
 }
 
-impl ConstantValue {
-  /// `String(constValue)`: the text a value substitutes as.
-  pub(crate) fn to_js_string(&self) -> String {
-    match self {
-      ConstantValue::String(text) => text.clone(),
-      ConstantValue::Bool(flag) => flag.to_string(),
-      ConstantValue::Number(value) => number::to_js_string(*value),
-    }
+impl From<&str> for ClassName {
+  fn from(class_name: &str) -> Self {
+    ClassName(class_name.into())
   }
 }
 
 /// What one rule injects: its LTR text, its RTL text where the two differ,
-/// and, for a `defineConsts` rule, the constant it declares.
-///
-/// It deserializes as the reference reads a rule's style object. A constant
-/// rule (both `constKey` and `constVal` set and not `null`) is filtered out
-/// before any text is read, so its `ltr` and `rtl` may be anything and are
-/// kept only when they are strings. A style rule's `ltr` is read with
-/// `.replace`, so a missing, `null` or non-string `ltr` is refused where the
-/// reference throws; its `rtl` is read behind `if (rtlRule)`, so a falsy
-/// value (`null`, `undefined`, `false`, `0`, `""`) is no RTL text and a
-/// truthy value that is not a string is refused where the reference throws.
+/// and, for a `defineConsts` rule, the constant it declares. Each field holds
+/// the value as it arrived; a missing property is `undefined`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuleStyle {
-  pub ltr: String,
-  pub rtl: Option<String>,
-  pub const_key: Option<String>,
-  pub const_val: Option<ConstantValue>,
-}
-
-/// The style object as it arrives, before the reference's reads are applied.
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RuleStyleSpelling {
-  #[serde(default, deserialize_with = "deserialize_loose")]
-  ltr: Loose,
-  #[serde(default, deserialize_with = "deserialize_loose")]
-  rtl: Loose,
-  #[serde(default)]
-  const_key: Option<String>,
-  #[serde(default)]
-  const_val: Option<ConstantValue>,
-}
-
-/// A value read for how the reference's `.replace` and `if (value)` treat
-/// it: a string, a falsy value, or something else.
-#[derive(Default)]
-enum Loose {
-  Text(String),
-  #[default]
-  Falsy,
-  Other(&'static str),
-}
-
-fn deserialize_loose<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Loose, D::Error> {
-  deserializer.deserialize_any(LooseVisitor)
-}
-
-struct LooseVisitor;
-
-impl<'de> Visitor<'de> for LooseVisitor {
-  type Value = Loose;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a string, or a value read for its truthiness")
-  }
-
-  fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-    Ok(Loose::Text(value.to_string()))
-  }
-
-  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-    Ok(Loose::Falsy)
-  }
-
-  fn visit_bool<E: de::Error>(self, value: bool) -> Result<Self::Value, E> {
-    Ok(if value {
-      Loose::Other("a boolean")
-    } else {
-      Loose::Falsy
-    })
-  }
-
-  fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
-    Ok(if value == 0 {
-      Loose::Falsy
-    } else {
-      Loose::Other("a number")
-    })
-  }
-
-  fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
-    Ok(if value == 0 {
-      Loose::Falsy
-    } else {
-      Loose::Other("a number")
-    })
-  }
-
-  fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
-    Ok(if value == 0.0 || value.is_nan() {
-      Loose::Falsy
-    } else {
-      Loose::Other("a number")
-    })
-  }
-
-  fn visit_seq<A: SeqAccess<'de>>(self, sequence: A) -> Result<Self::Value, A::Error> {
-    ignore_sequence(sequence)?;
-    Ok(Loose::Other("an array"))
-  }
-
-  fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-    ignore_map(map)?;
-    Ok(Loose::Other("an object"))
-  }
-}
-
-impl<'de> Deserialize<'de> for RuleStyle {
-  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    let spelling = RuleStyleSpelling::deserialize(deserializer)?;
-    let is_constant = spelling.const_key.is_some() && spelling.const_val.is_some();
-
-    let ltr = match spelling.ltr {
-      Loose::Text(text) => text,
-      // `ltrRule.replace(...)`: the reference throws on a style rule with no
-      // text to read.
-      Loose::Falsy | Loose::Other(_) if is_constant => String::new(),
-      Loose::Falsy => return Err(de::Error::custom("a style rule has no ltr text")),
-      Loose::Other(kind) => {
-        return Err(de::Error::custom(format!(
-          "a style rule's ltr text is {kind}, not a string"
-        )));
-      },
-    };
-    let rtl = match spelling.rtl {
-      Loose::Text(text) => Some(text),
-      Loose::Falsy => None,
-      Loose::Other(_) if is_constant => None,
-      // `rtlRule.replace(...)` behind `if (rtlRule)`: the reference throws on
-      // a truthy value that is not a string.
-      Loose::Other(kind) => {
-        return Err(de::Error::custom(format!(
-          "a style rule's rtl text is {kind}, not a string"
-        )));
-      },
-    };
-
-    Ok(RuleStyle {
-      ltr,
-      rtl,
-      const_key: spelling.const_key,
-      const_val: spelling.const_val,
-    })
-  }
+  pub ltr: JsValue,
+  pub rtl: JsValue,
+  pub const_key: JsValue,
+  pub const_val: JsValue,
 }
 
 impl RuleStyle {
-  /// `ruleObj?.constKey != null && ruleObj?.constVal != null`: whether this
-  /// rule declares a constant rather than a style.
-  fn constant(&self) -> Option<(&str, &ConstantValue)> {
-    match (&self.const_key, &self.const_val) {
-      (Some(key), Some(value)) => Some((key.as_str(), value)),
-      _ => None,
+  /// `[key, { ...styleObj }, priority]`: the spread copies an object's
+  /// properties, and gives no property for a string, a number, a boolean or
+  /// an array (an array's elements are not the properties this reads). It
+  /// throws for `null` and `undefined`, which is the `Err` here.
+  fn read(style: JsValue) -> Result<Self, &'static str> {
+    match style {
+      JsValue::Object(_) => {
+        let mut style = style;
+
+        Ok(RuleStyle {
+          ltr: style.take_property("ltr"),
+          rtl: style.take_property("rtl"),
+          const_key: style.take_property("constKey"),
+          const_val: style.take_property("constVal"),
+        })
+      },
+      _ if style.is_nullish() => Err(style.describe()),
+      _ => Ok(RuleStyle::default()),
     }
+  }
+
+  /// `ruleObj?.constKey != null && ruleObj?.constVal != null`: the value of
+  /// the constant this rule declares, or `None` for a style rule.
+  fn constant(&self) -> Option<&JsValue> {
+    (!self.const_key.is_nullish() && !self.const_val.is_nullish()).then_some(&self.const_val)
   }
 
   /// Whether a text of this style can hold a reference to a constant or a
   /// declaration of one. Every pattern the substitution searches for,
   /// `var(--x)` and `--x:`, holds `--`.
   fn mentions_a_variable(&self) -> bool {
-    self.ltr.contains("--") || self.rtl.as_deref().is_some_and(|rtl| rtl.contains("--"))
+    [&self.ltr, &self.rtl]
+      .into_iter()
+      .any(|text| matches!(text, JsValue::String(text) if text.contains("--")))
   }
 }
 
 /// One emitted rule: `[className, { ltr, rtl, constKey, constVal }, priority]`,
-/// the reference's `Rule` tuple.
-///
-/// It deserializes as the reference destructures the tuple
-/// (`([key, { ...styleObj }, priority])`): the first three elements are read
-/// and any further element is not; a missing style is the empty object, which
-/// has no `ltr` and is refused as the reference throws on it; the priority is
-/// read as the arithmetic reads it ([`JsNumber`]), so a missing priority is
-/// `NaN` and a numeric string is its number. The class name is a string: the
-/// reference writes a rule whose class name is a number, and the port refuses
-/// it (`CONTEXT.md`, "Rule").
+/// the reference's `Rule` tuple, with the priority read as the reference's
+/// arithmetic reads it (`Number(priority)`: a missing one is `NaN`).
 #[derive(Clone, Debug, PartialEq)]
-pub struct Rule(pub String, pub RuleStyle, pub f64);
-
-impl<'de> Deserialize<'de> for Rule {
-  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    deserializer.deserialize_seq(RuleVisitor)
-  }
-}
-
-struct RuleVisitor;
-
-impl<'de> Visitor<'de> for RuleVisitor {
-  type Value = Rule;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a [className, { ltr, rtl, constKey, constVal }, priority] tuple")
-  }
-
-  fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
-    let Some(class_name) = sequence.next_element::<String>()? else {
-      return Err(de::Error::custom("a rule has no class name"));
-    };
-    let Some(style) = sequence.next_element::<RuleStyle>()? else {
-      return Err(de::Error::custom("a rule has no style object"));
-    };
-    let priority = match sequence.next_element::<JsNumber>()? {
-      Some(priority) => priority.0,
-      None => f64::NAN,
-    };
-    ignore_sequence(sequence)?;
-
-    Ok(Rule(class_name, style, priority))
-  }
-}
-
-/// A value read as JavaScript arithmetic reads it (`Number(value)`): a number
-/// as itself, `null` as 0, a boolean as 0 or 1, `undefined` as `NaN`, a
-/// string as the number it spells (the decimal, hexadecimal, octal and binary
-/// spellings, `Infinity`, and the empty string as 0) or `NaN`. An array or an
-/// object is refused: the reference reads one as 0, its element or `NaN`, and
-/// no rule carries one.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct JsNumber(pub(crate) f64);
-
-impl<'de> Deserialize<'de> for JsNumber {
-  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    deserializer.deserialize_any(JsNumberVisitor)
-  }
-}
-
-struct JsNumberVisitor;
-
-impl<'de> Visitor<'de> for JsNumberVisitor {
-  type Value = JsNumber;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a number, or a value JavaScript arithmetic reads as one")
-  }
-
-  fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
-    Ok(JsNumber(value))
-  }
-
-  fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
-    Ok(JsNumber(value as f64))
-  }
-
-  fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
-    Ok(JsNumber(value as f64))
-  }
-
-  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-    // `null` is 0 and `undefined` is `NaN`; a format that tells the two apart
-    // hands `null` to `visit_none` through `Option`, and the tuple reader
-    // takes an absent element as `NaN`. Here both arrive as a unit: 0 is the
-    // reading of the one spelled out (`null`).
-    Ok(JsNumber(0.0))
-  }
-
-  fn visit_bool<E: de::Error>(self, value: bool) -> Result<Self::Value, E> {
-    Ok(JsNumber(if value { 1.0 } else { 0.0 }))
-  }
-
-  fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-    Ok(JsNumber(js_string_to_number(value)))
-  }
-}
-
-/// `Number(text)` for a string (ECMA-262 StringToNumber).
-pub(crate) fn js_string_to_number(text: &str) -> f64 {
-  let text = js_trim(text);
-
-  if text.is_empty() {
-    return 0.0;
-  }
-
-  let (negative, unsigned) = match text.strip_prefix('-') {
-    Some(rest) => (true, rest),
-    None => (false, text.strip_prefix('+').unwrap_or(text)),
-  };
-
-  let magnitude = if unsigned == "Infinity" {
-    f64::INFINITY
-  } else if let Some(digits) = unsigned
-    .strip_prefix("0x")
-    .or_else(|| unsigned.strip_prefix("0X"))
-  {
-    // A sign in front of a non-decimal literal is `NaN` in JavaScript.
-    if negative || text.starts_with('+') {
-      return f64::NAN;
-    }
-    return radix_digits(digits, 16);
-  } else if let Some(digits) = unsigned
-    .strip_prefix("0o")
-    .or_else(|| unsigned.strip_prefix("0O"))
-  {
-    if negative || text.starts_with('+') {
-      return f64::NAN;
-    }
-    return radix_digits(digits, 8);
-  } else if let Some(digits) = unsigned
-    .strip_prefix("0b")
-    .or_else(|| unsigned.strip_prefix("0B"))
-  {
-    if negative || text.starts_with('+') {
-      return f64::NAN;
-    }
-    return radix_digits(digits, 2);
-  } else if unsigned.starts_with(|c: char| c.is_ascii_digit() || c == '.') {
-    // A decimal literal; Rust's parser also reads `inf`, `infinity` and
-    // `nan`, which the guard above keeps out.
-    unsigned.parse::<f64>().unwrap_or(f64::NAN)
-  } else {
-    f64::NAN
-  };
-
-  if negative { -magnitude } else { magnitude }
-}
-
-/// The digits of a non-decimal literal, each in its radix, or `NaN`.
-fn radix_digits(digits: &str, radix: u32) -> f64 {
-  if digits.is_empty() {
-    return f64::NAN;
-  }
-
-  let mut value = 0.0;
-  for character in digits.chars() {
-    match character.to_digit(radix) {
-      Some(digit) => value = value * f64::from(radix) + f64::from(digit),
-      None => return f64::NAN,
-    }
-  }
-
-  value
-}
+pub struct Rule(pub ClassName, pub RuleStyle, pub f64);
 
 impl Rule {
-  pub fn class_name(&self) -> &str {
+  pub fn class_name(&self) -> &ClassName {
     &self.0
   }
 
@@ -399,46 +145,151 @@ impl Rule {
   pub fn priority(&self) -> f64 {
     self.2
   }
+
+  /// The `ltr` text, which the reference reads with string methods
+  /// (`slice` in the sort, `replace` and `startsWith` in the output). Any
+  /// other value throws there.
+  fn ltr(&self) -> Result<&str, ProcessStylexRulesError> {
+    match &self.style().ltr {
+      JsValue::String(text) => Ok(text),
+      other => Err(ProcessStylexRulesError::LtrNotAString {
+        class_name: self.class_name().spelling().into_owned(),
+        kind: other.describe(),
+      }),
+    }
+  }
+
+  /// The `rtl` text behind `if (rtlRule)`: a falsy value (the empty string
+  /// included) is no RTL text, and a truthy value that is not a string throws
+  /// at its string methods.
+  fn rtl(&self) -> Result<Option<&str>, ProcessStylexRulesError> {
+    match &self.style().rtl {
+      rtl if !rtl.to_js_boolean() => Ok(None),
+      JsValue::String(text) => Ok(Some(text)),
+      other => Err(ProcessStylexRulesError::RtlNotAString {
+        class_name: self.class_name().spelling().into_owned(),
+        kind: other.describe(),
+      }),
+    }
+  }
+}
+
+/// `rules.length === 0`, the one early return of the reference: an empty
+/// array, an empty string, or an object whose `length` is 0. Every other
+/// value goes on to `rules.filter`.
+fn has_no_length(rules: &JsValue) -> bool {
+  match rules {
+    JsValue::Array(elements) => elements.is_empty(),
+    JsValue::String(text) => text.is_empty(),
+    JsValue::Object(_) => {
+      matches!(rules.property("length"), JsValue::Number(length) if *length == 0.0)
+    },
+    _ => false,
+  }
+}
+
+/// The rules as `rules.filter(([, ruleObj]) => ...)` reads them: only an
+/// array has `filter`, a hole is skipped, and the callback destructures each
+/// rule, so a rule that is not iterable is refused.
+pub fn read_rules(rules: JsValue) -> Result<Vec<Rule>, ProcessStylexRulesError> {
+  let JsValue::Array(elements) = rules else {
+    return Err(ProcessStylexRulesError::RulesNotAList(rules.describe()));
+  };
+
+  elements
+    .into_iter()
+    .enumerate()
+    .filter(|(_, rule)| *rule != JsValue::Hole)
+    .map(|(index, rule)| read_rule(index, rule))
+    .collect()
+}
+
+/// `([key, { ...styleObj }, priority])`: the first three items of the rule's
+/// iterator, `undefined` past its end. An array iterates its elements and a
+/// string its characters; any other value is not iterable.
+fn read_rule(index: usize, rule: JsValue) -> Result<Rule, ProcessStylexRulesError> {
+  let items: Vec<JsValue> = match rule {
+    // Only the first three are read; the rest drop with the vector.
+    JsValue::Array(elements) => elements,
+    JsValue::String(text) => text
+      .chars()
+      .take(3)
+      .map(|character| JsValue::String(character.to_string()))
+      .collect(),
+    other => {
+      return Err(ProcessStylexRulesError::RuleNotAList {
+        index,
+        kind: other.describe(),
+      });
+    },
+  };
+  let mut items = items.into_iter();
+  let mut next = || items.next().unwrap_or_default();
+
+  let class_name = ClassName(next());
+  let style = RuleStyle::read(next())
+    .map_err(|kind| ProcessStylexRulesError::NoStyleObject { index, kind })?;
+  let priority = next().to_js_number();
+
+  Ok(Rule(class_name, style, priority))
 }
 
 /// The `useLayers` object form: layers to declare before and after the
-/// priority layers, and a prefix for their names. The reference reads each
-/// property with `?? <default>`, so `null` is the default here too; a value
-/// outside the declared type (a string for `before`, a number for `prefix`)
-/// is refused, where the reference's loose reads would spread the string into
-/// characters or print the number (`CONTEXT.md`, "Config").
-#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+/// priority layers, and a prefix for their names, each as the header spells
+/// it.
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LayerOptions {
-  #[serde(default, deserialize_with = "null_as_default")]
   pub before: Vec<String>,
-  #[serde(default, deserialize_with = "null_as_default")]
   pub after: Vec<String>,
-  #[serde(default, deserialize_with = "null_as_default")]
-  pub prefix: String,
+  /// `None` when the prefix is falsy; else `String(prefix)`, which can be
+  /// empty (an empty array is truthy and spells as nothing).
+  pub prefix: Option<String>,
 }
 
-/// `value ?? default`: a `null` reads as the field's default.
-fn null_as_default<'de, D: Deserializer<'de>, T: Default + Deserialize<'de>>(
-  deserializer: D,
-) -> Result<T, D::Error> {
-  match Option::<T>::deserialize(deserializer)? {
-    Some(value) => Ok(value),
-    None => Ok(T::default()),
+impl LayerOptions {
+  /// `rawUseLayers.before ?? []`, `rawUseLayers.after ?? []` and
+  /// `rawUseLayers.prefix ?? ''`, read off an object. Any other value has none
+  /// of the properties, which gives the defaults.
+  fn read(use_layers: &JsValue) -> Result<Self, ProcessStylexRulesError> {
+    let prefix = use_layers.property("prefix");
+
+    Ok(LayerOptions {
+      before: read_layer_names("before", use_layers.property("before"))?,
+      after: read_layer_names("after", use_layers.property("after"))?,
+      prefix: prefix
+        .to_js_boolean()
+        .then(|| prefix.to_js_string().into_owned()),
+    })
+  }
+}
+
+/// `[...(names ?? [])]` in the header, joined with `', '`: an array gives its
+/// elements, spelled as `join` spells them (`null` and `undefined` as
+/// nothing), and a string gives its characters. Any other value is not
+/// iterable, and the spread throws.
+fn read_layer_names(
+  option: &'static str,
+  names: &JsValue,
+) -> Result<Vec<String>, ProcessStylexRulesError> {
+  match names {
+    JsValue::Array(elements) => Ok(
+      elements
+        .iter()
+        .map(|name| name.to_js_join_element().into_owned())
+        .collect(),
+    ),
+    JsValue::String(text) => Ok(text.chars().map(String::from).collect()),
+    _ if names.is_nullish() => Ok(Vec::new()),
+    other => Err(ProcessStylexRulesError::LayerOptionNotAList {
+      option,
+      kind: other.describe(),
+    }),
   }
 }
 
 /// The reference's `config` argument. `useLayers: true` is
 /// `Some(LayerOptions::default())`; `false`, `null` and an absent key are
 /// `None`.
-///
-/// It deserializes as the reference reads the argument:
-/// `typeof config === 'boolean' ? { useLayers: config } : config ?? {}`, then
-/// one property read each. A boolean stands for `useLayers`; `null` and every
-/// value that is not an object have no properties, so every option is at its
-/// default; an object is read property by property, `useLayers` by the
-/// `!== false` rule ([`UseLayersVisitor`]) and the three flags by JavaScript
-/// truthiness ([`TruthyVisitor`]).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ProcessStylexRulesConfig {
   pub use_layers: Option<LayerOptions>,
@@ -457,224 +308,95 @@ impl From<bool> for ProcessStylexRulesConfig {
   }
 }
 
-impl<'de> Deserialize<'de> for ProcessStylexRulesConfig {
-  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    deserializer.deserialize_any(ConfigVisitor)
-  }
-}
-
-/// The object form of `config`, property by property.
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ConfigOptions {
-  #[serde(default, deserialize_with = "deserialize_use_layers")]
-  use_layers: Option<LayerOptions>,
-  // The reference spells the acronyms in capitals, which `camelCase` would
-  // not.
-  #[serde(
-    default,
-    rename = "enableLTRRTLComments",
-    deserialize_with = "deserialize_truthy"
-  )]
-  enable_ltr_rtl_comments: bool,
-  #[serde(default, deserialize_with = "deserialize_truthy")]
-  legacy_disable_layers: bool,
-  #[serde(default, deserialize_with = "deserialize_truthy")]
-  use_legacy_classnames_sort: bool,
-}
-
-impl From<ConfigOptions> for ProcessStylexRulesConfig {
-  fn from(options: ConfigOptions) -> Self {
-    Self {
-      use_layers: options.use_layers,
-      enable_ltr_rtl_comments: options.enable_ltr_rtl_comments,
-      legacy_disable_layers: options.legacy_disable_layers,
-      use_legacy_classnames_sort: options.use_legacy_classnames_sort,
+impl ProcessStylexRulesConfig {
+  /// `typeof config === 'boolean' ? { useLayers: config } : config ?? {}`,
+  /// then one property read each. Only an object has the properties, so for
+  /// any other value every option is at its default. `useLayers` is on for
+  /// every value but `false` and a nullish one (`(useLayers ?? false) !==
+  /// false`), and the three flags are read by truthiness.
+  pub fn read(config: &JsValue) -> Result<Self, ProcessStylexRulesError> {
+    if let JsValue::Boolean(use_layers) = config {
+      return Ok(Self::from(*use_layers));
     }
+
+    let use_layers = match config.property("useLayers") {
+      JsValue::Boolean(false) => None,
+      use_layers if use_layers.is_nullish() => None,
+      use_layers => Some(LayerOptions::read(use_layers)?),
+    };
+
+    Ok(Self {
+      use_layers,
+      enable_ltr_rtl_comments: config.property("enableLTRRTLComments").to_js_boolean(),
+      legacy_disable_layers: config.property("legacyDisableLayers").to_js_boolean(),
+      use_legacy_classnames_sort: config.property("useLegacyClassnamesSort").to_js_boolean(),
+    })
   }
 }
 
-/// Drains a sequence the reference reads no element of.
-fn ignore_sequence<'de, A: SeqAccess<'de>>(mut sequence: A) -> Result<(), A::Error> {
-  while sequence.next_element::<IgnoredAny>()?.is_some() {}
-  Ok(())
-}
-
-/// Drains a map the reference reads no property of.
-fn ignore_map<'de, A: MapAccess<'de>>(mut map: A) -> Result<(), A::Error> {
-  while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
-  Ok(())
-}
-
-/// `typeof config === 'boolean' ? { useLayers: config } : config ?? {}`.
-pub(crate) struct ConfigVisitor;
-
-impl<'de> Visitor<'de> for ConfigVisitor {
-  type Value = ProcessStylexRulesConfig;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a boolean, null, or the options object")
-  }
-
-  fn visit_bool<E: de::Error>(self, use_layers: bool) -> Result<Self::Value, E> {
-    Ok(ProcessStylexRulesConfig::from(use_layers))
-  }
-
-  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-    Ok(ProcessStylexRulesConfig::default())
-  }
-
-  // A number, a string or an array has none of the properties the reference
-  // reads: every option is at its default.
-  fn visit_i64<E: de::Error>(self, _: i64) -> Result<Self::Value, E> {
-    Ok(ProcessStylexRulesConfig::default())
-  }
-
-  fn visit_u64<E: de::Error>(self, _: u64) -> Result<Self::Value, E> {
-    Ok(ProcessStylexRulesConfig::default())
-  }
-
-  fn visit_f64<E: de::Error>(self, _: f64) -> Result<Self::Value, E> {
-    Ok(ProcessStylexRulesConfig::default())
-  }
-
-  fn visit_str<E: de::Error>(self, _: &str) -> Result<Self::Value, E> {
-    Ok(ProcessStylexRulesConfig::default())
-  }
-
-  fn visit_seq<A: SeqAccess<'de>>(self, sequence: A) -> Result<Self::Value, A::Error> {
-    ignore_sequence(sequence)?;
-    Ok(ProcessStylexRulesConfig::default())
-  }
-
-  fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-    let options = ConfigOptions::deserialize(de::value::MapAccessDeserializer::new(map))?;
-    Ok(options.into())
-  }
-}
-
-fn deserialize_use_layers<'de, D: Deserializer<'de>>(
-  deserializer: D,
-) -> Result<Option<LayerOptions>, D::Error> {
-  deserializer.deserialize_any(UseLayersVisitor)
-}
-
-/// `const rawUseLayers = rawConfig.useLayers ?? false;` and
-/// `const useLayers = rawUseLayers !== false;`: `null` and `false` are off;
-/// an object is read property by property; every other value is on, with the
-/// defaults, since `typeof rawUseLayers === 'object'` fails for it (an array
-/// passes that test and has none of the properties, so it is the defaults
-/// too).
-pub(crate) struct UseLayersVisitor;
-
-impl<'de> Visitor<'de> for UseLayersVisitor {
-  type Value = Option<LayerOptions>;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a boolean, null, or the layer options object")
-  }
-
-  fn visit_bool<E: de::Error>(self, flag: bool) -> Result<Self::Value, E> {
-    Ok(flag.then(LayerOptions::default))
-  }
-
-  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-    Ok(None)
-  }
-
-  fn visit_i64<E: de::Error>(self, _: i64) -> Result<Self::Value, E> {
-    Ok(Some(LayerOptions::default()))
-  }
-
-  fn visit_u64<E: de::Error>(self, _: u64) -> Result<Self::Value, E> {
-    Ok(Some(LayerOptions::default()))
-  }
-
-  fn visit_f64<E: de::Error>(self, _: f64) -> Result<Self::Value, E> {
-    Ok(Some(LayerOptions::default()))
-  }
-
-  fn visit_str<E: de::Error>(self, _: &str) -> Result<Self::Value, E> {
-    Ok(Some(LayerOptions::default()))
-  }
-
-  fn visit_seq<A: SeqAccess<'de>>(self, sequence: A) -> Result<Self::Value, A::Error> {
-    ignore_sequence(sequence)?;
-    Ok(Some(LayerOptions::default()))
-  }
-
-  fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-    let options = LayerOptions::deserialize(de::value::MapAccessDeserializer::new(map))?;
-    Ok(Some(options))
-  }
-}
-
-fn deserialize_truthy<'de, D: Deserializer<'de>>(deserializer: D) -> Result<bool, D::Error> {
-  deserializer.deserialize_any(TruthyVisitor)
-}
-
-/// A flag the reference reads with `if (flag)`: JavaScript truthiness. `null`,
-/// `false`, `0` and `""` are false; every other value is true. (JSON has no
-/// `NaN`.)
-pub(crate) struct TruthyVisitor;
-
-impl<'de> Visitor<'de> for TruthyVisitor {
-  type Value = bool;
-
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a value read for its truthiness")
-  }
-
-  fn visit_bool<E: de::Error>(self, flag: bool) -> Result<Self::Value, E> {
-    Ok(flag)
-  }
-
-  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-    Ok(false)
-  }
-
-  fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
-    Ok(value != 0)
-  }
-
-  fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
-    Ok(value != 0)
-  }
-
-  fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
-    // `NaN` is falsy, as 0 is.
-    Ok(value != 0.0 && !value.is_nan())
-  }
-
-  fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-    Ok(!value.is_empty())
-  }
-
-  fn visit_seq<A: SeqAccess<'de>>(self, sequence: A) -> Result<Self::Value, A::Error> {
-    ignore_sequence(sequence)?;
-    Ok(true)
-  }
-
-  fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
-    ignore_map(map)?;
-    Ok(true)
-  }
-}
-
-/// Why a sheet could not be assembled.
+/// Why a sheet could not be assembled. Each one is a point where the
+/// reference throws.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ProcessStylexRulesError {
   /// A constant's value refers, through any chain of constants, to itself.
   #[error("circular reference detected for constant {0}")]
   CircularConstant(String),
+  /// The rules are not an array, so they have no `filter`.
+  #[error("the rules are {0}, not a list")]
+  RulesNotAList(&'static str),
+  /// A rule is not iterable, so it cannot be destructured.
+  #[error("rule {index} is {kind}, not a [className, style, priority] list")]
+  RuleNotAList { index: usize, kind: &'static str },
+  /// A style rule's style is `null` or `undefined`, which a spread cannot
+  /// read.
+  #[error("rule {index} has {kind} in place of its style object")]
+  NoStyleObject { index: usize, kind: &'static str },
+  /// A style rule's `ltr` text is not a string where it is read as one.
+  #[error("the ltr text of class {class_name} is {kind}, not a string")]
+  LtrNotAString {
+    class_name: String,
+    kind: &'static str,
+  },
+  /// A style rule's `rtl` text is truthy and not a string where it is read
+  /// as one.
+  #[error("the rtl text of class {class_name} is {kind}, not a string")]
+  RtlNotAString {
+    class_name: String,
+    kind: &'static str,
+  },
+  /// Under `useLegacyClassnamesSort`, the class name that `localeCompare` is
+  /// called on is not a string.
+  #[error("the legacy sort cannot compare class {class_name}: it is {kind}, not a string")]
+  ClassNameNotAString {
+    class_name: String,
+    kind: &'static str,
+  },
+  /// A layer option is not iterable, so the header cannot spread it.
+  #[error("the layer option {option} is {kind}, not a list or a string")]
+  LayerOptionNotAList {
+    option: &'static str,
+    kind: &'static str,
+  },
+  /// The first rule after the sort is in priority level -1 (a priority from
+  /// -1000 to less than 0). The reference's grouping starts at level -1 with
+  /// no group, so it fails on this rule.
+  #[error(
+    "class {class_name} sorts first with a priority from -1000 to less than 0, which cannot be \
+     grouped; use a priority of 0 or more"
+  )]
+  FirstRuleBelowZero { class_name: String },
 }
 
 /// The `:root, [dir="ltr"]` / `[dir="rtl"]` block that gives the logical float
 /// variables a value, when any rule reads one.
 pub(crate) fn get_logical_float_vars<'a>(rules: impl IntoIterator<Item = &'a Rule>) -> String {
   let has_logical_float = rules.into_iter().any(|rule| {
-    let ltr = rule.style().ltr.as_str();
-    let rtl = rule.style().rtl.as_deref().unwrap_or("");
+    // `String(ltr)`, and `rtl ? String(rtl) : ''`.
+    let ltr = rule.style().ltr.to_js_string();
+    let rtl = match &rule.style().rtl {
+      rtl if rtl.to_js_boolean() => rtl.to_js_string(),
+      _ => Cow::Borrowed(""),
+    };
 
     ltr.contains(LOGICAL_FLOAT_START_VAR)
       || ltr.contains(LOGICAL_FLOAT_END_VAR)
@@ -786,24 +508,6 @@ pub(crate) fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str
   Cow::Owned(out)
 }
 
-/// The characters `String.prototype.trim` removes: ECMA-262 WhiteSpace (TAB,
-/// VT, FF, ZWNBSP and the `Zs` category) and LineTerminator (LF, CR, LS, PS).
-/// This differs from Unicode `White_Space`, which `str::trim` removes, at two
-/// points: U+FEFF is removed here and kept there, U+0085 is kept here and
-/// removed there.
-fn is_js_whitespace(character: char) -> bool {
-  matches!(
-    character,
-    '\u{9}' | '\u{A}' | '\u{B}' | '\u{C}' | '\u{D}' | ' ' | '\u{A0}' | '\u{1680}' | '\u{2000}'
-      ..='\u{200A}' | '\u{2028}' | '\u{2029}' | '\u{202F}' | '\u{205F}' | '\u{3000}' | '\u{FEFF}'
-  )
-}
-
-/// `text.trim()`.
-pub(crate) fn js_trim(text: &str) -> &str {
-  text.trim_matches(is_js_whitespace)
-}
-
 /// Where `text.slice(-1)` begins: the start of the last character, 0 for an
 /// empty text. JavaScript counts UTF-16 units, so for a character outside the
 /// Basic Multilingual Plane (an emoji) it splits the surrogate pair; a `str`
@@ -831,7 +535,7 @@ fn last_brace_or_last_character(text: &str) -> usize {
 /// declaration order: the reference walks `constsMap` in insertion order, and
 /// a constant declared twice keeps its first position under its last value,
 /// as `Map.prototype.set` keeps them.
-pub type OrderedConstants = IndexMap<String, ConstantValue>;
+pub type OrderedConstants = IndexMap<String, JsValue>;
 
 /// `constsMap` and `nonConstantRules`: the constants a sheet declares and the
 /// rules that are styles.
@@ -841,8 +545,11 @@ fn collect_constants(rules: &[Rule]) -> (OrderedConstants, Vec<&Rule>) {
 
   for rule in rules {
     match rule.style().constant() {
-      Some((_, value)) => {
-        constants.insert(format!("var(--{})", rule.class_name()), value.clone());
+      Some(value) => {
+        constants.insert(
+          format!("var(--{})", rule.class_name().spelling()),
+          value.clone(),
+        );
       },
       None => non_constant_rules.push(rule),
     }
@@ -874,11 +581,11 @@ fn resolve_constants(
 /// replacement brings in is resolved in turn; a chain that returns to a
 /// constant already on it is a circular reference.
 pub(crate) fn resolve_constant(
-  value: &ConstantValue,
+  value: &JsValue,
   constants: &OrderedConstants,
   visited: &mut Vec<String>,
-) -> Result<ConstantValue, ProcessStylexRulesError> {
-  let ConstantValue::String(text) = value else {
+) -> Result<JsValue, ProcessStylexRulesError> {
+  let JsValue::String(text) = value else {
     return Ok(value.clone());
   };
 
@@ -910,7 +617,7 @@ pub(crate) fn resolve_constant(
     position = 0;
   }
 
-  Ok(ConstantValue::String(result))
+  Ok(JsValue::String(result))
 }
 
 // ==================== the substitution ====================
@@ -953,11 +660,12 @@ fn substitutions_of(constants: &OrderedConstants) -> Vec<Substitution<'_>> {
   constants
     .iter()
     .map(|(var_ref, value)| {
-      let replacement = value.to_js_string();
+      let replacement = value.to_js_string().into_owned();
       let rename = if replacement.starts_with("var(") && replacement.ends_with(')') {
-        let inside = js_trim(&replacement[4..replacement.len() - 1]);
+        // `trim()` removes the ECMAScript white space, not Unicode's.
+        let inside = replacement[4..replacement.len() - 1].trim_matches(is_js_whitespace);
         let target_name = match inside.find(',') {
-          Some(comma) => js_trim(&inside[..comma]),
+          Some(comma) => inside[..comma].trim_matches(is_js_whitespace),
           None => inside,
         };
         let const_name = &var_ref[4..var_ref.len() - 1];
@@ -998,17 +706,17 @@ fn substitute_constants<'r>(
       let mut style = rule.style().clone();
 
       // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
-      // `rtl`; a value that is not a string (`rtl: null`) is left alone.
-      for text in [Some(&mut style.ltr), style.rtl.as_mut()]
-        .into_iter()
-        .flatten()
-      {
-        for substitution in &substitutions {
-          substitution.apply(text);
+      // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
+      // other property is read after this, so none is substituted.
+      for text in [&mut style.ltr, &mut style.rtl] {
+        if let JsValue::String(text) = text {
+          for substitution in &substitutions {
+            substitution.apply(text);
+          }
         }
       }
 
-      Cow::Owned(Rule(rule.class_name().to_string(), style, rule.priority()))
+      Cow::Owned(Rule(rule.class_name().clone(), style, rule.priority()))
     })
     .collect()
 }
@@ -1025,7 +733,11 @@ fn width_sort_keys_of(rules: &[Cow<'_, Rule>]) -> Vec<Option<WidthSortKey>> {
   rules
     .iter()
     .map(|rule| {
-      let text = rule.style().ltr.as_str();
+      // A text that is not a string is refused in the comparator before its
+      // key is read.
+      let JsValue::String(text) = &rule.style().ltr else {
+        return None;
+      };
 
       if !text.starts_with('@') {
         return None;
@@ -1045,35 +757,43 @@ fn width_sort_keys_of(rules: &[Cow<'_, Rule>]) -> Vec<Option<WidthSortKey>> {
     .collect()
 }
 
-/// The comparator of the sort: by priority, then, within a priority, by class
-/// name under `use_legacy_classnames_sort`, else by declared property, width
-/// key, declaration block and whole text.
+/// The comparator of the sort, answering a number as the reference's does: by
+/// priority, then, within a priority, by class name under
+/// `use_legacy_classnames_sort`, else by declared property, width key,
+/// declaration block and whole text.
+///
+/// `firstPriority - secondPriority` is `NaN` when either priority is `NaN` or
+/// both are the same infinity, and `NaN !== 0` holds: the comparator answers
+/// `NaN`, which the sort reads as 0, so the rules tie without the later keys
+/// being read. That is not a consistent order, which is why the sort is V8's
+/// own.
 fn compare_rules(
   (a, key_a): (&Rule, Option<&WidthSortKey>),
   (b, key_b): (&Rule, Option<&WidthSortKey>),
   use_legacy_classnames_sort: bool,
-) -> Ordering {
-  let priority_comparison = a
-    .priority()
-    .partial_cmp(&b.priority())
-    .unwrap_or(Ordering::Equal);
+) -> Result<f64, ProcessStylexRulesError> {
+  let priority_comparison = a.priority() - b.priority();
 
-  if priority_comparison != Ordering::Equal {
-    return priority_comparison;
+  if priority_comparison != 0.0 {
+    return Ok(priority_comparison);
   }
 
   if use_legacy_classnames_sort {
-    return locale_compare(a.class_name(), b.class_name());
+    // `classname1.localeCompare(classname2)`: the argument is spelled with
+    // `String(...)`.
+    let classname1 = a.class_name().as_receiver()?;
+
+    return Ok(locale_compare(classname1, &b.class_name().spelling()));
   }
 
-  let rule1 = a.style().ltr.as_str();
-  let rule2 = b.style().ltr.as_str();
+  let rule1 = a.ltr()?;
+  let rule2 = b.ltr()?;
 
   let name_comparison =
     locale_compare(declared_property_name(rule1), declared_property_name(rule2));
 
-  if name_comparison != Ordering::Equal {
-    return name_comparison;
+  if name_comparison != 0.0 {
+    return Ok(name_comparison);
   }
 
   // Only rules for the same property compete in the cascade, so the
@@ -1082,8 +802,8 @@ fn compare_rules(
   // which is not a consistent ordering.
   let mq_comparison = compare_width_sort_keys(key_a, key_b);
 
-  if mq_comparison != Ordering::Equal {
-    return mq_comparison;
+  if mq_comparison != 0.0 {
+    return Ok(mq_comparison);
   }
 
   // `rule.slice(rule.lastIndexOf('{'))`: the declaration block, or, for a text
@@ -1092,51 +812,64 @@ fn compare_rules(
   let property2 = &rule2[last_brace_or_last_character(rule2)..];
   let property_comparison = locale_compare(property1, property2);
 
-  if property_comparison != Ordering::Equal {
-    return property_comparison;
+  if property_comparison != 0.0 {
+    return Ok(property_comparison);
   }
 
-  locale_compare(rule1, rule2)
+  Ok(locale_compare(rule1, rule2))
 }
 
-/// `sortedRules`: the rules in the sheet's order. `Array.prototype.sort` is
-/// stable, and so is `sort_by`.
-fn sort_rules<'a>(rules: &'a [Cow<'_, Rule>], use_legacy_classnames_sort: bool) -> Vec<&'a Rule> {
+/// `sortedRules`: the rules in the sheet's order, sorted as V8 sorts them.
+fn sort_rules<'a>(
+  rules: &'a [Cow<'_, Rule>],
+  use_legacy_classnames_sort: bool,
+) -> Result<Vec<&'a Rule>, ProcessStylexRulesError> {
   let width_sort_keys = width_sort_keys_of(rules);
   let mut order: Vec<usize> = (0..rules.len()).collect();
 
-  order.sort_by(|&i, &j| {
+  array_tim_sort(&mut order, |&i, &j| {
     compare_rules(
       (&rules[i], width_sort_keys[i].as_ref()),
       (&rules[j], width_sort_keys[j].as_ref()),
       use_legacy_classnames_sort,
     )
-  });
+  })?;
 
-  order.into_iter().map(|i| rules[i].as_ref()).collect()
+  Ok(order.into_iter().map(|i| rules[i].as_ref()).collect())
 }
 
 // ==================== the groups ====================
 
 /// The sorted rules grouped by thousand of priority (`Math.floor(priority /
-/// 1000)`), each group in the order the sort gave its rules.
-fn group_by_priority_level<'a>(sorted_rules: &[&'a Rule]) -> Vec<Vec<&'a Rule>> {
+/// 1000)`), each group in the order the sort gave its rules. A `NaN` level
+/// equals no level, so each such rule is a group of its own.
+///
+/// The reference starts with `lastKPri = -1` and no group, and a rule whose
+/// level equals `lastKPri` goes into the last group: when the first rule is
+/// at level -1, there is no last group, and the reference throws.
+fn group_by_priority_level<'a>(
+  sorted_rules: &[&'a Rule],
+) -> Result<Vec<Vec<&'a Rule>>, ProcessStylexRulesError> {
   let mut last_k_pri = -1.0;
   let mut grouped: Vec<Vec<&Rule>> = Vec::new();
 
   for &rule in sorted_rules {
     let priority_level = (rule.priority() / 1000.0).floor();
 
-    match grouped.last_mut() {
-      Some(group) if priority_level == last_k_pri => group.push(rule),
-      _ => {
-        last_k_pri = priority_level;
-        grouped.push(vec![rule]);
-      },
+    if priority_level == last_k_pri {
+      let Some(group) = grouped.last_mut() else {
+        return Err(ProcessStylexRulesError::FirstRuleBelowZero {
+          class_name: rule.class_name().spelling().into_owned(),
+        });
+      };
+      group.push(rule);
+    } else {
+      last_k_pri = priority_level;
+      grouped.push(vec![rule]);
     }
   }
 
-  grouped
+  Ok(grouped)
 }
 
 // ==================== the output ====================
@@ -1147,7 +880,7 @@ struct Layers<'c> {
   on: bool,
   before: &'c [String],
   after: &'c [String],
-  prefix: &'c str,
+  prefix: Option<&'c str>,
 }
 
 impl<'c> Layers<'c> {
@@ -1157,13 +890,13 @@ impl<'c> Layers<'c> {
         on: true,
         before: &options.before,
         after: &options.after,
-        prefix: &options.prefix,
+        prefix: options.prefix.as_deref(),
       },
       None => Layers {
         on: false,
         before: &[],
         after: &[],
-        prefix: "",
+        prefix: None,
       },
     }
   }
@@ -1171,10 +904,9 @@ impl<'c> Layers<'c> {
   /// `layerName(index)`: the priority layers are named by ordinal, under the
   /// prefix when there is one.
   fn name(&self, index: usize) -> String {
-    if self.prefix.is_empty() {
-      format!("priority{}", index + 1)
-    } else {
-      format!("{}.priority{}", self.prefix, index + 1)
+    match self.prefix {
+      Some(prefix) => format!("{prefix}.priority{}", index + 1),
+      None => format!("priority{}", index + 1),
     }
   }
 
@@ -1198,17 +930,24 @@ impl<'c> Layers<'c> {
 }
 
 /// `new Map(group.map(([a, b]) => [a, b])).values()`: one style per class
-/// name, at its first position, holding its last style.
-fn deduplicate_by_class_name<'a>(group: &[&'a Rule]) -> Vec<&'a RuleStyle> {
-  let mut deduplicated: Vec<&RuleStyle> = Vec::with_capacity(group.len());
-  let mut position_of: FxHashMap<&str, usize> = FxHashMap::default();
+/// name, at its first position, holding its last style. The rule is kept
+/// rather than the style alone, so a refusal can name its class.
+fn deduplicate_by_class_name<'a>(group: &[&'a Rule]) -> Vec<&'a Rule> {
+  let mut deduplicated: Vec<&Rule> = Vec::with_capacity(group.len());
+  let mut position_of: FxHashMap<MapKey<'_>, usize> = FxHashMap::default();
 
-  for rule in group {
-    match position_of.get(rule.class_name()) {
-      Some(&position) => deduplicated[position] = rule.style(),
+  for &rule in group {
+    // An array or an object is a key of its own.
+    let Some(key) = rule.class_name().map_key() else {
+      deduplicated.push(rule);
+      continue;
+    };
+
+    match position_of.get(&key) {
+      Some(&position) => deduplicated[position] = rule,
       None => {
-        position_of.insert(rule.class_name(), deduplicated.len());
-        deduplicated.push(rule.style());
+        position_of.insert(key, deduplicated.len());
+        deduplicated.push(rule);
       },
     }
   }
@@ -1220,15 +959,15 @@ fn deduplicate_by_class_name<'a>(group: &[&'a Rule]) -> Vec<&'a RuleStyle> {
 /// both texts under the two direction selectors or between the `@ltr` and
 /// `@rtl` comments.
 fn style_lines(
-  style: &RuleStyle,
+  rule: &Rule,
   index: usize,
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
-) -> Vec<String> {
-  let mut ltr_rule = style.ltr.clone();
+) -> Result<Vec<String>, ProcessStylexRulesError> {
+  let mut ltr_rule = rule.ltr()?.to_string();
   // An empty RTL text is as absent as a missing one (`rtlRule &&`,
   // `if (rtlRule)`, `rtlRule ?` all read it as false).
-  let mut rtl_rule = style.rtl.clone().filter(|rtl| !rtl.is_empty());
+  let mut rtl_rule = rule.rtl()?.map(str::to_string);
 
   if !layers.on && !config.legacy_disable_layers {
     ltr_rule = add_specificity_level(&ltr_rule, index);
@@ -1242,7 +981,7 @@ fn style_lines(
   ltr_rule = double_theme_root_selector(&ltr_rule);
   rtl_rule = rtl_rule.map(|rtl| double_theme_root_selector(&rtl));
 
-  match rtl_rule {
+  Ok(match rtl_rule {
     Some(rtl_rule) if config.enable_ltr_rtl_comments => vec![
       format!("/* @ltr begin */{ltr_rule}/* @ltr end */"),
       format!("/* @rtl begin */{rtl_rule}/* @rtl end */"),
@@ -1252,7 +991,7 @@ fn style_lines(
       add_ancestor_selector(&rtl_rule, "html[dir='rtl']"),
     ],
     None => vec![ltr_rule],
-  }
+  })
 }
 
 /// One priority group written out: its styles' lines, inside a `@layer` block
@@ -1263,21 +1002,21 @@ fn render_group(
   index: usize,
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
-) -> String {
+) -> Result<String, ProcessStylexRulesError> {
   let pri = group[0].priority();
 
-  let collected_css = deduplicate_by_class_name(group)
-    .into_iter()
-    .flat_map(|style| style_lines(style, index, config, layers))
-    .collect::<Vec<String>>()
-    .join("\n");
+  let mut lines = Vec::with_capacity(group.len());
+  for rule in deduplicate_by_class_name(group) {
+    lines.extend(style_lines(rule, index, config, layers)?);
+  }
+  let collected_css = lines.join("\n");
 
   // Don't put @property, @keyframe, @position-try in layers
-  if layers.on && pri > 0.0 {
+  Ok(if layers.on && pri > 0.0 {
     format!("@layer {}{{\n{collected_css}\n}}", layers.name(index))
   } else {
     collected_css
-  }
+  })
 }
 
 /// `processStylexRules`: the sheet for `rules` under `config`.
@@ -1298,18 +1037,45 @@ pub fn process_stylex_rules(
     return Ok(String::new());
   }
 
+  assemble(rules, config)
+}
+
+/// `processStylexRules(rules, config)` over the two arguments as JavaScript
+/// values, read as the reference reads them: the early return on
+/// `rules.length === 0` first, then the config and the rules.
+pub fn process_stylex_rule_values(
+  rules: JsValue,
+  config: &JsValue,
+) -> Result<String, ProcessStylexRulesError> {
+  if has_no_length(&rules) {
+    return Ok(String::new());
+  }
+
+  let config = ProcessStylexRulesConfig::read(config)?;
+  let rules = read_rules(rules)?;
+
+  // The list can be empty here (`[, ,]` has a length, and only holes): the
+  // reference goes on and writes the `@layer` header alone.
+  assemble(&rules, &config)
+}
+
+/// The steps of `processStylexRules` after its early return.
+fn assemble(
+  rules: &[Rule],
+  config: &ProcessStylexRulesConfig,
+) -> Result<String, ProcessStylexRulesError> {
   let (constants, non_constant_rules) = collect_constants(rules);
   let constants = resolve_constants(&constants)?;
   let substituted = substitute_constants(non_constant_rules, &constants);
-  let sorted_rules = sort_rules(&substituted, config.use_legacy_classnames_sort);
-  let grouped = group_by_priority_level(&sorted_rules);
+  let sorted_rules = sort_rules(&substituted, config.use_legacy_classnames_sort)?;
+  let grouped = group_by_priority_level(&sorted_rules)?;
   let layers = Layers::of(config);
 
   let collected_css = grouped
     .iter()
     .enumerate()
     .map(|(index, group)| render_group(group, index, config, &layers))
-    .collect::<Vec<String>>()
+    .collect::<Result<Vec<String>, _>>()?
     .join("\n");
 
   let mut sheet = get_logical_float_vars(sorted_rules.iter().copied());

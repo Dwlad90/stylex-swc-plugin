@@ -7,9 +7,10 @@
 //! `mediaQueryWidthSortKey`, `atRulePreludes`, `widthSortKeyForChain`,
 //! `declaredPropertyName`, `compareWidthSortKeys`.
 
-use std::cmp::Ordering;
-
 use stylex_css_parser::at_queries::media_query::{MediaQuery, MediaQueryRule, MediaRuleValue};
+use stylex_utils::number::is_js_whitespace;
+
+use crate::collation::locale_compare;
 
 /// Which side of the width a bound constrains.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,6 +113,9 @@ fn media_query_width_sort_key(prelude: &str) -> Option<WidthBound> {
 
 /// The leading at-rule preludes of a rule, outermost first, e.g.
 /// `@supports (x){@media (y){.a{…}}}` -> `["@supports (x)", "@media (y)"]`.
+/// Each prelude is trimmed at its end as `trimEnd` trims, of the ECMAScript
+/// white space: U+FEFF is removed and U+0085 is kept, which is the opposite of
+/// `str::trim_end`.
 pub fn at_rule_preludes(rule: &str) -> Vec<String> {
   let mut preludes = Vec::new();
   let mut index = 0;
@@ -121,7 +125,11 @@ pub fn at_rule_preludes(rule: &str) -> Vec<String> {
       break;
     };
 
-    preludes.push(rule[index..index + brace].trim_end().to_string());
+    preludes.push(
+      rule[index..index + brace]
+        .trim_end_matches(is_js_whitespace)
+        .to_string(),
+    );
     index += brace + 1;
   }
 
@@ -184,38 +192,32 @@ pub fn declared_property_name(rule: &str) -> &str {
 /// A total ordering over width sort keys, so the sort stays consistent no
 /// matter which pairs get compared: rules with a bound first, then grouped by
 /// at-rule context, then `min-width` ascending ahead of `max-width` descending
-/// -- the conventional mobile-first order. The context compares as
-/// `localeCompare` compares it (`collation`).
-pub fn compare_width_sort_keys(a: Option<&WidthSortKey>, b: Option<&WidthSortKey>) -> Ordering {
+/// -- the conventional mobile-first order. The answer is the reference's
+/// number: the context compares as `localeCompare` compares it
+/// (`collation`), and two bounds by subtraction, which reads `-0` and `0` as a
+/// tie and two infinite bounds as `NaN`.
+pub fn compare_width_sort_keys(a: Option<&WidthSortKey>, b: Option<&WidthSortKey>) -> f64 {
   let (a, b) = match (a, b) {
-    (None, None) => return Ordering::Equal,
-    (None, Some(_)) => return Ordering::Greater,
-    (Some(_), None) => return Ordering::Less,
+    (None, None) => return 0.0,
+    (None, Some(_)) => return 1.0,
+    (Some(_), None) => return -1.0,
     (Some(a), Some(b)) => (a, b),
   };
 
   if a.context != b.context {
-    return crate::collation::compare(&a.context, &b.context);
+    return locale_compare(&a.context, &b.context);
   }
 
   if a.bound.kind != b.bound.kind {
     return match a.bound.kind {
-      WidthBoundKind::Min => Ordering::Less,
-      WidthBoundKind::Max => Ordering::Greater,
+      WidthBoundKind::Min => -1.0,
+      WidthBoundKind::Max => 1.0,
     };
   }
 
-  // `a.bound.value - b.bound.value`: a subtraction, which reads `-0` and `0`
-  // as a tie (`total_cmp` would not), and the tie then goes to the rule text.
-  let ordering = a
-    .bound
-    .value
-    .partial_cmp(&b.bound.value)
-    .unwrap_or(Ordering::Equal);
-
   match a.bound.kind {
-    WidthBoundKind::Min => ordering,
-    WidthBoundKind::Max => ordering.reverse(),
+    WidthBoundKind::Min => a.bound.value - b.bound.value,
+    WidthBoundKind::Max => b.bound.value - a.bound.value,
   }
 }
 

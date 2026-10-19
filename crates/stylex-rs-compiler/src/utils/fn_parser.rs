@@ -41,7 +41,7 @@ thread_local! {
 /// [`stylex_utils::nesting::MAX_NESTING_DEPTH`]. The budgets are kept apart on
 /// purpose: that one guards syntax the parser reads, this one guards a value
 /// graph that JavaScript hands across the NAPI boundary.
-const MAX_ENV_NESTING_DEPTH: usize = 64;
+pub(crate) const MAX_ENV_NESTING_DEPTH: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EnvValueKind {

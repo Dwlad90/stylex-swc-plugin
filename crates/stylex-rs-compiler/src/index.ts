@@ -79,9 +79,10 @@ export interface ProcessStylexRulesConfig {
  *
  * `rules` is the concatenation of every file's `metadata.stylex`, in the order
  * the files were compiled; `config` is the reference's, a boolean standing for
- * `useLayers` or the options object. A circular constant throws with the
- * reference's message; the README lists where a value outside the published
- * types is read differently from the reference.
+ * `useLayers` or the options object. Both are read as the reference reads
+ * them, a value outside the published types included, and the rules are sorted
+ * with V8's sort algorithm. A circular constant throws with the reference's
+ * message; the README lists the few inputs that are read differently.
  *
  * The signature is a superset of the one `@stylexjs/babel-plugin` 0.19.1
  * publishes: `rules` is `readonly` where the reference says `Array<Rule>`,

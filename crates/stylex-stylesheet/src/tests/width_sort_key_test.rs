@@ -32,9 +32,12 @@ fn max(value: f64) -> Option<WidthBound> {
   })
 }
 
-/// The order the comparator gives two rules, by their chains.
+/// The order the comparator gives two rules, by their chains: the sign of
+/// its number, with `NaN` a tie, as the sort reads it.
 fn order(a: &str, b: &str) -> Ordering {
   compare_width_sort_keys(key_of(a).as_ref(), key_of(b).as_ref())
+    .partial_cmp(&0.0)
+    .unwrap_or(Ordering::Equal)
 }
 
 // ==================== at_rule_preludes ====================
@@ -48,6 +51,51 @@ fn preludes_are_read_outermost_first_and_trimmed() {
   assert_eq!(
     at_rule_preludes("@media (min-width: 500px) {.a{color:red}}"),
     vec!["@media (min-width: 500px)"]
+  );
+}
+
+/// `trimEnd` removes the ECMAScript white space, which holds U+FEFF and not
+/// U+0085; `str::trim_end` does the opposite. So a prelude that ends in U+FEFF
+/// parses and sorts by its bound, and one that ends in U+0085 keeps it, does
+/// not parse, and has no bound. Measured on the plugin.
+#[test]
+fn a_prelude_is_trimmed_at_its_end_as_trim_end_trims() {
+  assert_eq!(
+    at_rule_preludes("@media (min-width: 5px)\u{FEFF}\u{A0}\u{3000}{.a{a:0}}"),
+    vec!["@media (min-width: 5px)"]
+  );
+  assert_eq!(
+    at_rule_preludes("@media (min-width: 5px)\u{85}{.a{a:0}}"),
+    vec!["@media (min-width: 5px)\u{85}"]
+  );
+  assert_eq!(
+    at_rule_preludes("@media (min-width: 5px)\u{200B}{.a{a:0}}"),
+    vec!["@media (min-width: 5px)\u{200B}"]
+  );
+  // The start is not trimmed.
+  assert_eq!(
+    at_rule_preludes("@media \u{FEFF}(min-width: 5px) {.a{a:0}}"),
+    vec!["@media \u{FEFF}(min-width: 5px)"]
+  );
+
+  assert_eq!(bound_of("@media (min-width: 5px)\u{FEFF}"), min(5.0));
+  assert_eq!(bound_of("@media (min-width: 5px)\u{85}"), None);
+}
+
+/// Two bounds that both overflow to infinity subtract to `NaN`, which the sort
+/// reads as a tie.
+#[test]
+fn two_infinite_bounds_compare_as_nan() {
+  let infinite = key_of("@media (min-width: 1e999px){.a{a:0}}");
+
+  assert_eq!(infinite.as_ref().map(|key| key.bound), min(f64::INFINITY));
+  assert!(compare_width_sort_keys(infinite.as_ref(), infinite.as_ref()).is_nan());
+  assert_eq!(
+    compare_width_sort_keys(
+      key_of("@media (max-width: 5px){.a{a:0}}").as_ref(),
+      key_of("@media (max-width: 9px){.a{a:0}}").as_ref()
+    ),
+    4.0
   );
 }
 

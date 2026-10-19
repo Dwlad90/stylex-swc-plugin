@@ -134,6 +134,15 @@ pub(crate) fn compare(a: &str, b: &str) -> Ordering {
   }
 }
 
+/// `a.localeCompare(b)` as the number it answers in Node: -1, 0 or 1.
+pub(crate) fn locale_compare(a: &str, b: &str) -> f64 {
+  match compare(a, b) {
+    Ordering::Less => -1.0,
+    Ordering::Equal => 0.0,
+    Ordering::Greater => 1.0,
+  }
+}
+
 #[cfg(test)]
 #[path = "tests/collation_test.rs"]
 mod collation_test;

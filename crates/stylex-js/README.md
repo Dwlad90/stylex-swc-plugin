@@ -16,17 +16,21 @@ evaluator can ask these questions without the full transformation pipeline.
 - The coercions `ToString`, `ToNumber`, `ToBoolean` and `ToObject` over an
   already-evaluated expression
 - `evaluate_bin_expr`, which applies a numeric binary operator to two operands
-- Thin leaf crate with no transitive dependencies beyond primitives and macros
+- `JsValue`, a JavaScript value as data, with its coercions, and
+  `array_tim_sort`, `Array.prototype.sort` as V8 sorts
+- A low crate: it depends on primitives, macros and a few small libraries only
 
 ## Architecture
 
 ### Modules
 
-| Module      | Purpose                                                                                      |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| `helpers`   | JS runtime guards (`is_valid_callee`, `is_mutation_expr`, `is_valid_callee_method`, etc.)    |
-| `coercions` | What the language says a value converts to (`ToString`, `ToNumber`, `ToBoolean`, `ToObject`) |
-| `operators` | `evaluate_bin_expr`, the numeric binary operators                                            |
+| Module       | Purpose                                                                                      |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| `helpers`    | JS runtime guards (`is_valid_callee`, `is_mutation_expr`, `is_valid_callee_method`, etc.)    |
+| `coercions`  | What the language says a value converts to (`ToString`, `ToNumber`, `ToBoolean`, `ToObject`) |
+| `operators`  | `evaluate_bin_expr`, the numeric binary operators                                            |
+| `value`      | `JsValue`, a JavaScript value as data, and its coercions                                     |
+| `array_sort` | `array_tim_sort`, `Array.prototype.sort` as V8 sorts                                         |
 
 ## License
 

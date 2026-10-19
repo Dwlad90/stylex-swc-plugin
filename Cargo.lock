@@ -3290,6 +3290,10 @@ dependencies = [
 name = "stylex_js"
 version = "0.19.2"
 dependencies = [
+ "indexmap",
+ "rustc-hash",
+ "serde",
+ "serde_json",
  "stylex_constants",
  "stylex_macros",
  "stylex_utils",
@@ -3377,6 +3381,7 @@ dependencies = [
  "serde_plain",
  "stylex_ast",
  "stylex_enums",
+ "stylex_js",
  "stylex_logs",
  "stylex_macros",
  "stylex_regex",
@@ -3477,6 +3482,7 @@ dependencies = [
  "serde_json",
  "stylex_constants",
  "stylex_css_parser",
+ "stylex_js",
  "stylex_regex",
  "stylex_utils",
  "thiserror 2.0.21",

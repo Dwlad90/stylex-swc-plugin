@@ -6,9 +6,12 @@ predicate answers one yes/no question about an AST node, or reads a name off
 one; a coercion answers what the language says a value converts to. Neither kind
 transforms anything.
 
-The three modules — `helpers`, `coercions` and `operators` — are not re-exported
-from the crate root, so an import site says which kind of helper it reaches for.
-[stylex-evaluator](../stylex-evaluator/CONTEXT.md) is the consumer. The named
+The five modules — `helpers`, `coercions`, `operators`, `value` and
+`array_sort` — are not re-exported from the crate root, so an import site says
+which kind of helper it reaches for.
+[stylex-evaluator](../stylex-evaluator/CONTEXT.md) is the consumer of the
+first three; [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md) of the last
+two. The named
 sets themselves live in [stylex-constants](../stylex-constants/CONTEXT.md).
 
 ## Language
@@ -122,3 +125,24 @@ suffix says which one takes a name, because the two differ in nothing else. An
 allowlist: a static the sets do not hold is refused, whether or not anybody
 listed a reason for it.
 _Avoid_: allowed method, safe static, whitelisted method
+
+**JavaScript value**:
+A value that arrives from JavaScript at run time, held as data: `undefined`, a
+hole, `null`, a boolean, a number, a string, an array or an object, and nothing
+else. Its coercions (`to_js_string`, `to_js_number`, `to_js_boolean`) are the
+data-level twins of the expression-level ones, and are total. An object keeps
+no identity, so it is a `Map` key of its own (`same_value_zero_key` answers
+`None`), and it coerces as `Object.prototype` says.
+_Avoid_: JSON value, dynamic value, any
+
+**Hole**:
+An array index that holds no element, `[a, , b]`. Every read takes it as
+`undefined`; only a built-in that skips holes, such as `filter`, tells it apart.
+_Avoid_: empty slot, missing element
+
+**Array sort**:
+`Array.prototype.sort` with a comparator, as V8 sorts (`array_tim_sort`, V8's
+TimSort at the version Node 24 ships). The language leaves the algorithm open,
+so for a comparator that is not a consistent order the result is one engine's;
+this is V8's, comparison for comparison. A comparator answer of `NaN` is a tie.
+_Avoid_: stable sort, TimSort alone

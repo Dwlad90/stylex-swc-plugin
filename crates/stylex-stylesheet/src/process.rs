@@ -708,19 +708,32 @@ fn changed<'a>(text: Cow<'a, str>, change: impl FnOnce(&str) -> Cow<'_, str>) ->
   owned.map_or(text, Cow::Owned)
 }
 
-/// [`insert_specificity`] on a text of `rule`, refused where JavaScript would
-/// cut a character in two.
+/// [`insert_specificity`] on a text of `rule`. Where JavaScript would cut a
+/// character in two, the text is kept as it is and the first such refusal is
+/// kept in `first_cut` ([`Output`]).
 fn with_specificity<'a>(
   text: Cow<'a, str>,
   pseudo: &str,
   rule: &Rule,
-) -> Result<Cow<'a, str>, ProcessStylexRulesError> {
+  first_cut: &mut Option<ProcessStylexRulesError>,
+) -> Cow<'a, str> {
   let owned = match insert_specificity(&text, pseudo) {
     Some(Cow::Owned(changed)) => Some(changed),
     Some(Cow::Borrowed(_)) => None,
-    None => return Err(rule.cut_in_two()),
+    None => {
+      first_cut.get_or_insert_with(|| rule.cut_in_two());
+      None
+    },
   };
-  Ok(owned.map_or(text, Cow::Owned))
+  owned.map_or(text, Cow::Owned)
+}
+
+/// The sheet as it is written, and the first text that JavaScript would cut
+/// in two ([`with_specificity`]). The cut is refused only after the whole
+/// output is written, so that an error the reference throws later comes first.
+struct Output {
+  text: String,
+  first_cut: Option<ProcessStylexRulesError>,
 }
 
 /// Writes the lines one style writes: its LTR text, and, when it has an RTL
@@ -728,7 +741,7 @@ fn with_specificity<'a>(
 /// and `@rtl` comments. `specificity` is the polyfill of the style's group,
 /// when the sheet has one.
 fn write_style(
-  out: &mut String,
+  out: &mut Output,
   rule: &Rule,
   specificity: Option<&str>,
   enable_ltr_rtl_comments: bool,
@@ -739,11 +752,8 @@ fn write_style(
   let mut rtl_rule = rule.rtl()?.map(Cow::Borrowed);
 
   if let Some(pseudo) = specificity {
-    ltr_rule = with_specificity(ltr_rule, pseudo, rule)?;
-    rtl_rule = match rtl_rule {
-      Some(rtl) => Some(with_specificity(rtl, pseudo, rule)?),
-      None => None,
-    };
+    ltr_rule = with_specificity(ltr_rule, pseudo, rule, &mut out.first_cut);
+    rtl_rule = rtl_rule.map(|rtl| with_specificity(rtl, pseudo, rule, &mut out.first_cut));
   }
 
   // check if the selector looks like .xtrlmmh, .xtrlmmh:root
@@ -755,18 +765,18 @@ fn write_style(
 
   match rtl_rule {
     Some(rtl_rule) if enable_ltr_rtl_comments => {
-      out.push_str("/* @ltr begin */");
-      out.push_str(&ltr_rule);
-      out.push_str("/* @ltr end */\n/* @rtl begin */");
-      out.push_str(&rtl_rule);
-      out.push_str("/* @rtl end */");
+      out.text.push_str("/* @ltr begin */");
+      out.text.push_str(&ltr_rule);
+      out.text.push_str("/* @ltr end */\n/* @rtl begin */");
+      out.text.push_str(&rtl_rule);
+      out.text.push_str("/* @rtl end */");
     },
     Some(rtl_rule) => {
-      write_with_ancestor(out, &ltr_rule, "html:not([dir='rtl'])");
-      out.push('\n');
-      write_with_ancestor(out, &rtl_rule, "html[dir='rtl']");
+      write_with_ancestor(&mut out.text, &ltr_rule, "html:not([dir='rtl'])");
+      out.text.push('\n');
+      write_with_ancestor(&mut out.text, &rtl_rule, "html[dir='rtl']");
     },
-    None => out.push_str(&ltr_rule),
+    None => out.text.push_str(&ltr_rule),
   }
 
   Ok(())
@@ -776,7 +786,7 @@ fn write_style(
 /// layers are on and the group holds styles (a group of priority 0,
 /// `@property`, `@keyframes`, `@position-try`, goes in no layer).
 fn write_group(
-  out: &mut String,
+  out: &mut Output,
   group: &[&Rule],
   index: usize,
   config: &ProcessStylexRulesConfig,
@@ -792,14 +802,14 @@ fn write_group(
     (!layers.on && !config.legacy_disable_layers).then(|| SPECIFICITY_LEVEL.repeat(index));
 
   if in_layer {
-    out.push_str("@layer ");
-    out.push_str(&layers.name(index));
-    out.push_str("{\n");
+    out.text.push_str("@layer ");
+    out.text.push_str(&layers.name(index));
+    out.text.push_str("{\n");
   }
 
   for (position, rule) in deduplicate_by_class_name(group).into_iter().enumerate() {
     if position > 0 {
-      out.push('\n');
+      out.text.push('\n');
     }
     write_style(
       out,
@@ -810,7 +820,7 @@ fn write_group(
   }
 
   if in_layer {
-    out.push_str("\n}");
+    out.text.push_str("\n}");
   }
 
   Ok(())
@@ -901,19 +911,25 @@ fn assemble(
     .iter()
     .map(|rule| text_length(&rule.style().ltr) + 2 * text_length(&rule.style().rtl))
     .sum();
-  let mut sheet = String::with_capacity(size + size / 4);
+  let mut output = Output {
+    text: String::with_capacity(size + size / 4),
+    first_cut: None,
+  };
 
-  sheet.push_str(&get_logical_float_vars(sorted_rules.iter().copied()));
-  sheet.push_str(&layers.statement(grouped.len()));
+  output
+    .text
+    .push_str(&get_logical_float_vars(sorted_rules.iter().copied()));
+  output.text.push_str(&layers.statement(grouped.len()));
 
   for (index, group) in grouped.iter().enumerate() {
     if index > 0 {
-      sheet.push('\n');
+      output.text.push('\n');
     }
-    write_group(&mut sheet, group, index, config, &layers)?;
+    write_group(&mut output, group, index, config, &layers)?;
   }
 
-  Ok(sheet)
+  refuse_if_any(output.first_cut)?;
+  Ok(output.text)
 }
 
 /// The length of a text in bytes, 0 for a value that is not a string.

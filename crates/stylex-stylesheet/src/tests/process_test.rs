@@ -761,6 +761,51 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
   );
 }
 
+/// JavaScript cuts the character and writes on, so an error in a later rule of
+/// the output is the error the reference throws: here `c`'s `ltr` is a
+/// number. Measured on the plugin.
+#[test]
+fn a_character_cut_in_the_output_waits_for_the_rest_of_the_output() {
+  let rules = [
+    rule("a", ".a{color:red}", None, 0.0),
+    rule("b", ".b😀", None, 1000.0),
+    Rule::new(
+      "c".into(),
+      RuleStyle {
+        ltr: 5.0.into(),
+        ..RuleStyle::default()
+      },
+      2000.0,
+    ),
+  ];
+  let legacy = ProcessStylexRulesConfig {
+    use_legacy_classnames_sort: true,
+    ..ProcessStylexRulesConfig::default()
+  };
+
+  assert_eq!(
+    process_stylex_rules(&rules, &legacy),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
+      class_name: "c".into(),
+      kind: "a number"
+    })
+  );
+
+  // With two cuts and no other error, the first cut is refused.
+  let two_cuts = [
+    rule("a", ".a{color:red}", None, 0.0),
+    rule("b", ".b😀", None, 1000.0),
+    rule("d", ".d😀", None, 2000.0),
+  ];
+  assert_eq!(
+    process_stylex_rules(&two_cuts, &legacy),
+    Err(ProcessStylexRulesError::CharacterCutInTwo {
+      class_name: "b".into()
+    })
+  );
+}
+
 /// The specificity level cuts the last character of a blockless text, for
 /// the LTR and for the RTL text alike. In the first group it inserts nothing,
 /// and the two halves join back into the text: the plugin writes it as it is.

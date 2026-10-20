@@ -10,9 +10,9 @@ The six modules — `helpers`, `coercions`, `operators`, `value`, `array_sort`
 and `string` — are not re-exported from the crate root, so an import site says
 which kind of helper it reaches for.
 [stylex-evaluator](../stylex-evaluator/CONTEXT.md) is the consumer of the
-first three; [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md) of `value`
-and `array_sort`; [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) of
-`value` and `string`. The named
+first three; [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md) of `value`,
+`array_sort` and `string`; [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md)
+of `value` and `string`. The named
 sets themselves live in [stylex-constants](../stylex-constants/CONTEXT.md).
 
 ## Language
@@ -150,7 +150,8 @@ _Avoid_: char count, string length
 
 **Array sort**:
 `Array.prototype.sort` with a comparator, as V8 sorts (`array_tim_sort`, V8's
-TimSort at the version Node 24 ships). The language leaves the algorithm open,
+TimSort at the version Node 24 ships; the V8 of Node 22 has the same
+algorithm). The language leaves the algorithm open,
 so for a comparator that is not a consistent order the result is one engine's;
 this is V8's, comparison for comparison. A comparator answer of `NaN` is a tie.
 _Avoid_: stable sort, TimSort alone

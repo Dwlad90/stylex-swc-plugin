@@ -4,7 +4,8 @@
 //! consistent order (one that answers `NaN`, or `a < b` and `b < a`), the
 //! result is what one engine's algorithm makes of it. The output a port must
 //! match is the output Node writes, so this is V8's TimSort
-//! (`third_party/v8/builtins/array-sort.tq` at 13.6.233, the V8 of Node 24),
+//! (`third_party/v8/builtins/array-sort.tq` at 13.6.233, the V8 of Node 24;
+//! the V8 of Node 22 has the same algorithm),
 //! function by function with V8's names: each comparison is the one V8 makes,
 //! with the same two operands in the same order. Rust's `sort_by` visits other
 //! pairs, so it gives another order for such a comparator.

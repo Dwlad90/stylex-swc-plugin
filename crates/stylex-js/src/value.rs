@@ -23,16 +23,22 @@ use crate::coercions::{OBJECT_TO_STRING, StringSink, string_to_js_number, write_
 /// no effect here.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum JsValue {
+  /// `undefined`, and a property that is not there.
   #[default]
   Undefined,
   /// An array index that holds no element (`[a, , b]`). Every coercion and
   /// every destructuring reads it as `undefined`; only a built-in that skips
   /// holes, such as `Array.prototype.filter`, tells the two apart.
   Hole,
+  /// `null`.
   Null,
+  /// `true` or `false`.
   Boolean(bool),
+  /// A number, `NaN`, `-0` and the infinities included.
   Number(f64),
+  /// A string. It holds no lone surrogate, which a Rust `String` cannot hold.
   String(String),
+  /// An array, with its holes.
   Array(Vec<JsValue>),
   /// Boxed, so that every value stays small: a rule holds five of them.
   Object(Box<JsObject>),
@@ -48,11 +54,15 @@ pub type JsObject = IndexMap<String, JsValue, FxBuildHasher>;
 /// keep, so it has no `MapKey`: each one is a key of its own.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MapKey<'a> {
+  /// `undefined`, and a hole, which reads as `undefined`.
   Undefined,
+  /// `null`.
   Null,
+  /// `true` or `false`.
   Boolean(bool),
   /// The bits of the number, with every `NaN` and both zeros made one.
   Number(u64),
+  /// A string, by its text.
   String(&'a str),
 }
 
@@ -91,6 +101,10 @@ impl JsValue {
   }
 
   /// `String(value)` (ECMA-262 `ToString`).
+  ///
+  /// An array is joined by a recursive walk, so the caller bounds how deep
+  /// its arrays nest. The addon builds strings only, and `serde_json` stops
+  /// at 128 levels of nesting.
   pub fn to_js_string(&self) -> Cow<'_, str> {
     match self {
       JsValue::Undefined | JsValue::Hole => Cow::Borrowed("undefined"),

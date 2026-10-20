@@ -51,8 +51,13 @@ fn json_reads_into_the_value_it_spells() {
     read(r#"{"a": 1, "b": 2, "a": 3}"#),
     object(&[("a", 3.0.into()), ("b", 2.0.into())])
   );
-  // A string with an escape arrives owned.
+  // A string with an escape reads as its text.
   assert_eq!(read(r#""a\nb""#), JsValue::from("a\nb"));
+  // `serde_json` stops at 128 levels of nesting, which bounds the recursive
+  // walk of `to_js_string`.
+  let nested = |depth: usize| format!("{}{}", "[".repeat(depth), "]".repeat(depth));
+  assert_eq!(read(&nested(127)).to_js_string(), "");
+  assert!(serde_json::from_str::<JsValue>(&nested(100_000)).is_err());
   // A fault inside an array or an object is the parse error it is.
   for cut_short in ["[1,", r#"{"a": 1,"#, r#"[{"a": [1, {"#] {
     assert!(

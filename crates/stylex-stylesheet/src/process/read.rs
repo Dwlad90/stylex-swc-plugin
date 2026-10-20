@@ -22,11 +22,6 @@ use stylex_js::value::{JsValue, MapKey};
 pub struct ClassName(JsValue);
 
 impl ClassName {
-  /// The class name as it arrived.
-  pub fn value(&self) -> &JsValue {
-    &self.0
-  }
-
   /// `String(className)`.
   pub fn spelling(&self) -> Cow<'_, str> {
     self.0.to_js_string()

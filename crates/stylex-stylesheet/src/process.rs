@@ -135,14 +135,7 @@ fn resolve_constants(
   mut constants: OrderedConstants,
 ) -> Result<OrderedConstants, ProcessStylexRulesError> {
   for index in 0..constants.len() {
-    let Some((_, value)) = constants.get_index(index) else {
-      continue;
-    };
-    let resolved = resolve_constant(value, &constants, &mut Vec::new())?;
-
-    if let Some((_, value)) = constants.get_index_mut(index) {
-      *value = resolved;
-    }
+    constants[index] = resolve_constant(&constants[index], &constants, &mut Vec::new())?;
   }
 
   Ok(constants)
@@ -469,10 +462,6 @@ impl<'r> SortFacts<'r> {
   fn text(&self) -> Result<&TextFacts<'r>, ProcessStylexRulesError> {
     self.text.as_ref().map_err(Clone::clone)
   }
-
-  fn block(&self) -> Result<Collated<'r>, ProcessStylexRulesError> {
-    self.text()?.block.ok_or_else(|| self.rule.cut_in_two())
-  }
 }
 
 /// The comparator of the sort, answering a number as the reference's does: by
@@ -525,7 +514,9 @@ fn compare_rules(
 
   // `rule.slice(rule.lastIndexOf('{'))`: the declaration block, or, for a text
   // with no block, its last character.
-  let property_comparison = locale_compare_collated(a.block()?, b.block()?);
+  let block1 = rule1.block.ok_or_else(|| a.rule.cut_in_two())?;
+  let block2 = rule2.block.ok_or_else(|| b.rule.cut_in_two())?;
+  let property_comparison = locale_compare_collated(block1, block2);
 
   if property_comparison != 0.0 {
     return Ok(property_comparison);

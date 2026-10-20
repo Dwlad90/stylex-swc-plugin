@@ -497,6 +497,22 @@ fn a_pattern_brought_in_by_a_substitution_is_applied_by_a_later_one() {
   );
 }
 
+/// The priority of a group's first rule decides whether the group goes in a
+/// layer (`group[0][2]`): 0 and 500 share level 0, and the group stays out of
+/// every layer, though its second rule is above 0. Measured on the plugin.
+#[test]
+fn the_first_rule_of_a_group_decides_its_layer() {
+  let rules = [
+    rule("a", ".a{x:0}", None, 0.0),
+    rule("b", ".b{y:0}", None, 500.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n.a{x:0}\n.b{y:0}"
+  );
+}
+
 /// A constant that only the RTL text reads changes the RTL text alone; the
 /// LTR text is kept as it was. A class name read from a JavaScript value is
 /// the same class name as one read from a string.

@@ -585,6 +585,13 @@ fn sort_rules<'a>(
 
 // ==================== the groups ====================
 
+/// One priority group: its rules in sorted order, and `group[0][2]`, the
+/// priority of its first rule, which decides whether it goes in a layer.
+struct PriorityGroup<'a> {
+  priority: f64,
+  rules: Vec<&'a Rule>,
+}
+
 /// The sorted rules grouped by thousand of priority (`Math.floor(priority /
 /// 1000)`), each group in the order the sort gave its rules. A `NaN` level
 /// equals no level, so each such rule is a group of its own.
@@ -594,9 +601,9 @@ fn sort_rules<'a>(
 /// at level -1, there is no last group, and the reference throws.
 fn group_by_priority_level<'a>(
   sorted_rules: &[&'a Rule],
-) -> Result<Vec<Vec<&'a Rule>>, ProcessStylexRulesError> {
+) -> Result<Vec<PriorityGroup<'a>>, ProcessStylexRulesError> {
   let mut last_k_pri = -1.0;
-  let mut grouped: Vec<Vec<&Rule>> = Vec::new();
+  let mut grouped: Vec<PriorityGroup<'a>> = Vec::new();
 
   for &rule in sorted_rules {
     let priority_level = (rule.priority() / 1000.0).floor();
@@ -607,10 +614,13 @@ fn group_by_priority_level<'a>(
           class_name: rule.class_name().spelling().into_owned(),
         });
       };
-      group.push(rule);
+      group.rules.push(rule);
     } else {
       last_k_pri = priority_level;
-      grouped.push(vec![rule]);
+      grouped.push(PriorityGroup {
+        priority: rule.priority(),
+        rules: vec![rule],
+      });
     }
   }
 
@@ -789,15 +799,13 @@ fn write_style(
 /// `@property`, `@keyframes`, `@position-try`, goes in no layer).
 fn write_group(
   out: &mut Output,
-  group: &[&Rule],
+  group: &PriorityGroup<'_>,
   index: usize,
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
 ) -> Result<(), ProcessStylexRulesError> {
-  // A group is never empty: `group_by_priority_level` opens one with a rule.
-  let pri = group[0].priority();
   // Don't put @property, @keyframe, @position-try in layers
-  let in_layer = layers.on && pri > 0.0;
+  let in_layer = layers.on && group.priority > 0.0;
   // The polyfill: `index` copies of `:not(#\#)`, the same for every style of
   // the group.
   let specificity =
@@ -809,7 +817,10 @@ fn write_group(
     out.text.push_str("{\n");
   }
 
-  for (position, rule) in deduplicate_by_class_name(group).into_iter().enumerate() {
+  for (position, rule) in deduplicate_by_class_name(&group.rules)
+    .into_iter()
+    .enumerate()
+  {
     if position > 0 {
       out.text.push('\n');
     }

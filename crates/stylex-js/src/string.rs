@@ -4,6 +4,8 @@
 //! These functions take the counts and positions that JavaScript gives and
 //! answer what JavaScript answers.
 
+use std::borrow::Cow;
+
 /// `text` cut into consecutive pieces of the given lengths, each counted in
 /// UTF-16 code units as JavaScript's `length` counts it.
 ///
@@ -42,6 +44,99 @@ pub fn split_at_utf16_lengths<'t>(text: &'t str, lengths: &[u32]) -> Option<Vec<
   }
 
   characters.next().is_none().then_some(pieces)
+}
+
+/// `String.prototype.replace` and `replaceAll` with a string pattern and a
+/// string replacement, as the reference calls them: the replacement is a
+/// template in which `$$` is a dollar, `$&` the matched text, `` $` `` the text
+/// before the match and `$'` the text after it (ECMA-262 GetSubstitution; a
+/// string pattern has no capture groups, so `$1` and `$<name>` stay literal).
+/// Upstream `main` has since passed a function instead, which writes the
+/// replacement verbatim; that change arrives here with the version carrying it.
+pub fn js_substitution(template: &str, matched: &str, before: &str, after: &str) -> String {
+  let mut out = String::with_capacity(template.len());
+  let mut characters = template.chars().peekable();
+
+  while let Some(character) = characters.next() {
+    if character != '$' {
+      out.push(character);
+      continue;
+    }
+
+    match characters.peek() {
+      Some('$') => {
+        characters.next();
+        out.push('$');
+      },
+      Some('&') => {
+        characters.next();
+        out.push_str(matched);
+      },
+      Some('`') => {
+        characters.next();
+        out.push_str(before);
+      },
+      Some('\'') => {
+        characters.next();
+        out.push_str(after);
+      },
+      _ => out.push('$'),
+    }
+  }
+
+  out
+}
+
+/// The substitution for the occurrence of `pattern` at `start` of `text`: the
+/// template read against that occurrence's surroundings, the text before it
+/// and the text after it.
+fn substitution_at(text: &str, start: usize, pattern: &str, replacement: &str) -> String {
+  js_substitution(
+    replacement,
+    pattern,
+    &text[..start],
+    &text[start + pattern.len()..],
+  )
+}
+
+/// `text.replace(pattern, replacement)`: the first occurrence.
+pub fn js_replace_first(text: &str, pattern: &str, replacement: &str) -> String {
+  match text.find(pattern) {
+    Some(start) => {
+      let mut out = String::with_capacity(text.len() + replacement.len());
+      out.push_str(&text[..start]);
+      out.push_str(&substitution_at(text, start, pattern, replacement));
+      out.push_str(&text[start + pattern.len()..]);
+      out
+    },
+    None => text.to_string(),
+  }
+}
+
+/// `text.replaceAll(pattern, replacement)`: every occurrence, left to right,
+/// each substitution reading its own surroundings in the original text. A text
+/// with no occurrence is handed back as it is: the loop below runs once per
+/// rule and constant, and nearly every such pair has nothing to replace.
+pub fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Cow<'t, str> {
+  let Some(first) = text.find(pattern) else {
+    return Cow::Borrowed(text);
+  };
+
+  let mut out = String::with_capacity(text.len());
+  let mut rest = &text[first..];
+  let mut consumed = first;
+  out.push_str(&text[..first]);
+
+  while let Some(offset) = rest.find(pattern) {
+    let start = consumed + offset;
+    out.push_str(&rest[..offset]);
+    out.push_str(&substitution_at(text, start, pattern, replacement));
+    rest = &rest[offset + pattern.len()..];
+    consumed = start + pattern.len();
+  }
+
+  out.push_str(rest);
+  Cow::Owned(out)
 }
 
 #[cfg(test)]

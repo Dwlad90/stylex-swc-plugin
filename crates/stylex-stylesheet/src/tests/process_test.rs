@@ -8,12 +8,12 @@ use stylex_js::value::JsValue;
 use crate::process::{
   ClassName, LayerOptions, OrderedConstants, ProcessStylexRulesConfig, ProcessStylexRulesError,
   Rule, RuleStyle, TextDirection, add_ancestor_selector, add_specificity_level,
-  get_logical_float_vars, js_replace_all, js_replace_first, js_substitution,
-  process_stylex_rule_values, process_stylex_rules, read_rules, resolve_constant,
+  get_logical_float_vars, process_stylex_rule_values, process_stylex_rules, read_rules,
+  resolve_constant,
 };
 
 fn rule(class_name: &str, ltr: &str, rtl: Option<&str>, priority: f64) -> Rule {
-  Rule(
+  Rule::new(
     class_name.into(),
     RuleStyle {
       ltr: ltr.into(),
@@ -25,7 +25,7 @@ fn rule(class_name: &str, ltr: &str, rtl: Option<&str>, priority: f64) -> Rule {
 }
 
 fn constant(class_name: &str, value: JsValue) -> Rule {
-  Rule(
+  Rule::new(
     class_name.into(),
     RuleStyle {
       const_key: class_name.into(),
@@ -243,47 +243,6 @@ fn a_layer_option_that_is_not_iterable_is_refused() {
     .to_string(),
     "the layer option before is a number, not a list or a string"
   );
-}
-
-// ==================== the JavaScript built-ins ====================
-
-#[test]
-fn a_string_replacement_reads_the_dollar_patterns_of_get_substitution() {
-  assert_eq!(js_substitution("[$&]", "m", "b", "a"), "[m]");
-  assert_eq!(
-    js_substitution("$`|$'", "m", "before", "after"),
-    "before|after"
-  );
-  assert_eq!(js_substitution("$$", "m", "", ""), "$");
-  assert_eq!(js_substitution("$1 $<n> $x $", "m", "", ""), "$1 $<n> $x $");
-  assert_eq!(js_substitution("plain", "m", "", ""), "plain");
-}
-
-#[test]
-fn replace_first_replaces_one_occurrence_or_none() {
-  assert_eq!(js_replace_first("a-b-a", "a", "x"), "x-b-a");
-  assert_eq!(js_replace_first("a-b-a", "z", "x"), "a-b-a");
-  // The reference's `result.replace(match[0], replacement.toString())` passes a
-  // string, so a `$&` in a constant's value doubles the match (0.19.1).
-  assert_eq!(
-    js_replace_first("var(--a)", "var(--a)", "$&$&"),
-    "var(--a)var(--a)"
-  );
-}
-
-#[test]
-fn replace_all_replaces_every_occurrence_each_with_its_own_surroundings() {
-  assert_eq!(js_replace_all("a-b-a", "a", "x"), "x-b-x");
-  assert_eq!(js_replace_all("aaa", "a", "$`"), "aaa");
-  assert_eq!(js_replace_all("aaa", "a", "$'"), "aaa");
-  assert_eq!(
-    js_replace_all("1 var(--a) 2 var(--a)", "var(--a)", "[$&]"),
-    "1 [var(--a)] 2 [var(--a)]"
-  );
-  assert!(matches!(
-    js_replace_all("a-b", "z", "x"),
-    std::borrow::Cow::Borrowed("a-b")
-  ));
 }
 
 // ==================== constants ====================

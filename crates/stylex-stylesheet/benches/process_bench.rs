@@ -118,7 +118,7 @@ fn rules_of(shape: Shape, size: usize) -> Vec<Rule> {
 
       let style = match shape {
         Shape::Constants if index % 50 == 0 => {
-          return Rule(
+          return Rule::new(
             class_name.as_str().into(),
             constant(class_name.clone(), format!("{}px", index % 97)),
             0.0,
@@ -138,7 +138,7 @@ fn rules_of(shape: Shape, size: usize) -> Vec<Rule> {
         _ => style(text(&class_name, index, &format!("{}px", index % 13)), None),
       };
 
-      Rule(class_name.as_str().into(), style, priority)
+      Rule::new(class_name.as_str().into(), style, priority)
     })
     .collect()
 }

@@ -91,7 +91,7 @@ pub(crate) fn unpack_rules(
   let mut rules = Vec::with_capacity(kinds.len());
 
   for (&kind, &priority) in kinds.iter().zip(priorities) {
-    let class_name = ClassName(next()?);
+    let class_name = ClassName::from(next()?);
     let style = match RuleKind::try_from(kind).ok()? {
       RuleKind::Style => RuleStyle {
         ltr: next()?,
@@ -109,7 +109,7 @@ pub(crate) fn unpack_rules(
       },
     };
 
-    rules.push(Rule(class_name, style, priority));
+    rules.push(Rule::new(class_name, style, priority));
   }
 
   // Every text is read.

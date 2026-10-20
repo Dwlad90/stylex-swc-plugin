@@ -1,6 +1,6 @@
-//! `split_at_utf16_lengths`, with the lengths JavaScript's `length` gives.
+//! The string operations, against what Node answers for the same call.
 
-use super::split_at_utf16_lengths;
+use super::{js_replace_all, js_replace_first, js_substitution, split_at_utf16_lengths};
 
 #[test]
 fn an_ascii_text_splits_at_its_byte_lengths() {
@@ -65,4 +65,45 @@ fn a_large_text_splits_into_every_piece() {
     panic!("the lengths cover the text");
   };
   assert_eq!(split, pieces);
+}
+
+// ==================== replace and replaceAll ====================
+
+#[test]
+fn a_string_replacement_reads_the_dollar_patterns_of_get_substitution() {
+  assert_eq!(js_substitution("[$&]", "m", "b", "a"), "[m]");
+  assert_eq!(
+    js_substitution("$`|$'", "m", "before", "after"),
+    "before|after"
+  );
+  assert_eq!(js_substitution("$$", "m", "", ""), "$");
+  assert_eq!(js_substitution("$1 $<n> $x $", "m", "", ""), "$1 $<n> $x $");
+  assert_eq!(js_substitution("plain", "m", "", ""), "plain");
+}
+
+#[test]
+fn replace_first_replaces_one_occurrence_or_none() {
+  assert_eq!(js_replace_first("a-b-a", "a", "x"), "x-b-a");
+  assert_eq!(js_replace_first("a-b-a", "z", "x"), "a-b-a");
+  // The reference's `result.replace(match[0], replacement.toString())` passes a
+  // string, so a `$&` in a constant's value doubles the match (0.19.1).
+  assert_eq!(
+    js_replace_first("var(--a)", "var(--a)", "$&$&"),
+    "var(--a)var(--a)"
+  );
+}
+
+#[test]
+fn replace_all_replaces_every_occurrence_each_with_its_own_surroundings() {
+  assert_eq!(js_replace_all("a-b-a", "a", "x"), "x-b-x");
+  assert_eq!(js_replace_all("aaa", "a", "$`"), "aaa");
+  assert_eq!(js_replace_all("aaa", "a", "$'"), "aaa");
+  assert_eq!(
+    js_replace_all("1 var(--a) 2 var(--a)", "var(--a)", "[$&]"),
+    "1 [var(--a)] 2 [var(--a)]"
+  );
+  assert!(matches!(
+    js_replace_all("a-b", "z", "x"),
+    std::borrow::Cow::Borrowed("a-b")
+  ));
 }

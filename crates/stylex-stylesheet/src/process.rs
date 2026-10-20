@@ -13,418 +13,35 @@
 //! `Array.prototype.sort`, `new Map(...)`'s keeping of the first position
 //! under the last value, `slice(-1)`, and the coercions `String(...)` and
 //! `Number(...)` -- the port names the built-in and does what it does.
+//!
+//! `read` holds the rules and the config as the reference reads them; this
+//! module holds the steps that follow.
 
 use std::borrow::Cow;
-use std::fmt;
 
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_js::array_sort::array_tim_sort;
+use stylex_js::string::{js_replace_all, js_replace_first};
 use stylex_js::value::{JsValue, MapKey};
 use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR};
 use stylex_utils::number::is_js_whitespace;
 
 use crate::collation::locale_compare;
+mod read;
+
+use read::has_no_length;
+pub(crate) use read::read_rules;
+pub use read::{
+  ClassName, LayerOptions, ProcessStylexRulesConfig, ProcessStylexRulesError, Rule, RuleStyle,
+  TextDirection,
+};
+
 use crate::width_sort_key::{
   WidthSortKey, at_rule_preludes, compare_width_sort_keys, declared_property_name,
   width_sort_key_for_chain,
 };
-
-// ==================== the rules and the config as the reference reads them ====================
-//
-// The reference reads its arguments with plain JavaScript: destructuring, a
-// spread, property reads, `String(...)` and `Number(...)`. The port reads a
-// `JsValue` the same way, so a value outside the published types writes the
-// sheet the reference writes. A read the reference throws on is refused here.
-// Where the reference throws only when a value is used (a class name compared
-// under the legacy sort, an `ltr` text rendered), the value is kept as it is
-// and refused at that use.
-
-/// A rule's class name, which the reference uses three ways: spelled with
-/// `String(...)` in a constant's name, as a `Map` key in the dedupe
-/// (`SameValueZero`, so `1` and `'1'` are two class names), and as the
-/// receiver of `localeCompare` under the legacy sort.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ClassName(pub JsValue);
-
-impl ClassName {
-  /// `String(className)`.
-  pub fn spelling(&self) -> Cow<'_, str> {
-    self.0.to_js_string()
-  }
-
-  /// The class name as a `Map` key, or `None` for an array or an object,
-  /// which is a key of its own.
-  fn map_key(&self) -> Option<MapKey<'_>> {
-    self.0.same_value_zero_key()
-  }
-
-  /// The class name as the receiver of `localeCompare`, which only a string
-  /// is.
-  fn as_receiver(&self) -> Result<&str, ProcessStylexRulesError> {
-    match &self.0 {
-      JsValue::String(class_name) => Ok(class_name),
-      other => Err(ProcessStylexRulesError::ClassNameNotAString {
-        class_name: self.spelling().into_owned(),
-        kind: other.describe(),
-      }),
-    }
-  }
-}
-
-impl From<&str> for ClassName {
-  fn from(class_name: &str) -> Self {
-    ClassName(class_name.into())
-  }
-}
-
-/// What one rule injects: its LTR text, its RTL text where the two differ,
-/// and, for a `defineConsts` rule, the constant it declares. Each field holds
-/// the value as it arrived; a missing property is `undefined`.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuleStyle {
-  pub ltr: JsValue,
-  pub rtl: JsValue,
-  pub const_key: JsValue,
-  pub const_val: JsValue,
-}
-
-impl RuleStyle {
-  /// `[key, { ...styleObj }, priority]`: the spread copies an object's
-  /// properties, and gives no property for a string, a number, a boolean or
-  /// an array (an array's elements are not the properties this reads). It
-  /// throws for `null` and `undefined`, which is the `Err` here.
-  fn read(style: JsValue) -> Result<Self, &'static str> {
-    match style {
-      JsValue::Object(_) => {
-        let mut style = style;
-
-        Ok(RuleStyle {
-          ltr: style.take_property("ltr"),
-          rtl: style.take_property("rtl"),
-          const_key: style.take_property("constKey"),
-          const_val: style.take_property("constVal"),
-        })
-      },
-      _ if style.is_nullish() => Err(style.describe()),
-      _ => Ok(RuleStyle::default()),
-    }
-  }
-
-  /// `ruleObj?.constKey != null && ruleObj?.constVal != null`: the value of
-  /// the constant this rule declares, or `None` for a style rule.
-  fn constant(&self) -> Option<&JsValue> {
-    (!self.const_key.is_nullish() && !self.const_val.is_nullish()).then_some(&self.const_val)
-  }
-
-  /// Whether a text of this style can hold a reference to a constant or a
-  /// declaration of one. Every pattern the substitution searches for,
-  /// `var(--x)` and `--x:`, holds `--`.
-  fn mentions_a_variable(&self) -> bool {
-    [&self.ltr, &self.rtl]
-      .into_iter()
-      .any(|text| matches!(text, JsValue::String(text) if text.contains("--")))
-  }
-}
-
-/// One emitted rule: `[className, { ltr, rtl, constKey, constVal }, priority]`,
-/// the reference's `Rule` tuple, with the priority read as the reference's
-/// arithmetic reads it (`Number(priority)`: a missing one is `NaN`).
-#[derive(Clone, Debug, PartialEq)]
-pub struct Rule(pub ClassName, pub RuleStyle, pub f64);
-
-impl Rule {
-  pub fn class_name(&self) -> &ClassName {
-    &self.0
-  }
-
-  pub fn style(&self) -> &RuleStyle {
-    &self.1
-  }
-
-  pub fn priority(&self) -> f64 {
-    self.2
-  }
-
-  /// The `ltr` text, which the reference reads with string methods
-  /// (`slice` in the sort, `replace` and `startsWith` in the output). Any
-  /// other value throws there.
-  fn ltr(&self) -> Result<&str, ProcessStylexRulesError> {
-    match &self.style().ltr {
-      JsValue::String(text) => Ok(text),
-      other => Err(self.text_not_a_string(TextDirection::Ltr, other)),
-    }
-  }
-
-  /// The `rtl` text behind `if (rtlRule)`: a falsy value (the empty string
-  /// included) is no RTL text, and a truthy value that is not a string throws
-  /// at its string methods.
-  fn rtl(&self) -> Result<Option<&str>, ProcessStylexRulesError> {
-    match &self.style().rtl {
-      rtl if !rtl.to_js_boolean() => Ok(None),
-      JsValue::String(text) => Ok(Some(text)),
-      other => Err(self.text_not_a_string(TextDirection::Rtl, other)),
-    }
-  }
-
-  /// [`last_brace_or_last_unit`] of one of this rule's texts, refused where
-  /// JavaScript would cut a character in two.
-  fn block_start(&self, text: &str) -> Result<usize, ProcessStylexRulesError> {
-    last_brace_or_last_unit(text).ok_or_else(|| self.cut_in_two())
-  }
-
-  /// The refusal of a text of this rule that JavaScript would cut in two.
-  fn cut_in_two(&self) -> ProcessStylexRulesError {
-    ProcessStylexRulesError::CharacterCutInTwo {
-      class_name: self.class_name().spelling().into_owned(),
-    }
-  }
-
-  fn text_not_a_string(
-    &self,
-    direction: TextDirection,
-    found: &JsValue,
-  ) -> ProcessStylexRulesError {
-    ProcessStylexRulesError::TextNotAString {
-      direction,
-      class_name: self.class_name().spelling().into_owned(),
-      kind: found.describe(),
-    }
-  }
-}
-
-/// Which of a style's two texts a refusal names.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TextDirection {
-  Ltr,
-  Rtl,
-}
-
-impl fmt::Display for TextDirection {
-  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str(match self {
-      TextDirection::Ltr => "ltr",
-      TextDirection::Rtl => "rtl",
-    })
-  }
-}
-
-/// `rules.length === 0`, the one early return of the reference: an empty
-/// array, an empty string, or an object whose `length` is 0. Every other
-/// value goes on to `rules.filter`.
-fn has_no_length(rules: &JsValue) -> bool {
-  match rules {
-    JsValue::Array(elements) => elements.is_empty(),
-    JsValue::String(text) => text.is_empty(),
-    JsValue::Object(_) => {
-      matches!(rules.property("length"), JsValue::Number(length) if *length == 0.0)
-    },
-    _ => false,
-  }
-}
-
-/// The rules as `rules.filter(([, ruleObj]) => ...)` reads them: only an
-/// array has `filter`, a hole is skipped, and the callback destructures each
-/// rule, so a rule that is not iterable is refused.
-pub fn read_rules(rules: JsValue) -> Result<Vec<Rule>, ProcessStylexRulesError> {
-  let JsValue::Array(elements) = rules else {
-    return Err(ProcessStylexRulesError::RulesNotAList(rules.describe()));
-  };
-
-  elements
-    .into_iter()
-    .enumerate()
-    .filter(|(_, rule)| *rule != JsValue::Hole)
-    .map(|(index, rule)| read_rule(index, rule))
-    .collect()
-}
-
-/// `([key, { ...styleObj }, priority])`: the first three items of the rule's
-/// iterator, `undefined` past its end. An array iterates its elements and a
-/// string its characters; any other value is not iterable.
-fn read_rule(index: usize, rule: JsValue) -> Result<Rule, ProcessStylexRulesError> {
-  let items: Vec<JsValue> = match rule {
-    // Only the first three are read; the rest drop with the vector.
-    JsValue::Array(elements) => elements,
-    JsValue::String(text) => text
-      .chars()
-      .take(3)
-      .map(|character| JsValue::String(character.to_string()))
-      .collect(),
-    other => {
-      return Err(ProcessStylexRulesError::RuleNotAList {
-        index,
-        kind: other.describe(),
-      });
-    },
-  };
-  let mut items = items.into_iter();
-  let mut next = || items.next().unwrap_or_default();
-
-  let class_name = ClassName(next());
-  let style = RuleStyle::read(next())
-    .map_err(|kind| ProcessStylexRulesError::NoStyleObject { index, kind })?;
-  let priority = next().to_js_number();
-
-  Ok(Rule(class_name, style, priority))
-}
-
-/// The `useLayers` object form: layers to declare before and after the
-/// priority layers, and a prefix for their names, each as the header spells
-/// it.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LayerOptions {
-  pub before: Vec<String>,
-  pub after: Vec<String>,
-  /// `None` when the prefix is falsy; else `String(prefix)`, which can be
-  /// empty (an empty array is truthy and spells as nothing).
-  pub prefix: Option<String>,
-}
-
-impl LayerOptions {
-  /// `rawUseLayers.before ?? []`, `rawUseLayers.after ?? []` and
-  /// `rawUseLayers.prefix ?? ''`, read off an object. Any other value has none
-  /// of the properties, which gives the defaults.
-  fn read(use_layers: &JsValue) -> Result<Self, ProcessStylexRulesError> {
-    let prefix = use_layers.property("prefix");
-
-    Ok(LayerOptions {
-      before: read_layer_names("before", use_layers.property("before"))?,
-      after: read_layer_names("after", use_layers.property("after"))?,
-      prefix: prefix
-        .to_js_boolean()
-        .then(|| prefix.to_js_string().into_owned()),
-    })
-  }
-}
-
-/// `[...(names ?? [])]` in the header, joined with `', '`: an array gives its
-/// elements, spelled as `join` spells them (`null` and `undefined` as
-/// nothing), and a string gives its characters. Any other value is not
-/// iterable, and the spread throws.
-fn read_layer_names(
-  option: &'static str,
-  names: &JsValue,
-) -> Result<Vec<String>, ProcessStylexRulesError> {
-  match names {
-    JsValue::Array(elements) => Ok(
-      elements
-        .iter()
-        .map(|name| name.to_js_join_element().into_owned())
-        .collect(),
-    ),
-    JsValue::String(text) => Ok(text.chars().map(String::from).collect()),
-    _ if names.is_nullish() => Ok(Vec::new()),
-    other => Err(ProcessStylexRulesError::LayerOptionNotAList {
-      option,
-      kind: other.describe(),
-    }),
-  }
-}
-
-/// The reference's `config` argument. `useLayers: true` is
-/// `Some(LayerOptions::default())`; `false`, `null` and an absent key are
-/// `None`.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ProcessStylexRulesConfig {
-  pub use_layers: Option<LayerOptions>,
-  pub enable_ltr_rtl_comments: bool,
-  pub legacy_disable_layers: bool,
-  pub use_legacy_classnames_sort: bool,
-}
-
-impl From<bool> for ProcessStylexRulesConfig {
-  /// `processStylexRules(rules, true)`: a bare boolean is `useLayers`.
-  fn from(use_layers: bool) -> Self {
-    Self {
-      use_layers: use_layers.then(LayerOptions::default),
-      ..Self::default()
-    }
-  }
-}
-
-impl ProcessStylexRulesConfig {
-  /// `typeof config === 'boolean' ? { useLayers: config } : config ?? {}`,
-  /// then one property read each. Only an object has the properties, so for
-  /// any other value every option is at its default. `useLayers` is on for
-  /// every value but `false` and a nullish one (`(useLayers ?? false) !==
-  /// false`), and the three flags are read by truthiness.
-  pub fn read(config: &JsValue) -> Result<Self, ProcessStylexRulesError> {
-    if let JsValue::Boolean(use_layers) = config {
-      return Ok(Self::from(*use_layers));
-    }
-
-    let use_layers = match config.property("useLayers") {
-      JsValue::Boolean(false) => None,
-      use_layers if use_layers.is_nullish() => None,
-      use_layers => Some(LayerOptions::read(use_layers)?),
-    };
-
-    Ok(Self {
-      use_layers,
-      enable_ltr_rtl_comments: config.property("enableLTRRTLComments").to_js_boolean(),
-      legacy_disable_layers: config.property("legacyDisableLayers").to_js_boolean(),
-      use_legacy_classnames_sort: config.property("useLegacyClassnamesSort").to_js_boolean(),
-    })
-  }
-}
-
-/// Why a sheet could not be assembled. Each one is a point where the
-/// reference throws.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum ProcessStylexRulesError {
-  /// A constant's value refers, through any chain of constants, to itself.
-  #[error("circular reference detected for constant {0}")]
-  CircularConstant(String),
-  /// The rules are not an array, so they have no `filter`.
-  #[error("the rules are {0}, not a list")]
-  RulesNotAList(&'static str),
-  /// A rule is not iterable, so it cannot be destructured.
-  #[error("rule {index} is {kind}, not a [className, style, priority] list")]
-  RuleNotAList { index: usize, kind: &'static str },
-  /// A style rule's style is `null` or `undefined`, which a spread cannot
-  /// read.
-  #[error("rule {index} has {kind} in place of its style object")]
-  NoStyleObject { index: usize, kind: &'static str },
-  /// A style rule's `ltr` text, or its truthy `rtl` text, is not a string
-  /// where it is read as one.
-  #[error("the {direction} text of class {class_name} is {kind}, not a string")]
-  TextNotAString {
-    direction: TextDirection,
-    class_name: String,
-    kind: &'static str,
-  },
-  /// Under `useLegacyClassnamesSort`, the class name that `localeCompare` is
-  /// called on is not a string.
-  #[error("the legacy sort cannot compare class {class_name}: it is {kind}, not a string")]
-  ClassNameNotAString {
-    class_name: String,
-    kind: &'static str,
-  },
-  /// A layer option is not iterable, so the header cannot spread it.
-  #[error("the layer option {option} is {kind}, not a list or a string")]
-  LayerOptionNotAList {
-    option: &'static str,
-    kind: &'static str,
-  },
-  /// The first rule after the sort is in priority level -1 (a priority from
-  /// -1000 to less than 0). The reference's grouping starts at level -1 with
-  /// no group, so it fails on this rule.
-  #[error(
-    "class {class_name} sorts first with a priority from -1000 to less than 0, which cannot be \
-     grouped; use a priority of 0 or more"
-  )]
-  FirstRuleBelowZero { class_name: String },
-  /// A text with no `{` ends with a character outside the Basic Multilingual
-  /// Plane, and the reference cuts it in two with `slice`. A `str` cannot hold
-  /// half a character.
-  #[error(
-    "the text of class {class_name} has no declaration block and ends with a character that \
-     JavaScript cuts in two"
-  )]
-  CharacterCutInTwo { class_name: String },
-}
 
 /// The `:root, [dir="ltr"]` / `[dir="rtl"]` block that gives the logical float
 /// variables a value, when any rule reads one.
@@ -454,99 +71,6 @@ pub(crate) fn get_logical_float_vars<'a>(rules: impl IntoIterator<Item = &'a Rul
 
 // ==================== the JavaScript built-ins ====================
 
-/// `String.prototype.replace` and `replaceAll` with a string pattern and a
-/// string replacement, as the reference calls them: the replacement is a
-/// template in which `$$` is a dollar, `$&` the matched text, `` $` `` the text
-/// before the match and `$'` the text after it (ECMA-262 GetSubstitution; a
-/// string pattern has no capture groups, so `$1` and `$<name>` stay literal).
-/// Upstream `main` has since passed a function instead, which writes the
-/// replacement verbatim; that change arrives here with the version carrying it.
-pub(crate) fn js_substitution(template: &str, matched: &str, before: &str, after: &str) -> String {
-  let mut out = String::with_capacity(template.len());
-  let mut characters = template.chars().peekable();
-
-  while let Some(character) = characters.next() {
-    if character != '$' {
-      out.push(character);
-      continue;
-    }
-
-    match characters.peek() {
-      Some('$') => {
-        characters.next();
-        out.push('$');
-      },
-      Some('&') => {
-        characters.next();
-        out.push_str(matched);
-      },
-      Some('`') => {
-        characters.next();
-        out.push_str(before);
-      },
-      Some('\'') => {
-        characters.next();
-        out.push_str(after);
-      },
-      _ => out.push('$'),
-    }
-  }
-
-  out
-}
-
-/// The substitution for the occurrence of `pattern` at `start` of `text`: the
-/// template read against that occurrence's surroundings, the text before it
-/// and the text after it.
-fn substitution_at(text: &str, start: usize, pattern: &str, replacement: &str) -> String {
-  js_substitution(
-    replacement,
-    pattern,
-    &text[..start],
-    &text[start + pattern.len()..],
-  )
-}
-
-/// `text.replace(pattern, replacement)`: the first occurrence.
-pub(crate) fn js_replace_first(text: &str, pattern: &str, replacement: &str) -> String {
-  match text.find(pattern) {
-    Some(start) => {
-      let mut out = String::with_capacity(text.len() + replacement.len());
-      out.push_str(&text[..start]);
-      out.push_str(&substitution_at(text, start, pattern, replacement));
-      out.push_str(&text[start + pattern.len()..]);
-      out
-    },
-    None => text.to_string(),
-  }
-}
-
-/// `text.replaceAll(pattern, replacement)`: every occurrence, left to right,
-/// each substitution reading its own surroundings in the original text. A text
-/// with no occurrence is handed back as it is: the loop below runs once per
-/// rule and constant, and nearly every such pair has nothing to replace.
-pub(crate) fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Cow<'t, str> {
-  let Some(first) = text.find(pattern) else {
-    return Cow::Borrowed(text);
-  };
-
-  let mut out = String::with_capacity(text.len());
-  let mut rest = &text[first..];
-  let mut consumed = first;
-  out.push_str(&text[..first]);
-
-  while let Some(offset) = rest.find(pattern) {
-    let start = consumed + offset;
-    out.push_str(&rest[..offset]);
-    out.push_str(&substitution_at(text, start, pattern, replacement));
-    rest = &rest[offset + pattern.len()..];
-    consumed = start + pattern.len();
-  }
-
-  out.push_str(rest);
-  Cow::Owned(out)
-}
-
 /// Where `text.slice(text.lastIndexOf('{'))` begins: at the last `{`, or, when
 /// there is none and `lastIndexOf` answers -1, at the last UTF-16 unit (0 for
 /// an empty text). `None` when that unit is the second half of a character
@@ -564,13 +88,28 @@ fn last_brace_or_last_unit(text: &str) -> Option<usize> {
   }
 }
 
+impl Rule {
+  /// [`last_brace_or_last_unit`] of one of this rule's texts, refused where
+  /// JavaScript would cut a character in two.
+  fn block_start(&self, text: &str) -> Result<usize, ProcessStylexRulesError> {
+    last_brace_or_last_unit(text).ok_or_else(|| self.cut_in_two())
+  }
+
+  /// The refusal of a text of this rule that JavaScript would cut in two.
+  fn cut_in_two(&self) -> ProcessStylexRulesError {
+    ProcessStylexRulesError::CharacterCutInTwo {
+      class_name: self.class_name().spelling().into_owned(),
+    }
+  }
+}
+
 // ==================== the constants ====================
 
 /// The constants a sheet declares, by their reference text (`var(--key)`), in
 /// declaration order: the reference walks `constsMap` in insertion order, and
 /// a constant declared twice keeps its first position under its last value,
 /// as `Map.prototype.set` keeps them.
-pub type OrderedConstants = IndexMap<String, JsValue>;
+pub type OrderedConstants = IndexMap<String, JsValue, FxBuildHasher>;
 
 /// `constsMap` and `nonConstantRules`: the constants a sheet declares and the
 /// rules that are styles.
@@ -597,7 +136,7 @@ fn collect_constants(rules: &[Rule]) -> (OrderedConstants, Vec<&Rule>) {
 fn resolve_constants(
   constants: &OrderedConstants,
 ) -> Result<OrderedConstants, ProcessStylexRulesError> {
-  let mut resolved = OrderedConstants::with_capacity(constants.len());
+  let mut resolved = OrderedConstants::with_capacity_and_hasher(constants.len(), FxBuildHasher);
 
   for (name, value) in constants {
     resolved.insert(
@@ -751,7 +290,7 @@ fn substitute_constants<'r>(
         }
       }
 
-      Cow::Owned(Rule(rule.class_name().clone(), style, rule.priority()))
+      Cow::Owned(Rule::new(rule.class_name().clone(), style, rule.priority()))
     })
     .collect()
 }
@@ -1041,6 +580,7 @@ fn render_group(
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
 ) -> Result<String, ProcessStylexRulesError> {
+  // A group is never empty: `group_by_priority_level` opens one with a rule.
   let pri = group[0].priority();
 
   let mut lines = Vec::with_capacity(group.len());
@@ -1067,6 +607,11 @@ fn render_group(
 /// else with the specificity polyfill unless `legacy_disable_layers` asks for
 /// neither. A rule with an RTL text is written twice, under `html[dir='rtl']`
 /// and its negation, or between `@ltr`/`@rtl` comments.
+///
+/// This is the entry the addon calls. A slice has no holes, so an empty slice
+/// is the reference's `rules.length === 0`, and the sheet is empty.
+/// [`process_stylex_rule_values`] reads JavaScript values into rules first,
+/// and then shares every step after the early return.
 pub fn process_stylex_rules(
   rules: &[Rule],
   config: &ProcessStylexRulesConfig,

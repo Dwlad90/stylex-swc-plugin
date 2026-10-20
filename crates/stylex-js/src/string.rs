@@ -55,6 +55,18 @@ pub fn split_at_utf16_lengths<'t>(text: &'t str, lengths: &[u32]) -> Option<Vec<
 /// replacement verbatim; that change arrives here with the version carrying it.
 pub fn js_substitution(template: &str, matched: &str, before: &str, after: &str) -> String {
   let mut out = String::with_capacity(template.len());
+  push_substitution(&mut out, template, matched, before, after);
+  out
+}
+
+/// Writes [`js_substitution`] into `out`. A template with no `$` is the
+/// text itself, which is nearly every replacement a sheet makes.
+fn push_substitution(out: &mut String, template: &str, matched: &str, before: &str, after: &str) {
+  if !template.contains('$') {
+    out.push_str(template);
+    return;
+  }
+
   let mut characters = template.chars().peekable();
 
   while let Some(character) = characters.next() {
@@ -83,20 +95,19 @@ pub fn js_substitution(template: &str, matched: &str, before: &str, after: &str)
       _ => out.push('$'),
     }
   }
-
-  out
 }
 
-/// The substitution for the occurrence of `pattern` at `start` of `text`: the
-/// template read against that occurrence's surroundings, the text before it
-/// and the text after it.
-fn substitution_at(text: &str, start: usize, pattern: &str, replacement: &str) -> String {
-  js_substitution(
-    replacement,
+/// Writes the substitution for the occurrence of `pattern` at `start` of
+/// `text`: the template read against that occurrence's surroundings, the text
+/// before it and the text after it.
+fn push_substitution_at(out: &mut String, text: &str, start: usize, pattern: &str, template: &str) {
+  push_substitution(
+    out,
+    template,
     pattern,
     &text[..start],
     &text[start + pattern.len()..],
-  )
+  );
 }
 
 /// `text.replace(pattern, replacement)`: the first occurrence.
@@ -105,7 +116,7 @@ pub fn js_replace_first(text: &str, pattern: &str, replacement: &str) -> String 
     Some(start) => {
       let mut out = String::with_capacity(text.len() + replacement.len());
       out.push_str(&text[..start]);
-      out.push_str(&substitution_at(text, start, pattern, replacement));
+      push_substitution_at(&mut out, text, start, pattern, replacement);
       out.push_str(&text[start + pattern.len()..]);
       out
     },
@@ -130,7 +141,7 @@ pub fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Co
   while let Some(offset) = rest.find(pattern) {
     let start = consumed + offset;
     out.push_str(&rest[..offset]);
-    out.push_str(&substitution_at(text, start, pattern, replacement));
+    push_substitution_at(&mut out, text, start, pattern, replacement);
     rest = &rest[offset + pattern.len()..];
     consumed = start + pattern.len();
   }

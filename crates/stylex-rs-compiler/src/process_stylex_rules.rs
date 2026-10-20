@@ -18,8 +18,8 @@ use stylex_stylesheet::process::{
 };
 use stylex_stylesheet::width_sort_key::media_query_width_sort_key;
 
-/// What a packed rule is, one byte per rule: `RuleKind` in
-/// `fast-path-gate.ts`, which gives the same numbers.
+/// What a packed rule is, one byte per rule. `fast-path-gate.ts` writes the
+/// byte with the `RULE_KIND_*` constants below.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub(crate) enum RuleKind {
@@ -31,14 +31,25 @@ pub(crate) enum RuleKind {
   Constant = 2,
 }
 
+/// [`RuleKind::Style`], for `fast-path-gate.ts`: the two halves read one
+/// definition.
+#[napi]
+pub const RULE_KIND_STYLE: u8 = RuleKind::Style as u8;
+/// [`RuleKind::StyleWithRtl`], for `fast-path-gate.ts`.
+#[napi]
+pub const RULE_KIND_STYLE_WITH_RTL: u8 = RuleKind::StyleWithRtl as u8;
+/// [`RuleKind::Constant`], for `fast-path-gate.ts`.
+#[napi]
+pub const RULE_KIND_CONSTANT: u8 = RuleKind::Constant as u8;
+
 impl TryFrom<u8> for RuleKind {
   type Error = ();
 
   fn try_from(byte: u8) -> Result<Self, ()> {
     match byte {
-      0 => Ok(RuleKind::Style),
-      1 => Ok(RuleKind::StyleWithRtl),
-      2 => Ok(RuleKind::Constant),
+      RULE_KIND_STYLE => Ok(RuleKind::Style),
+      RULE_KIND_STYLE_WITH_RTL => Ok(RuleKind::StyleWithRtl),
+      RULE_KIND_CONSTANT => Ok(RuleKind::Constant),
       _ => Err(()),
     }
   }

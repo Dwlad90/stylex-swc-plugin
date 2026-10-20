@@ -4,11 +4,10 @@
 
 use stylex_stylesheet::process::{LayerOptions, ProcessStylexRulesConfig, RuleStyle};
 
-use super::{NativeConfig, RuleKind, unpack_rules};
-
-const STYLE: u8 = RuleKind::Style as u8;
-const STYLE_WITH_RTL: u8 = RuleKind::StyleWithRtl as u8;
-const CONSTANT: u8 = RuleKind::Constant as u8;
+use super::{
+  NativeConfig, RULE_KIND_CONSTANT as CONSTANT, RULE_KIND_STYLE as STYLE,
+  RULE_KIND_STYLE_WITH_RTL as STYLE_WITH_RTL, unpack_rules,
+};
 
 fn config() -> NativeConfig {
   NativeConfig {

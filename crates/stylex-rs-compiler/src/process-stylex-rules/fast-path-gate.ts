@@ -19,6 +19,7 @@
 
 import { types } from 'node:util';
 
+import nativeBinding from '../../dist/transform';
 import type { NativeConfig } from '../../dist/transform';
 import { freshRealm, isProxy } from './built-ins.js';
 import type { NativeCollation } from './collation.js';
@@ -30,15 +31,15 @@ import type { NativeCollation } from './collation.js';
  */
 const isModuleNamespaceObject = types.isModuleNamespaceObject;
 
-/** What a packed rule is, one byte per rule: `RuleKind` in `process_stylex_rules.rs`. */
+/** What a packed rule is, one byte per rule, as `process_stylex_rules.rs` defines it. */
 export const RuleKind = {
   /** A style rule with an LTR text only. */
-  Style: 0,
+  Style: nativeBinding.RULE_KIND_STYLE,
   /** A style rule with an LTR and an RTL text. */
-  StyleWithRtl: 1,
+  StyleWithRtl: nativeBinding.RULE_KIND_STYLE_WITH_RTL,
   /** A `defineConsts` rule: its class name, `String(constKey)`, `String(constVal)`. */
-  Constant: 2,
-} as const;
+  Constant: nativeBinding.RULE_KIND_CONSTANT,
+};
 
 /**
  * The rules, packed. Each rule gives its kind, its priority and two or three

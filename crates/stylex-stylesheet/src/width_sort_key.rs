@@ -19,6 +19,16 @@ pub enum WidthBoundKind {
   Max,
 }
 
+impl WidthBoundKind {
+  /// The kind as upstream spells it in a bound: `min` or `max`.
+  pub fn as_str(self) -> &'static str {
+    match self {
+      WidthBoundKind::Min => "min",
+      WidthBoundKind::Max => "max",
+    }
+  }
+}
+
 /// A `min-width` or `max-width` bound in px.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WidthBound {
@@ -98,7 +108,7 @@ fn collect_width_bounds(rule: &MediaQueryRule) -> Option<Vec<WidthBound>> {
 /// 900px bound) and resolves a negated bound (`(min-width: 500px) and (not
 /// (max-width: 1000px))` is `(min-width: 1000.01px)`). The reference sorts
 /// those merged forms, and so does this.
-fn media_query_width_sort_key(prelude: &str) -> Option<WidthBound> {
+pub fn media_query_width_sort_key(prelude: &str) -> Option<WidthBound> {
   let parsed = MediaQuery::parser().parse_to_end(prelude).ok()?;
   let bounds = collect_width_bounds(&parsed.queries)?;
 

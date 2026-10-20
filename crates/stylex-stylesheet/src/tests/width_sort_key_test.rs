@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 
 use crate::width_sort_key::{
   WidthBound, WidthBoundKind, WidthSortKey, at_rule_preludes, compare_width_sort_keys,
-  declared_property_name, width_sort_key_for_chain,
+  declared_property_name, media_query_width_sort_key, width_sort_key_for_chain,
 };
 
 fn key_of(rule: &str) -> Option<WidthSortKey> {
@@ -38,6 +38,29 @@ fn order(a: &str, b: &str) -> Ordering {
   compare_width_sort_keys(key_of(a).as_ref(), key_of(b).as_ref())
     .partial_cmp(&0.0)
     .unwrap_or(Ordering::Equal)
+}
+
+// ==================== media_query_width_sort_key ====================
+
+/// The bound of one prelude, the answer the addon hands to the vendored
+/// reference in place of upstream's parser, and its kind as upstream spells
+/// it.
+#[test]
+fn a_prelude_reads_as_its_bound_and_kind() {
+  let Some(bound) = media_query_width_sort_key("@media (min-width: 768px)") else {
+    panic!("a min-width prelude has a bound");
+  };
+  assert_eq!(bound.kind.as_str(), "min");
+  assert_eq!(bound.value, 768.0);
+
+  let Some(bound) = media_query_width_sort_key("@media (max-width: 0)") else {
+    panic!("a unitless zero is a bound");
+  };
+  assert_eq!(bound.kind.as_str(), "max");
+  assert_eq!(bound.value, 0.0);
+
+  assert_eq!(media_query_width_sort_key("@media (min-width: 40em)"), None);
+  assert_eq!(media_query_width_sort_key("not a media query"), None);
 }
 
 // ==================== at_rule_preludes ====================

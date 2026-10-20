@@ -377,6 +377,35 @@ fn a_constant_holding_a_variable_renames_the_declarations_of_the_constant() {
   );
 }
 
+/// A substitution can bring in the pattern of one that comes after it: `c0`
+/// writes `--c9:`, and `c9`, a `var(...)`, renames it on its turn. Measured on
+/// the plugin.
+#[test]
+fn a_pattern_brought_in_by_a_substitution_is_applied_by_a_later_one() {
+  let mut rules = vec![constant("c0", text("a --c9: b"))];
+  rules.extend((1..=8).map(|index| constant(&format!("c{index}"), text(&format!("{index}px")))));
+  rules.push(constant("c9", text("var(--t9)")));
+  rules.push(rule(
+    "x1",
+    ".x1{--q:var(--c0);margin:var(--c3)}",
+    None,
+    3000.0,
+  ));
+  // Nine substitutions apply to `x2`: past four, the rest apply one by one.
+  rules.push(rule(
+    "x2",
+    ".x2{--c9:0;a:var(--c1) var(--c2) var(--c4) var(--c5) var(--c6) var(--c7) var(--c8) \
+     var(--c0)}",
+    None,
+    3000.0,
+  ));
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x1{--q:a --t9: b;margin:3px}\n.x2{--t9:0;a:1px 2px 4px 5px 6px 7px 8px a --t9: b}"
+  );
+}
+
 /// A constant that only the RTL text reads changes the RTL text alone; the
 /// LTR text is kept as it was. A class name read from a JavaScript value is
 /// the same class name as one read from a string.

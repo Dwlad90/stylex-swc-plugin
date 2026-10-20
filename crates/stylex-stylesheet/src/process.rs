@@ -247,16 +247,12 @@ impl<'c> Substitution<'c> {
   /// `original.replaceAll(varRef, replacement)`, then, with a rename,
   /// `original.replaceAll(`${constName}:`, `${targetName}:`)`.
   fn apply<'t>(&self, text: Cow<'t, str>) -> Cow<'t, str> {
-    let text = match js_replace_all(&text, self.var_ref, &self.replacement) {
-      Cow::Owned(replaced) => Cow::Owned(replaced),
-      Cow::Borrowed(_) => text,
-    };
+    let text = changed(text, |text| {
+      js_replace_all(text, self.var_ref, &self.replacement)
+    });
 
     match &self.rename {
-      Some(rename) => match js_replace_all(&text, &rename.from, &rename.to) {
-        Cow::Owned(renamed) => Cow::Owned(renamed),
-        Cow::Borrowed(_) => text,
-      },
+      Some(rename) => changed(text, |text| js_replace_all(text, &rename.from, &rename.to)),
       None => text,
     }
   }
@@ -274,16 +270,28 @@ impl<'c> Substitution<'c> {
 /// makes two per constant.
 struct Substitutions<'c> {
   substitutions: Vec<Substitution<'c>>,
-  /// The patterns, `var_ref` and `rename.from` of each substitution, and the
-  /// substitution each pattern belongs to. `None` for a few patterns, which a
-  /// plain search finds as fast, and when the automaton cannot be built: every
+  /// `None` for a few patterns, and when the automaton cannot be built: every
   /// substitution is then tried in turn.
-  patterns: Option<(AhoCorasick, Vec<usize>)>,
+  patterns: Option<Patterns>,
 }
 
-/// The fewest patterns for which one automaton is faster than a search per
-/// pattern.
+/// One automaton over the patterns of every substitution, `var_ref` and
+/// `rename.from`, and the substitution each pattern belongs to.
+struct Patterns {
+  automaton: AhoCorasick,
+  owners: Vec<usize>,
+}
+
+/// The fewest patterns for which the automaton is built. Below it, a text is
+/// searched once per substitution, which costs about as much as one pass of
+/// the automaton: four constants with a rename each. The number is a
+/// judgement, not a measurement; the bench's constants case has 2,000
+/// patterns, where the automaton is five times faster.
 const AUTOMATON_MIN_PATTERNS: usize = 8;
+
+/// The most automaton searches for one text. Real rules read one to three
+/// constants.
+const AUTOMATON_MAX_ROUNDS: usize = 4;
 
 impl<'c> Substitutions<'c> {
   fn of(constants: &'c OrderedConstants) -> Self {
@@ -306,7 +314,7 @@ impl<'c> Substitutions<'c> {
     let patterns = (patterns.len() >= AUTOMATON_MIN_PATTERNS)
       .then(|| AhoCorasick::new(&patterns).ok())
       .flatten()
-      .map(|automaton| (automaton, owners));
+      .map(|automaton| Patterns { automaton, owners });
 
     Substitutions {
       substitutions,
@@ -318,7 +326,7 @@ impl<'c> Substitutions<'c> {
   /// its own in `text`.
   fn first_found(&self, text: &str, from: usize) -> Option<usize> {
     match &self.patterns {
-      Some((automaton, owners)) => automaton
+      Some(Patterns { automaton, owners }) => automaton
         .find_overlapping_iter(text)
         .map(|found| owners[found.pattern().as_usize()])
         .filter(|&owner| owner >= from)
@@ -332,10 +340,23 @@ impl<'c> Substitutions<'c> {
   fn apply(&self, text: &str) -> Option<String> {
     let mut text = Cow::Borrowed(text);
     let mut from = 0;
+    let mut rounds = 0;
 
     while let Some(index) = self.first_found(&text, from) {
       text = self.substitutions[index].apply(text);
       from = index + 1;
+      rounds += 1;
+
+      // Each round searches the whole text again. A text that reads many
+      // constants takes the rest one by one, which costs one search each and
+      // writes the same text: a substitution with no pattern in the text
+      // changes nothing.
+      if rounds == AUTOMATON_MAX_ROUNDS {
+        for substitution in &self.substitutions[from..] {
+          text = substitution.apply(text);
+        }
+        break;
+      }
     }
 
     match text {
@@ -465,32 +486,20 @@ impl<'r> SortFacts<'r> {
 }
 
 /// The comparator of the sort, answering a number as the reference's does: by
-/// priority, then, within a priority, by class name under
-/// `use_legacy_classnames_sort`, else by declared property, width key,
-/// declaration block and whole text.
+/// priority, then, within a priority, by declared property, width key,
+/// declaration block and whole text. [`compare_class_names`] is the one
+/// under `use_legacy_classnames_sort`.
 ///
 /// `firstPriority - secondPriority` is `NaN` when either priority is `NaN` or
 /// both are the same infinity, and `NaN !== 0` holds: the comparator answers
 /// `NaN`, which the sort reads as 0, so the rules tie without the later keys
 /// being read. That is not a consistent order, which is why the sort is V8's
 /// own.
-fn compare_rules(
-  a: &SortFacts<'_>,
-  b: &SortFacts<'_>,
-  use_legacy_classnames_sort: bool,
-) -> Result<f64, ProcessStylexRulesError> {
+fn compare_rules(a: &SortFacts<'_>, b: &SortFacts<'_>) -> Result<f64, ProcessStylexRulesError> {
   let priority_comparison = a.rule.priority() - b.rule.priority();
 
   if priority_comparison != 0.0 {
     return Ok(priority_comparison);
-  }
-
-  if use_legacy_classnames_sort {
-    // `classname1.localeCompare(classname2)`: the argument is spelled with
-    // `String(...)`.
-    let classname1 = a.rule.class_name().as_receiver()?;
-
-    return Ok(locale_compare(classname1, &b.rule.class_name().spelling()));
   }
 
   let rule1 = a.text()?;
@@ -525,11 +534,37 @@ fn compare_rules(
   Ok(locale_compare_collated(rule1.whole, rule2.whole))
 }
 
+/// The comparator under `use_legacy_classnames_sort`: by priority, then by
+/// class name. It reads no text, so it needs no facts.
+fn compare_class_names(a: &Rule, b: &Rule) -> Result<f64, ProcessStylexRulesError> {
+  let priority_comparison = a.priority() - b.priority();
+
+  if priority_comparison != 0.0 {
+    return Ok(priority_comparison);
+  }
+
+  // `classname1.localeCompare(classname2)`: the argument is spelled with
+  // `String(...)`.
+  let classname1 = a.class_name().as_receiver()?;
+
+  Ok(locale_compare(classname1, &b.class_name().spelling()))
+}
+
 /// `sortedRules`: the rules in the sheet's order, sorted as V8 sorts them.
 fn sort_rules<'a>(
   rules: &'a [Cow<'_, Rule>],
   use_legacy_classnames_sort: bool,
 ) -> Result<Vec<&'a Rule>, ProcessStylexRulesError> {
+  let mut order: Vec<usize> = (0..rules.len()).collect();
+
+  if use_legacy_classnames_sort {
+    array_tim_sort(&mut order, |&i, &j| {
+      compare_class_names(&rules[i], &rules[j])
+    })?;
+
+    return Ok(order.into_iter().map(|i| rules[i].as_ref()).collect());
+  }
+
   let (width_sort_keys, key_of_rule) = width_sort_keys_of(rules);
   let facts: Vec<SortFacts<'_>> = rules
     .iter()
@@ -540,11 +575,8 @@ fn sort_rules<'a>(
       text: rule.ltr().map(TextFacts::of),
     })
     .collect();
-  let mut order: Vec<usize> = (0..rules.len()).collect();
 
-  array_tim_sort(&mut order, |&i, &j| {
-    compare_rules(&facts[i], &facts[j], use_legacy_classnames_sort)
-  })?;
+  array_tim_sort(&mut order, |&i, &j| compare_rules(&facts[i], &facts[j]))?;
 
   Ok(order.into_iter().map(|i| rules[i].as_ref()).collect())
 }
@@ -944,6 +976,11 @@ fn insert_specificity<'s>(selector: &'s str, pseudo: &str) -> Option<Cow<'s, str
 /// reference's `'.$1.$1, .$1.$1:root'` replacement reads it. A text with no
 /// such selector, nearly every one, is handed back as it is.
 pub(crate) fn double_theme_root_selector(rule: &str) -> Cow<'_, str> {
+  // Every match holds `:root`, and nearly no text does.
+  if !rule.contains(":root") {
+    return Cow::Borrowed(rule);
+  }
+
   let mut out: Option<String> = None;
   let mut copied = 0;
   let mut matches = THEME_ROOT_SELECTOR.captures_iter(rule);

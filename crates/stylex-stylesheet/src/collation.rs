@@ -105,6 +105,15 @@ static ROOT_COLLATOR: LazyLock<CollatorBorrowed<'static>> =
 /// The two printable ASCII strings in root collation order: the primary level
 /// over the whole string, then the case tie-break.
 fn compare_printable_ascii(a: &[u8], b: &[u8]) -> Ordering {
+  // Equal bytes weigh the same at both levels, so the shared prefix decides
+  // nothing: start after it. Texts of one property share long prefixes.
+  let shared = a
+    .iter()
+    .zip(b)
+    .take_while(|(left, right)| left == right)
+    .count();
+  let (a, b) = (&a[shared..], &b[shared..]);
+
   for (left, right) in a.iter().zip(b) {
     let primary = primary_weight(*left).cmp(&primary_weight(*right));
 
@@ -119,19 +128,13 @@ fn compare_printable_ascii(a: &[u8], b: &[u8]) -> Ordering {
     return by_length;
   }
 
-  for (left, right) in a.iter().zip(b) {
-    if left != right {
-      // The two differ in case alone here (their primaries tied): lowercase
-      // sorts first.
-      return if left.is_ascii_lowercase() {
-        Ordering::Less
-      } else {
-        Ordering::Greater
-      };
-    }
+  // Past the shared prefix, the first bytes differ, in case alone (their
+  // primaries tied): lowercase sorts first. No byte left is two equal texts.
+  match a.first() {
+    Some(left) if left.is_ascii_lowercase() => Ordering::Less,
+    Some(_) => Ordering::Greater,
+    None => Ordering::Equal,
   }
-
-  Ordering::Equal
 }
 
 /// Root collation alone, for the tests that hold the two paths to one answer.

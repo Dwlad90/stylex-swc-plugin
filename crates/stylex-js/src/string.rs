@@ -17,9 +17,10 @@ pub fn split_at_utf16_lengths<'t>(text: &'t str, lengths: &[u32]) -> Option<Vec<
 
   if text.is_ascii() {
     // One byte is one unit.
-    let mut start = 0;
+    let mut start: usize = 0;
     for &length in lengths {
-      let end = start + length as usize;
+      // A sum past `usize` is past the end of the text too.
+      let end = start.checked_add(length as usize)?;
       pieces.push(text.get(start..end)?);
       start = end;
     }
@@ -51,8 +52,6 @@ pub fn split_at_utf16_lengths<'t>(text: &'t str, lengths: &[u32]) -> Option<Vec<
 /// template in which `$$` is a dollar, `$&` the matched text, `` $` `` the text
 /// before the match and `$'` the text after it (ECMA-262 GetSubstitution; a
 /// string pattern has no capture groups, so `$1` and `$<name>` stay literal).
-/// Upstream `main` has since passed a function instead, which writes the
-/// replacement verbatim; that change arrives here with the version carrying it.
 pub fn js_substitution(template: &str, matched: &str, before: &str, after: &str) -> String {
   let mut out = String::with_capacity(template.len());
   push_substitution(&mut out, template, matched, before, after);
@@ -128,7 +127,16 @@ pub fn js_replace_first(text: &str, pattern: &str, replacement: &str) -> String 
 /// each substitution reading its own surroundings in the original text. A text
 /// with no occurrence is handed back as it is: the loop below runs once per
 /// rule and constant, and nearly every such pair has nothing to replace.
+///
+/// An empty pattern occurs before each character and at the end. JavaScript
+/// also finds it between the two halves of a character outside the Basic
+/// Multilingual Plane; a `str` cannot cut such a character, so there is one
+/// replacement less for each.
 pub fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Cow<'t, str> {
+  if pattern.is_empty() {
+    return Cow::Owned(replace_empty_pattern(text, replacement));
+  }
+
   let Some(first) = text.find(pattern) else {
     return Cow::Borrowed(text);
   };
@@ -148,6 +156,31 @@ pub fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Co
 
   out.push_str(rest);
   Cow::Owned(out)
+}
+
+/// [`js_replace_all`] of the empty pattern: the replacement at each character
+/// boundary of `text`, and at its end.
+fn replace_empty_pattern(text: &str, replacement: &str) -> String {
+  let boundaries = text
+    .char_indices()
+    .map(|(index, _)| index)
+    .chain([text.len()]);
+  let mut out = String::with_capacity(text.len() + replacement.len());
+  let mut previous = 0;
+
+  for boundary in boundaries {
+    out.push_str(&text[previous..boundary]);
+    push_substitution(
+      &mut out,
+      replacement,
+      "",
+      &text[..boundary],
+      &text[boundary..],
+    );
+    previous = boundary;
+  }
+
+  out
 }
 
 #[cfg(test)]

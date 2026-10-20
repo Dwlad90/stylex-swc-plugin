@@ -53,6 +53,12 @@ fn a_cut_inside_a_surrogate_pair_is_refused() {
 
 /// Many pieces, each a few characters long, as a large build packs them.
 #[test]
+fn lengths_past_the_end_of_the_text_are_refused_without_overflow() {
+  assert_eq!(split_at_utf16_lengths("ab", &[1, u32::MAX]), None);
+  assert_eq!(split_at_utf16_lengths("é", &[u32::MAX, u32::MAX]), None);
+}
+
+#[test]
 fn a_large_text_splits_into_every_piece() {
   let pieces: Vec<String> = (0..50_000).map(|index| format!("x{index}é")).collect();
   let text = pieces.concat();
@@ -106,4 +112,29 @@ fn replace_all_replaces_every_occurrence_each_with_its_own_surroundings() {
     js_replace_all("a-b", "z", "x"),
     std::borrow::Cow::Borrowed("a-b")
   ));
+}
+
+/// Answers measured in Node 24. JavaScript also cuts a character outside the
+/// Basic Multilingual Plane in two (`"😀"` gives `"-\uD83D-\uDE00-"`), which a
+/// `str` cannot hold, so such a character is passed over whole.
+#[test]
+fn replace_all_with_an_empty_pattern_writes_the_replacement_between_characters() {
+  assert_eq!(js_replace_all("ab", "", "-"), "-a-b-");
+  assert_eq!(js_replace_all("", "", "-"), "-");
+  assert_eq!(
+    js_replace_all("ab", "", "[$`|$&|$']"),
+    "[||ab]a[a||b]b[ab||]"
+  );
+  assert_eq!(js_replace_all("é😀", "", "-"), "-é-😀-");
+  assert_eq!(js_replace_first("ab", "", "-"), "-ab");
+}
+
+#[test]
+fn replace_all_handles_a_large_text_with_many_occurrences() {
+  let text = "var(--a) ".repeat(100_000);
+  let replaced = js_replace_all(&text, "var(--a)", "1px");
+  assert_eq!(replaced, "1px ".repeat(100_000));
+
+  let letters = "x".repeat(10_000);
+  assert_eq!(js_replace_all(&letters, "", "-").len(), 20_001);
 }

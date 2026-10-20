@@ -18,6 +18,7 @@
 //! module holds the steps that follow.
 
 use std::borrow::Cow;
+use std::collections::hash_map::Entry;
 
 use aho_corasick::AhoCorasick;
 use indexmap::IndexMap;
@@ -683,15 +684,22 @@ impl<'c> Layers<'c> {
       return String::new();
     }
 
-    let names: Vec<String> = self
+    let names = self
       .before
       .iter()
-      .cloned()
-      .chain((0..group_count).map(|index| self.name(index)))
-      .chain(self.after.iter().cloned())
-      .collect();
+      .map(|name| Cow::Borrowed(name.as_str()))
+      .chain((0..group_count).map(|index| Cow::Owned(self.name(index))))
+      .chain(self.after.iter().map(|name| Cow::Borrowed(name.as_str())));
 
-    format!("\n@layer {};\n", names.join(", "))
+    let mut statement = String::from("\n@layer ");
+    for (index, name) in names.enumerate() {
+      if index > 0 {
+        statement.push_str(", ");
+      }
+      statement.push_str(&name);
+    }
+    statement.push_str(";\n");
+    statement
   }
 }
 
@@ -709,10 +717,10 @@ fn deduplicate_by_class_name<'a>(group: &[&'a Rule]) -> Vec<&'a Rule> {
       continue;
     };
 
-    match position_of.get(&key) {
-      Some(&position) => deduplicated[position] = rule,
-      None => {
-        position_of.insert(key, deduplicated.len());
+    match position_of.entry(key) {
+      Entry::Occupied(position) => deduplicated[*position.get()] = rule,
+      Entry::Vacant(position) => {
+        position.insert(deduplicated.len());
         deduplicated.push(rule);
       },
     }

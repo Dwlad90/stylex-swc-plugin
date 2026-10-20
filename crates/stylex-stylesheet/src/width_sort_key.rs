@@ -145,9 +145,9 @@ fn prelude_ranges(rule: &str) -> impl Iterator<Item = Range<usize>> + '_ {
 /// Each prelude is trimmed at its end as `trimEnd` trims, of the ECMAScript
 /// white space: U+FEFF is removed and U+0085 is kept, which is the opposite of
 /// `str::trim_end`.
-pub fn at_rule_preludes(rule: &str) -> Vec<String> {
+pub fn at_rule_preludes(rule: &str) -> Vec<&str> {
   prelude_ranges(rule)
-    .map(|range| rule[range].trim_end_matches(is_js_whitespace).to_string())
+    .map(|range| rule[range].trim_end_matches(is_js_whitespace))
     .collect()
 }
 
@@ -162,11 +162,11 @@ pub fn at_rule_chain_end(rule: &str) -> usize {
 /// The sort key for a rule's at-rule chain, or `None` if it has no single
 /// `@media` to sort by. Media queries nested in other at-rules still sort, but
 /// only against rules sharing the same surrounding conditions.
-pub fn width_sort_key_for_chain(preludes: &[String]) -> Option<WidthSortKey> {
+pub fn width_sort_key_for_chain(preludes: &[impl AsRef<str>]) -> Option<WidthSortKey> {
   let media_indexes: Vec<usize> = preludes
     .iter()
     .enumerate()
-    .filter(|(_, prelude)| prelude.starts_with("@media "))
+    .filter(|(_, prelude)| prelude.as_ref().starts_with("@media "))
     .map(|(index, _)| index)
     .collect();
 
@@ -176,7 +176,7 @@ pub fn width_sort_key_for_chain(preludes: &[String]) -> Option<WidthSortKey> {
     return None;
   };
 
-  let bound = media_query_width_sort_key(&preludes[*media_index])?;
+  let bound = media_query_width_sort_key(preludes[*media_index].as_ref())?;
 
   // Blank out the media query itself so the context captures the surrounding
   // at-rules and the query's depth among them, but not its breakpoint.
@@ -187,7 +187,7 @@ pub fn width_sort_key_for_chain(preludes: &[String]) -> Option<WidthSortKey> {
       if index == *media_index {
         "@media"
       } else {
-        prelude.as_str()
+        prelude.as_ref()
       }
     })
     .collect::<Vec<&str>>()

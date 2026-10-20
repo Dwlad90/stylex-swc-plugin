@@ -377,6 +377,23 @@ fn a_constant_holding_a_variable_renames_the_declarations_of_the_constant() {
   );
 }
 
+/// A constant that only the RTL text reads changes the RTL text alone; the
+/// LTR text is kept as it was. A class name read from a JavaScript value is
+/// the same class name as one read from a string.
+#[test]
+fn a_constant_read_by_the_rtl_text_alone_leaves_the_ltr_text_as_it_is() {
+  let rules = [
+    constant("xA", text("4px")),
+    rule("x1", ".x1{--a:0}", Some(".x1{padding:var(--xA)}"), 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    "html:not([dir='rtl']) .x1{--a:0}\nhtml[dir='rtl'] .x1{padding:4px}"
+  );
+  assert_eq!(ClassName::from(JsValue::from("x1")), ClassName::from("x1"));
+}
+
 /// Ten constants take the one-automaton search. Each substitution applies
 /// once, in declaration order: a pattern that an earlier substitution brings
 /// in is applied only by a substitution that comes after it (`--c5:` arrives
@@ -602,6 +619,18 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
 
   // The rules sort apart before the last character is read, and the sheet is
   // written with layers, so no character is cut.
+  // The second operand ends in the emoji, the first in an ASCII character.
+  let second = [
+    rule("a", "ab:😀", None, 3000.0),
+    rule("b", "ab:x", None, 3000.0),
+  ];
+  assert_eq!(
+    process_stylex_rules(&second, &without_layers()),
+    Err(ProcessStylexRulesError::CharacterCutInTwo {
+      class_name: "a".into()
+    })
+  );
+
   let apart = [
     rule("a", "ab:😁", None, 3000.0),
     rule("b", "ac:😀", None, 3000.0),
@@ -1122,6 +1151,38 @@ fn a_string_rule_reads_its_characters() {
       json(r#"{"useLegacyClassnamesSort": true, "useLayers": false}"#)
     ),
     Ok(".a{x:0}".into())
+  );
+}
+
+/// A rule that declares half a constant is a style rule, so its missing `ltr`
+/// is refused where the sort reads it (V8 first compares the second rule with
+/// the first, so the first rule's text is read second). An empty tuple has no
+/// style to spread. Both throw in the plugin.
+#[test]
+fn a_half_declared_constant_and_an_empty_tuple_are_refused() {
+  for half in [r#"{"constKey": "xA"}"#, r#"{"constVal": "red"}"#] {
+    assert_eq!(
+      answer(
+        json(&format!(
+          r#"[["xA", {half}, 0], ["x1", {{"ltr": ".x1{{a:0}}"}}, 0]]"#
+        )),
+        true.into()
+      ),
+      Err(ProcessStylexRulesError::TextNotAString {
+        direction: TextDirection::Ltr,
+        class_name: "xA".into(),
+        kind: "undefined"
+      }),
+      "{half}"
+    );
+  }
+
+  assert_eq!(
+    answer(json("[[]]"), true.into()),
+    Err(ProcessStylexRulesError::NoStyleObject {
+      index: 0,
+      kind: "undefined"
+    })
   );
 }
 

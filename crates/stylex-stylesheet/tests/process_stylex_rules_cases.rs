@@ -310,3 +310,33 @@ fn sort_is_deterministic_regardless_of_input_order() {
 fn sort_is_deterministic_with_duplicate_rules_in_different_input_orders() {
   assert_case("sort is deterministic with duplicate rules in different input orders");
 }
+
+/// Values JSON cannot hold, built as the addon's gate never passes them: a
+/// hole, a `NaN` priority and a numeric class name, through
+/// `process_stylex_rule_values`. The sheets were recorded from the plugin for
+/// `[['x1', {ltr: '.x1{a:0}'}, NaN], , [12, {ltr: '.x12{b:0}'}, 3000],
+/// ['x2', {ltr: '.x2{a:0}'}, 3000]]`.
+#[test]
+fn a_hole_a_nan_priority_and_a_numeric_class_name_read_as_the_plugin_reads_them() {
+  let style = |ltr: &str| JsValue::object([("ltr".to_string(), JsValue::from(ltr))]);
+  let rules = JsValue::Array(vec![
+    JsValue::Array(vec!["x1".into(), style(".x1{a:0}"), f64::NAN.into()]),
+    JsValue::Hole,
+    JsValue::Array(vec![12.0.into(), style(".x12{b:0}"), 3000.0.into()]),
+    JsValue::Array(vec!["x2".into(), style(".x2{a:0}"), 3000.0.into()]),
+  ]);
+
+  for (config, expected) in [
+    (
+      true,
+      "\n@layer priority1, priority2;\n.x1{a:0}\n@layer priority2{\n.x2{a:0}\n.x12{b:0}\n}",
+    ),
+    (false, ".x1{a:0}\n.x2:not(#\\#){a:0}\n.x12:not(#\\#){b:0}"),
+  ] {
+    assert_eq!(
+      process_stylex_rule_values(rules.clone(), &config.into()),
+      Ok(expected.to_string()),
+      "useLayers: {config}"
+    );
+  }
+}

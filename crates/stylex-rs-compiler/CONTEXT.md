@@ -23,11 +23,13 @@ _Avoid_: rule, style entry, injected style
 **Stylesheet step**:
 `processStylexRules(rules, config)`, exported beside `transform`: every
 metadata tuple a build emitted, assembled into the one sheet the bundler plugins
-write, through [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md). The rules
-cross as a JSON value so a tuple keeps its shape; `config` is the reference's,
-a boolean standing for `useLayers` or its options object. The same bytes as
-`@stylexjs/babel-plugin`'s export for the same rules, which `parity:sheets`
-holds on every pull request.
+write, through [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md). `config`
+is the reference's, a boolean standing for `useLayers` or its options object.
+The same bytes and the same errors as `@stylexjs/babel-plugin`'s export for
+every input: a **gate** in JavaScript packs the rules for the native sheet when
+it can prove that sheet is the reference's, and the **fallback** runs a
+vendored copy of the reference for every other input. `parity:sheets` holds the
+sheets on every pull request.
 _Avoid_: CSS generation, sheet writer, post-processing
 
 **Native binding**:

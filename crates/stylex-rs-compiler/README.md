@@ -137,30 +137,31 @@ const css = processStylexRules(rules, { useLayers: true });
 It takes the options `@stylexjs/babel-plugin`'s export takes -- `useLayers`
 (`true`, `false` or `{ before, after, prefix }`), `enableLTRRTLComments`,
 `legacyDisableLayers`, `useLegacyClassnamesSort`, or a bare boolean standing for
-`useLayers` -- and writes the same bytes for the same rules. It reads the
-arguments as the reference's JavaScript reads them, also for a value outside
-the published types: a priority as `Number(...)` reads it (a missing or
-`undefined` one is `NaN`, `null` is 0), a class name, a constant and a layer
-option as `String(...)` spells them, `before` and `after` as a spread reads
-them (a string gives its characters), a class name as a `Map` key
-(`SameValueZero`, so `1` and `'1'` are two), and a hole in the rules is skipped
-as `filter` skips it. The rules are sorted with V8's own sort algorithm, so a
-comparison that is not a consistent order (a `NaN` priority) gives the order
-Node gives. Where the reference throws, this export throws too, with a
-`processStylexRules:` message of its own.
+`useLayers` -- and writes the same bytes for the same arguments, for every
+input. Where the reference throws, this export throws the same error: the same
+class, the same message, at the same point.
 
-#### Where it differs from `@stylexjs/babel-plugin`
+Two halves make that hold:
 
-| Input                                                                                                         | `@stylexjs/babel-plugin` 0.19.1              | `@stylexswc/rs-compiler`          |
-| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------- |
-| a function, a symbol or a `BigInt` anywhere in the arguments                                                  | read where it is used, else ignored          | refused                           |
-| a value that contains itself, or nests more than 64 levels deep                                               | read where it is used, else ignored          | refused                           |
-| an object that owns `toString` or `valueOf`, spelled as text                                                  | calls or rejects that property               | `[object Object]`                 |
-| an object that is not plain: a class instance, a boxed primitive, a getter, an inherited or a hidden property | read through its prototype and its `valueOf` | read as its enumerable properties |
-| one object or array used twice as a class name                                                                | one `Map` key                                | two keys                          |
-| an `ltr` text that is an array, compared as the second of a pair                                              | read through the array methods               | refused at the comparison         |
-| non-ASCII text in the sort                                                                                    | the build machine's locale                   | the root locale                   |
-| a text with no `{` that ends in a character outside the BMP                                                   | `slice(-1)` splits the surrogate pair        | the whole character               |
+- **The fast path.** The addon writes the sheet in Rust when it can prove that
+  its sheet is the reference's. A gate in JavaScript checks that each value the
+  reference reads is a plain value in a shape a build emits (no getter, no
+  Proxy, no lone surrogate), that the built-ins the reference calls are the
+  ones a fresh realm holds, and that the default collation of this process is
+  the root collation the addon sorts with. The rules a build emits always take
+  this path.
+- **The fallback.** For every other input, and wherever the reference throws,
+  the export runs upstream's own `processStylexRules`, copied out of the
+  published plugin (`src/process-stylex-rules/reference.ts`). The one change in
+  the copy: it parses a media query with the addon's parser, because the
+  plugin does not publish its own. A test fails when the copy and the installed
+  plugin differ; `pnpm vendor:reference` writes it again.
+
+Two limits remain. A program that replaces a function of Node's `vm` or
+`util` module before it loads the addon can hide a changed built-in from the
+guard. And when a program changes a built-in, the fallback parses media queries
+with the addon's parser, which the change does not reach, where upstream's
+parser would see it.
 
 The signature is a superset of the published one: `rules` is `readonly`,
 `config` and `useLayers` also take `null` (read as absent, as the runtime

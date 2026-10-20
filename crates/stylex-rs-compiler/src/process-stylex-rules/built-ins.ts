@@ -113,9 +113,8 @@ function dataValue(holder: unknown, key: PropertyKey): unknown {
 /** The source text of a function, as the fresh realm prints it. */
 function sourceOf(fn: unknown): string | undefined {
   const realm = freshRealm();
-  return typeof fn === 'function'
-    ? (realm.Reflect.apply(realm.Function.prototype.toString, fn, []) as string)
-    : undefined;
+  // The fresh realm's `call` and `toString`, which no program can replace.
+  return typeof fn === 'function' ? realm.Function.prototype.toString.call(fn) : undefined;
 }
 
 /**

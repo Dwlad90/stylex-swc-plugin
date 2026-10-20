@@ -132,10 +132,10 @@ fn an_empty_prefix_is_no_prefix() {
 }
 
 #[test]
-fn a_panic_in_the_native_half_is_caught() {
-  assert_eq!(catch_panic(|| 7), Some(7));
+fn a_panic_in_the_native_half_is_caught_with_its_message() {
+  assert_eq!(catch_panic(|| 7), Ok(7));
   assert_eq!(
     catch_panic(|| -> u8 { panic!("a fault in the native half") }),
-    None
+    Err("[StyleX] a fault in the native half".to_string())
   );
 }

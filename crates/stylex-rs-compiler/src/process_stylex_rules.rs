@@ -14,7 +14,7 @@ use napi::bindgen_prelude::{Float64Array, Uint8Array, Uint32Array};
 use napi_derive::napi;
 use stylex_js::string::split_at_utf16_lengths;
 use stylex_js::value::JsValue;
-use stylex_macros::stylex_error::SuppressPanicStderr;
+use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use stylex_stylesheet::collation::{CLDR_DATA_VERSION, ICU_DATA_VERSION, UNICODE_DATA_VERSION};
 use stylex_stylesheet::process::{
   ClassName, LayerOptions, ProcessStylexRulesConfig, Rule, RuleStyle, process_stylex_rules,
@@ -144,15 +144,18 @@ pub fn process_stylex_rules_native(
   let config = config.into();
 
   // A panic is a fault in the native half; the reference then writes the sheet.
-  catch_panic(|| process_stylex_rules(&rules, &config))?.ok()
+  catch_panic(|| process_stylex_rules(&rules, &config))
+    .ok()?
+    .ok()
 }
 
-/// The value of `run`, or `None` when it panics. A panic must not cross the
-/// NAPI boundary: the callback is `extern "C"`, so the panic would stop Node.
-pub(crate) fn catch_panic<T>(run: impl FnOnce() -> T) -> Option<T> {
+/// The value of `run`, or the message of its panic, as `transform` reads it.
+/// A panic must not cross the NAPI boundary: the callback is `extern "C"`, so
+/// the panic would stop Node.
+pub(crate) fn catch_panic<T>(run: impl FnOnce() -> T) -> Result<T, String> {
   let _suppress = SuppressPanicStderr::new();
 
-  catch_unwind(AssertUnwindSafe(run)).ok()
+  catch_unwind(AssertUnwindSafe(run)).map_err(|payload| format_panic_message(&payload))
 }
 
 /// One `min-width` or `max-width` bound in px, as upstream's
@@ -173,9 +176,9 @@ pub struct MediaQueryWidthBound {
 /// upstream's with no sign of the fault.
 #[napi]
 pub fn media_query_width_bound(prelude: String) -> napi::Result<Option<MediaQueryWidthBound>> {
-  let bound = catch_panic(|| media_query_width_sort_key(&prelude)).ok_or_else(|| {
+  let bound = catch_panic(|| media_query_width_sort_key(&prelude)).map_err(|cause| {
     napi::Error::from_reason(format!(
-      "Could not read the width bound of the media query \"{prelude}\"."
+      "Could not read the width bound of the media query \"{prelude}\".\n{cause}"
     ))
   })?;
 

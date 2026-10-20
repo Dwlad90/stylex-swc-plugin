@@ -12,6 +12,10 @@
 //! The comparator answers a JavaScript number. As in V8's
 //! `SortCompareUserFn`, `NaN` reads as 0, and only the sign of the answer is
 //! used after that.
+//!
+//! Before it sorts, V8 moves every `undefined` and every hole to the end of the
+//! array, and never passes them to the comparator. This port does not: the
+//! caller must do it. `processStylexRules` never sorts either of them.
 
 use std::cmp::{max, min};
 

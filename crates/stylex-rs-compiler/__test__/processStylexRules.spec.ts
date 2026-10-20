@@ -970,6 +970,20 @@ describe('processStylexRules in a child process', () => {
     }
   });
 
+  test('answers as the reference for a constant chain of any depth', () => {
+    // Past 256 links the native resolver refuses and the reference decides:
+    // it resolves the chain, or its stack overflows with a `RangeError`.
+    for (const depth of [256, 257, 5000, 20000]) {
+      const deepChain = `[
+        ...Array.from({ length: ${depth} }, (_, i) =>
+          ['c' + i, { constKey: 'c' + i, constVal: 'var(--c' + (i + 1) + ')' }, 0]),
+        ['c${depth}', { constKey: 'c${depth}', constVal: 'red' }, 0],
+        ['x1', { ltr: '.x1{color:var(--c0)}', rtl: null }, 3000],
+      ]`;
+      expect(sameSheetAfter('', deepChain)).toBe('true');
+    }
+  });
+
   test('reads no global that a program can replace', () => {
     const rules = `(() => {
       const rule = ['a', { ltr: '.a{color:red}' }, 3000];

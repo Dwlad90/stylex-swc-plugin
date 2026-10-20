@@ -8,11 +8,9 @@
 //! `coercions`, so the two readings of one coercion sit side by side.
 
 use std::borrow::Cow;
-use std::fmt;
 
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
-use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use stylex_utils::number;
 
 use crate::coercions::{OBJECT_TO_STRING, string_to_js_number};
@@ -210,84 +208,100 @@ impl From<bool> for JsValue {
   }
 }
 
-/// Reads any self-describing format. A unit is `null`: JSON has no
-/// `undefined`, and a format that has one hands it over as a unit too, so a
-/// reader that must tell the two apart builds the value itself.
-impl<'de> Deserialize<'de> for JsValue {
-  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    deserializer.deserialize_any(JsValueVisitor)
-  }
-}
+/// `Deserialize` for `JsValue`, behind the `serde` feature. Only tests use it:
+/// they read values from JSON. The addon builds its values itself.
+#[cfg(feature = "serde")]
+mod deserialize {
+  use std::fmt;
 
-struct JsValueVisitor;
+  use rustc_hash::FxBuildHasher;
+  use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 
-impl<'de> Visitor<'de> for JsValueVisitor {
-  type Value = JsValue;
+  use super::{JsObject, JsValue};
 
-  fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter.write_str("a JavaScript value")
-  }
-
-  fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-    Ok(JsValue::Null)
+  /// Reads any self-describing format. A unit is `null`: JSON has no
+  /// `undefined`, and a format that has one hands it over as a unit too, so a
+  /// reader that must tell the two apart builds the value itself.
+  impl<'de> Deserialize<'de> for JsValue {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+      deserializer.deserialize_any(JsValueVisitor)
+    }
   }
 
-  fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> {
-    Ok(JsValue::Null)
-  }
+  pub(super) struct JsValueVisitor;
 
-  fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-    JsValue::deserialize(deserializer)
-  }
+  impl<'de> Visitor<'de> for JsValueVisitor {
+    type Value = JsValue;
 
-  fn visit_bool<E: de::Error>(self, flag: bool) -> Result<Self::Value, E> {
-    Ok(JsValue::Boolean(flag))
-  }
-
-  fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
-    Ok(JsValue::Number(value as f64))
-  }
-
-  fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
-    Ok(JsValue::Number(value as f64))
-  }
-
-  fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
-    Ok(JsValue::Number(value))
-  }
-
-  fn visit_str<E: de::Error>(self, text: &str) -> Result<Self::Value, E> {
-    Ok(JsValue::String(text.to_string()))
-  }
-
-  fn visit_string<E: de::Error>(self, text: String) -> Result<Self::Value, E> {
-    Ok(JsValue::String(text))
-  }
-
-  fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
-    let mut elements = Vec::with_capacity(sequence.size_hint().unwrap_or(0));
-
-    while let Some(element) = sequence.next_element()? {
-      elements.push(element);
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+      formatter.write_str("a JavaScript value")
     }
 
-    Ok(JsValue::Array(elements))
-  }
-
-  fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
-    let mut properties =
-      JsObject::with_capacity_and_hasher(map.size_hint().unwrap_or(0), FxBuildHasher);
-
-    // A key read twice keeps its first position and its last value, as an
-    // object literal does.
-    while let Some((key, value)) = map.next_entry::<String, JsValue>()? {
-      properties.insert(key, value);
+    fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+      Ok(JsValue::Null)
     }
 
-    Ok(JsValue::Object(Box::new(properties)))
+    fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> {
+      Ok(JsValue::Null)
+    }
+
+    fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+      JsValue::deserialize(deserializer)
+    }
+
+    fn visit_bool<E: de::Error>(self, flag: bool) -> Result<Self::Value, E> {
+      Ok(JsValue::Boolean(flag))
+    }
+
+    fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
+      Ok(JsValue::Number(value as f64))
+    }
+
+    fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
+      Ok(JsValue::Number(value as f64))
+    }
+
+    fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
+      Ok(JsValue::Number(value))
+    }
+
+    fn visit_str<E: de::Error>(self, text: &str) -> Result<Self::Value, E> {
+      Ok(JsValue::String(text.to_string()))
+    }
+
+    fn visit_string<E: de::Error>(self, text: String) -> Result<Self::Value, E> {
+      Ok(JsValue::String(text))
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
+      let mut elements = Vec::with_capacity(sequence.size_hint().unwrap_or(0));
+
+      while let Some(element) = sequence.next_element()? {
+        elements.push(element);
+      }
+
+      Ok(JsValue::Array(elements))
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+      let mut properties =
+        JsObject::with_capacity_and_hasher(map.size_hint().unwrap_or(0), FxBuildHasher);
+
+      // A key read twice keeps its first position and its last value, as an
+      // object literal does.
+      while let Some((key, value)) = map.next_entry::<String, JsValue>()? {
+        properties.insert(key, value);
+      }
+
+      Ok(JsValue::Object(Box::new(properties)))
+    }
   }
 }
 
 #[cfg(test)]
 #[path = "tests/value_tests.rs"]
 mod tests;
+
+#[cfg(all(test, feature = "serde"))]
+#[path = "tests/value_deserialize_tests.rs"]
+mod deserialize_tests;

@@ -24,8 +24,10 @@ stylex_regex = { path = "../stylex-regex" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
+# The tests read their rules and configs from JSON.
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+stylex_js = { path = "../stylex-js", features = ["serde"] }
 
 [lints]
 workspace = true

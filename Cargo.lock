@@ -3295,6 +3295,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_constants",
+ "stylex_js",
  "stylex_macros",
  "stylex_utils",
  "swc_core",

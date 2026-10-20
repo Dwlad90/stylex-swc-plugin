@@ -8,6 +8,10 @@ rust-version.workspace = true
 version.workspace = true
 
 
+[features]
+# `Deserialize` for `JsValue`. Only tests use it: they read values from JSON.
+serde = ["dep:serde"]
+
 [lib]
 crate-type = ["rlib"]
 doctest = false
@@ -15,7 +19,7 @@ doctest = false
 [dependencies]
 indexmap.workspace = true
 rustc-hash.workspace = true
-serde.workspace = true
+serde = { workspace = true, optional = true }
 swc_core = { workspace = true, features = ["common", "ecma_ast", "swc_atoms"] }
 
 stylex_constants = { path = "../stylex-constants" }
@@ -23,7 +27,9 @@ stylex_macros = { path = "../stylex-macros" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
+# Turns on the `serde` feature for this crate's own tests too.
 serde_json.workspace = true
+stylex_js = { path = ".", features = ["serde"] }
 
 [lints]
 workspace = true

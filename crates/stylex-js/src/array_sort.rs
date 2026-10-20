@@ -149,9 +149,7 @@ impl<T: Copy, E> SortState<'_, T, E> {
   /// already sorted, inserting each element after the last one it does not
   /// sort before. V8 also handles `low == start`; the one caller here passes
   /// a run, which is never empty, so `start` is always past `low`.
-  fn binary_insertion_sort(&mut self, low: usize, start: usize, high: usize) -> Result<(), E> {
-    let mut start = start;
-
+  fn binary_insertion_sort(&mut self, low: usize, mut start: usize, high: usize) -> Result<(), E> {
     while start < high {
       let mut left = low;
       let mut right = start;
@@ -445,12 +443,10 @@ impl<T: Copy, E> SortState<'_, T, E> {
   fn merge_low(
     &mut self,
     base_a: usize,
-    length_a: usize,
+    mut length_a: usize,
     base_b: usize,
-    length_b: usize,
+    mut length_b: usize,
   ) -> Result<(), E> {
-    let (mut length_a, mut length_b) = (length_a, length_b);
-
     self.temp.clear();
     self
       .temp

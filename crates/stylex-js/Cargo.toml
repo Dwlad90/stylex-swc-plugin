@@ -27,9 +27,9 @@ stylex_macros = { path = "../stylex-macros" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
-# Turns on the `serde` feature for this crate's own tests too.
+# The tests read values from JSON, so they compile the `Deserialize` impl.
+serde.workspace = true
 serde_json.workspace = true
-stylex_js = { path = ".", features = ["serde"] }
 
 [lints]
 workspace = true

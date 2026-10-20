@@ -1,8 +1,8 @@
 //! A JavaScript value as data, and the coercions the language applies to it.
 //!
 //! `coercions` reads an expression the evaluator has already folded. This
-//! module reads a value that arrives from JavaScript at run time, such as the
-//! rules a build hands to `processStylexRules`: plain data with no source text.
+//! module reads a value that arrives from JavaScript at run time: plain data
+//! with no source text.
 //! The data has no functions, symbols or big integers, so each coercion here is
 //! total. The method names match the expression-level functions in
 //! `coercions`, so the two readings of one coercion sit side by side.
@@ -13,7 +13,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 use stylex_utils::number;
 
-use crate::coercions::{OBJECT_TO_STRING, string_to_js_number};
+use crate::coercions::{OBJECT_TO_STRING, StringSink, string_to_js_number, write_js_join};
 
 /// One JavaScript value as data.
 ///
@@ -99,7 +99,15 @@ impl JsValue {
       JsValue::Boolean(false) => Cow::Borrowed("false"),
       JsValue::Number(value) => Cow::Owned(number::to_js_string(*value)),
       JsValue::String(text) => Cow::Borrowed(text),
-      JsValue::Array(elements) => Cow::Owned(js_join(elements, ",")),
+      JsValue::Array(elements) => {
+        let mut text = String::new();
+        // Neither the element writer nor a `String` refuses a piece, so the
+        // join always completes.
+        let _ = write_js_join(elements, &mut text, |element, sink| {
+          sink.write_piece(&element.to_js_join_element())
+        });
+        Cow::Owned(text)
+      },
       JsValue::Object(_) => Cow::Borrowed(OBJECT_TO_STRING),
     }
   }
@@ -169,21 +177,6 @@ impl JsValue {
   }
 }
 
-/// `elements.join(separator)`.
-pub fn js_join(elements: &[JsValue], separator: &str) -> String {
-  let mut out = String::new();
-
-  for (index, element) in elements.iter().enumerate() {
-    if index > 0 {
-      out.push_str(separator);
-    }
-
-    out.push_str(&element.to_js_join_element());
-  }
-
-  out
-}
-
 impl From<&str> for JsValue {
   fn from(text: &str) -> Self {
     JsValue::String(text.to_string())
@@ -210,7 +203,7 @@ impl From<bool> for JsValue {
 
 /// `Deserialize` for `JsValue`, behind the `serde` feature. Only tests use it:
 /// they read values from JSON. The addon builds its values itself.
-#[cfg(feature = "serde")]
+#[cfg(any(test, feature = "serde"))]
 mod deserialize {
   use std::fmt;
 
@@ -228,6 +221,7 @@ mod deserialize {
     }
   }
 
+  // Visible to the tests only: the module is private.
   pub(super) struct JsValueVisitor;
 
   impl<'de> Visitor<'de> for JsValueVisitor {
@@ -302,6 +296,6 @@ mod deserialize {
 #[path = "tests/value_tests.rs"]
 mod tests;
 
-#[cfg(all(test, feature = "serde"))]
+#[cfg(test)]
 #[path = "tests/value_deserialize_tests.rs"]
 mod deserialize_tests;

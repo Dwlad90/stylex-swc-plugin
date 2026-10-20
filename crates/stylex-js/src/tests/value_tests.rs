@@ -119,19 +119,17 @@ fn to_boolean_is_false_for_the_six_falsy_values_only() {
 #[test]
 fn join_writes_nothing_for_a_nullish_element() {
   assert_eq!(
-    js_join(
-      &[
-        "a".into(),
-        JsValue::Null,
-        JsValue::Undefined,
-        JsValue::Hole,
-        5.0.into()
-      ],
-      ", "
-    ),
-    "a, , , , 5"
+    array(vec![
+      "a".into(),
+      JsValue::Null,
+      JsValue::Undefined,
+      JsValue::Hole,
+      5.0.into()
+    ])
+    .to_js_string(),
+    "a,,,,5"
   );
-  assert_eq!(js_join(&[], ", "), "");
+  assert_eq!(array(vec![]).to_js_string(), "");
   assert_eq!(JsValue::Null.to_js_join_element(), "");
   assert_eq!(JsValue::from(false).to_js_join_element(), "false");
 }

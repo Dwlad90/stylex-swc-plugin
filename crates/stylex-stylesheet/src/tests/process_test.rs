@@ -7,9 +7,9 @@ use stylex_js::value::JsValue;
 
 use crate::process::{
   ClassName, LayerOptions, OrderedConstants, ProcessStylexRulesConfig, ProcessStylexRulesError,
-  Rule, RuleStyle, add_ancestor_selector, add_specificity_level, get_logical_float_vars,
-  js_replace_all, js_replace_first, js_substitution, process_stylex_rule_values,
-  process_stylex_rules, read_rules, resolve_constant,
+  Rule, RuleStyle, TextDirection, add_ancestor_selector, add_specificity_level,
+  get_logical_float_vars, js_replace_all, js_replace_first, js_substitution,
+  process_stylex_rule_values, process_stylex_rules, read_rules, resolve_constant,
 };
 
 fn rule(class_name: &str, ltr: &str, rtl: Option<&str>, priority: f64) -> Rule {
@@ -1060,7 +1060,8 @@ fn a_string_rule_reads_its_characters() {
 
   assert_eq!(
     answer(json(r#"["ab"]"#), true.into()),
-    Err(ProcessStylexRulesError::LtrNotAString {
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
       class_name: "a".into(),
       kind: "undefined"
     })
@@ -1218,7 +1219,10 @@ fn an_ltr_text_that_is_not_a_string_is_refused_where_it_is_read() {
     assert!(
       matches!(
         answer(rules, false.into()),
-        Err(ProcessStylexRulesError::LtrNotAString { .. })
+        Err(ProcessStylexRulesError::TextNotAString {
+          direction: TextDirection::Ltr,
+          ..
+        })
       ),
       "{ltr}"
     );
@@ -1247,7 +1251,8 @@ fn an_ltr_text_that_is_not_a_string_is_refused_where_it_is_read() {
       json(r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": 5}, 1000]]"#),
       false.into()
     ),
-    Err(ProcessStylexRulesError::LtrNotAString {
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
       class_name: "x2".into(),
       kind: "a number"
     })
@@ -1257,7 +1262,8 @@ fn an_ltr_text_that_is_not_a_string_is_refused_where_it_is_read() {
       json(r#"[["x1", {"ltr": 5}, 1000], ["x2", {"ltr": ".x2{a:0}"}, 1000]]"#),
       false.into()
     ),
-    Err(ProcessStylexRulesError::LtrNotAString {
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
       class_name: "x1".into(),
       kind: "a number"
     })
@@ -1274,7 +1280,8 @@ fn an_ltr_text_that_is_not_a_string_is_refused_where_it_is_read() {
     .starts_with(":root, [dir=\"ltr\"] {")
   );
   assert_eq!(
-    ProcessStylexRulesError::LtrNotAString {
+    ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
       class_name: "x1".into(),
       kind: "a number"
     }
@@ -1318,7 +1325,8 @@ fn a_falsy_rtl_is_no_rtl_text_and_a_truthy_non_string_is_refused() {
       ));
       assert_eq!(
         answer(rules, json(config)),
-        Err(ProcessStylexRulesError::RtlNotAString {
+        Err(ProcessStylexRulesError::TextNotAString {
+          direction: TextDirection::Rtl,
           class_name: "x1".into(),
           kind
         }),
@@ -1335,7 +1343,8 @@ fn a_falsy_rtl_is_no_rtl_text_and_a_truthy_non_string_is_refused() {
     Ok(".x1{b:0}".into())
   );
   assert_eq!(
-    ProcessStylexRulesError::RtlNotAString {
+    ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Rtl,
       class_name: "x1".into(),
       kind: "a boolean"
     }

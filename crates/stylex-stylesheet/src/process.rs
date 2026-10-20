@@ -15,6 +15,7 @@
 //! `Number(...)` -- the port names the built-in and does what it does.
 
 use std::borrow::Cow;
+use std::fmt;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -152,10 +153,7 @@ impl Rule {
   fn ltr(&self) -> Result<&str, ProcessStylexRulesError> {
     match &self.style().ltr {
       JsValue::String(text) => Ok(text),
-      other => Err(ProcessStylexRulesError::LtrNotAString {
-        class_name: self.class_name().spelling().into_owned(),
-        kind: other.describe(),
-      }),
+      other => Err(self.text_not_a_string(TextDirection::Ltr, other)),
     }
   }
 
@@ -166,11 +164,36 @@ impl Rule {
     match &self.style().rtl {
       rtl if !rtl.to_js_boolean() => Ok(None),
       JsValue::String(text) => Ok(Some(text)),
-      other => Err(ProcessStylexRulesError::RtlNotAString {
-        class_name: self.class_name().spelling().into_owned(),
-        kind: other.describe(),
-      }),
+      other => Err(self.text_not_a_string(TextDirection::Rtl, other)),
     }
+  }
+
+  fn text_not_a_string(
+    &self,
+    direction: TextDirection,
+    found: &JsValue,
+  ) -> ProcessStylexRulesError {
+    ProcessStylexRulesError::TextNotAString {
+      direction,
+      class_name: self.class_name().spelling().into_owned(),
+      kind: found.describe(),
+    }
+  }
+}
+
+/// Which of a style's two texts a refusal names.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextDirection {
+  Ltr,
+  Rtl,
+}
+
+impl fmt::Display for TextDirection {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter.write_str(match self {
+      TextDirection::Ltr => "ltr",
+      TextDirection::Rtl => "rtl",
+    })
   }
 }
 
@@ -351,16 +374,11 @@ pub enum ProcessStylexRulesError {
   /// read.
   #[error("rule {index} has {kind} in place of its style object")]
   NoStyleObject { index: usize, kind: &'static str },
-  /// A style rule's `ltr` text is not a string where it is read as one.
-  #[error("the ltr text of class {class_name} is {kind}, not a string")]
-  LtrNotAString {
-    class_name: String,
-    kind: &'static str,
-  },
-  /// A style rule's `rtl` text is truthy and not a string where it is read
-  /// as one.
-  #[error("the rtl text of class {class_name} is {kind}, not a string")]
-  RtlNotAString {
+  /// A style rule's `ltr` text, or its truthy `rtl` text, is not a string
+  /// where it is read as one.
+  #[error("the {direction} text of class {class_name} is {kind}, not a string")]
+  TextNotAString {
+    direction: TextDirection,
     class_name: String,
     kind: &'static str,
   },

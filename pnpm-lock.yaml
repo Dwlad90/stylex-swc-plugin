@@ -2223,6 +2223,9 @@ importers:
       '@stylexswc/stylesheet':
         specifier: catalog:internal
         version: link:../stylex-stylesheet
+      '@stylexswc/stylex-js':
+        specifier: catalog:internal
+        version: link:../stylex-js
       '@stylexswc/transform':
         specifier: catalog:internal
         version: link:../stylex-transform
@@ -2376,6 +2379,9 @@ importers:
       '@stylexswc/regex':
         specifier: catalog:internal
         version: link:../stylex-regex
+      '@stylexswc/stylex-js':
+        specifier: catalog:internal
+        version: link:../stylex-js
       '@stylexswc/utils':
         specifier: catalog:internal
         version: link:../stylex-utils

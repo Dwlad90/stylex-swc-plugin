@@ -66,7 +66,10 @@ fn every_pair_of_the_matrix_orders_as_the_reference_orders_it() {
   let keys: Vec<Option<WidthSortKey>> = matrix
     .chains
     .iter()
-    .map(|row| width_sort_key_for_chain(&row.preludes))
+    .map(|row| {
+      let preludes: Vec<&str> = row.preludes.iter().map(String::as_str).collect();
+      width_sort_key_for_chain(&preludes)
+    })
     .collect();
 
   let keyed = keys.iter().filter(|key| key.is_some()).count();

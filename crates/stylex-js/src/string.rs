@@ -165,7 +165,15 @@ fn replace_empty_pattern(text: &str, replacement: &str) -> String {
     .char_indices()
     .map(|(index, _)| index)
     .chain([text.len()]);
-  let mut out = String::with_capacity(text.len() + replacement.len());
+  // One replacement for each boundary: the exact length when the replacement
+  // holds no `$` pattern, so the text is written without a reallocation. A
+  // length past `usize` starts from the text alone and grows as it must.
+  let boundary_count = text.chars().count() + 1;
+  let capacity = boundary_count
+    .checked_mul(replacement.len())
+    .and_then(|replacements| replacements.checked_add(text.len()))
+    .unwrap_or(text.len());
+  let mut out = String::with_capacity(capacity);
   let mut previous = 0;
 
   for boundary in boundaries {

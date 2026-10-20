@@ -114,6 +114,15 @@ const SCENARIOS = {
   // Two runs of 40. The first 79 calls find them; then the merge trims
   // nothing from the first run and all of the second.
   merge_at_empties_the_second_run: [80, 0, i => [0, i < 40 ? i : i - 40], scripted(79, [-1], 1)],
+  // A run of 60, then one of 20. The merge keeps both runs whole and is
+  // `merge_high`; there every later answer is "greater", so B wins, gallops,
+  // and the gallop takes all of what is left of B.
+  merge_high_empties_the_second_run: [
+    80,
+    0,
+    i => [0, i < 60 ? i : i - 60],
+    scripted(79, [-1, -1], 1),
+  ],
 };
 
 /** Keys of a run of 300, then 40 that fall between them. */

@@ -426,6 +426,31 @@ fn a_merge_that_empties_the_second_run_ends_as_v8_ends() {
   );
 }
 
+/// A run of 60, then one of 20. The merge keeps both runs whole, so it is
+/// `merge_high`. There every later answer is "greater": B wins, gallops, and
+/// the gallop takes all of what is left of B.
+#[test]
+fn a_gallop_in_merge_high_that_empties_the_second_run_ends_as_v8_ends() {
+  let measured = measure(
+    80,
+    0,
+    |i, _| (0.0, (if i < 60 { i } else { i - 60 }) as f64),
+    Comparator::Scripted {
+      after: 79,
+      script: &[-1.0, -1.0],
+      rest: 1.0,
+    },
+  );
+
+  assert_v8(
+    measured,
+    96,
+    2_434_862_606,
+    1_262_322_905,
+    [0, 1, 2, 3, 4, 5, 6, 7],
+  );
+}
+
 /// With a consistent order, V8's sort is a stable sort, so it agrees with
 /// `sort_by` on every input: lengths around each run boundary, and inputs
 /// that are sorted, reversed, constant or random.

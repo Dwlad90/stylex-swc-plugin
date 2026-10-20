@@ -211,3 +211,141 @@ fn from_conversions_build_the_matching_kind() {
   );
   assert_eq!(JsValue::default(), JsValue::Undefined);
 }
+
+/// `String(x)` for a number, as Node 24 answers it: the shortest text that
+/// reads back as the same number, with an exponent from 1e21 up and below
+/// 1e-6.
+#[test]
+fn to_string_of_a_number_is_the_text_node_writes() {
+  let cases: Vec<(f64, &str)> = vec![
+    (0.0, "0"),
+    (-0.0, "0"),
+    (1.0, "1"),
+    (-1.0, "-1"),
+    (0.1, "0.1"),
+    (0.5, "0.5"),
+    (0.3333333333333333, "0.3333333333333333"),
+    (-0.3333333333333333, "-0.3333333333333333"),
+    (123456789012345680000.0, "123456789012345680000"),
+    (1.0e21, "1e+21"),
+    (2.5e21, "2.5e+21"),
+    (1.0e100, "1e+100"),
+    (1.0e-7, "1e-7"),
+    (-1.0e-7, "-1e-7"),
+    (1.5e-7, "1.5e-7"),
+    (0.000001, "0.000001"),
+    (1.23e-18, "1.23e-18"),
+    (9007199254740992.0, "9007199254740992"),
+    (9007199254740994.0, "9007199254740994"),
+    (f64::MAX, "1.7976931348623157e+308"),
+    (5.0e-324, "5e-324"),
+    (-5.0e-324, "-5e-324"),
+    (f64::INFINITY, "Infinity"),
+    (f64::NEG_INFINITY, "-Infinity"),
+    (f64::NAN, "NaN"),
+    (100.0, "100"),
+    (4.35, "4.35"),
+  ];
+
+  for (number, text) in cases {
+    assert_eq!(JsValue::from(number).to_js_string(), text, "{number:?}");
+  }
+}
+
+/// `Number(s)` for a string, as Node 24 answers it: white space around the
+/// literal is ignored (U+FEFF and U+2028 are white space, U+0085 is not), and
+/// a radix prefix takes no sign.
+#[test]
+fn to_number_of_a_string_is_the_number_node_reads() {
+  let cases: Vec<(&str, f64)> = vec![
+    ("", 0.0),
+    ("  ", 0.0),
+    ("12", 12.0),
+    ("  12  ", 12.0),
+    ("\u{a0}12\u{2028}", 12.0),
+    ("\u{feff}7", 7.0),
+    ("\t\n 3 \r", 3.0),
+    ("00012", 12.0),
+    ("0x1F", 31.0),
+    ("0X1f", 31.0),
+    ("0b101", 5.0),
+    ("0o17", 15.0),
+    ("-0x1F", f64::NAN),
+    ("0b2", f64::NAN),
+    ("1e3", 1000.0),
+    ("1E3", 1000.0),
+    ("1e1000", f64::INFINITY),
+    ("0.0000001", 1.0e-7),
+    (".5", 0.5),
+    ("5.", 5.0),
+    ("+5", 5.0),
+    ("-5", -5.0),
+    ("-0", -0.0),
+    ("Infinity", f64::INFINITY),
+    ("-Infinity", f64::NEG_INFINITY),
+    ("+Infinity", f64::INFINITY),
+    ("infinity", f64::NAN),
+    ("1_000", f64::NAN),
+    ("12px", f64::NAN),
+    ("abc", f64::NAN),
+    ("\u{85}1", f64::NAN),
+  ];
+
+  for (text, number) in cases {
+    let read = JsValue::from(text).to_js_number();
+    assert!(
+      read.to_bits() == number.to_bits() || (read.is_nan() && number.is_nan()),
+      "{text:?}: {read} is not {number}"
+    );
+  }
+}
+
+/// `SameValueZero` over numbers of every shape: two numbers are one key
+/// exactly when they are equal or both `NaN`, whatever their bits.
+#[test]
+fn same_value_zero_holds_over_random_bit_patterns() {
+  // A 64-bit linear congruential generator, so the test is the same each run.
+  let mut state: u64 = 0x2545_F491_4F6C_DD1D;
+  let mut next = || {
+    state = state
+      .wrapping_mul(6_364_136_223_846_793_005)
+      .wrapping_add(1_442_695_040_888_963_407);
+    f64::from_bits(state)
+  };
+
+  for _ in 0..10_000 {
+    let a = next();
+    // Half the pairs share a value, so equal keys are tested as often.
+    let b = if a.to_bits() % 2 == 0 { a } else { next() };
+    let same = a == b || (a.is_nan() && b.is_nan());
+
+    assert_eq!(
+      JsValue::from(a).same_value_zero_key() == JsValue::from(b).same_value_zero_key(),
+      same,
+      "{a:?} and {b:?}"
+    );
+  }
+
+  // Every NaN is one key, and so are both zeros.
+  let quiet = f64::from_bits(0x7ff8_0000_0000_0001);
+  let negative = f64::from_bits(0xfff8_0000_0000_0000);
+  assert_eq!(
+    JsValue::from(quiet).same_value_zero_key(),
+    JsValue::from(negative).same_value_zero_key()
+  );
+  assert_eq!(
+    JsValue::from(0.0).same_value_zero_key(),
+    JsValue::from(-0.0).same_value_zero_key()
+  );
+}
+
+/// A string that holds a real U+FFFD spells as itself: the replacement
+/// character is a character like any other.
+#[test]
+fn to_string_keeps_a_replacement_character() {
+  assert_eq!(JsValue::from("a\u{fffd}b").to_js_string(), "a\u{fffd}b");
+  assert_eq!(
+    array(vec!["\u{fffd}".into(), JsValue::Null]).to_js_string(),
+    "\u{fffd},"
+  );
+}

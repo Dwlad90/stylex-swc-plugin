@@ -382,10 +382,10 @@ fn a_list_of_fewer_than_two_items_is_never_compared() {
 /// ends, keeps every item once, and does not panic.
 #[test]
 fn a_random_comparator_keeps_every_item_once() {
-  let mut random = Minstd(5);
+  for seed in 1..=50 {
+    let mut random = Minstd(seed);
 
-  for length in [2, 3, 31, 64, 65, 129, 1000, 5000] {
-    for _ in 0..4 {
+    for length in [2, 3, 31, 64, 65, 129, 1000, 5000] {
       let mut items: Vec<usize> = (0..length).collect();
       let sorted: Result<(), usize> = array_tim_sort(&mut items, |_, _| {
         Ok(match random.next() % 4 {

@@ -3475,6 +3475,7 @@ dependencies = [
 name = "stylex_stylesheet"
 version = "0.19.2"
 dependencies = [
+ "aho-corasick",
  "criterion",
  "icu_collator",
  "indexmap",

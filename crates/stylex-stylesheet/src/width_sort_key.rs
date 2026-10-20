@@ -7,6 +7,8 @@
 //! `mediaQueryWidthSortKey`, `atRulePreludes`, `widthSortKeyForChain`,
 //! `declaredPropertyName`, `compareWidthSortKeys`.
 
+use std::ops::Range;
+
 use stylex_css_parser::at_queries::media_query::{MediaQuery, MediaQueryRule, MediaRuleValue};
 use stylex_utils::number::is_js_whitespace;
 
@@ -121,29 +123,40 @@ pub fn media_query_width_sort_key(prelude: &str) -> Option<WidthBound> {
   }
 }
 
+/// The byte ranges of a rule's leading at-rule preludes, outermost first, each
+/// up to the `{` that opens its block.
+fn prelude_ranges(rule: &str) -> impl Iterator<Item = Range<usize>> + '_ {
+  let mut index = 0;
+
+  std::iter::from_fn(move || {
+    if !rule[index..].starts_with('@') {
+      return None;
+    }
+
+    let brace = index + rule[index..].find('{')?;
+    let range = index..brace;
+    index = brace + 1;
+    Some(range)
+  })
+}
+
 /// The leading at-rule preludes of a rule, outermost first, e.g.
 /// `@supports (x){@media (y){.a{…}}}` -> `["@supports (x)", "@media (y)"]`.
 /// Each prelude is trimmed at its end as `trimEnd` trims, of the ECMAScript
 /// white space: U+FEFF is removed and U+0085 is kept, which is the opposite of
 /// `str::trim_end`.
 pub fn at_rule_preludes(rule: &str) -> Vec<String> {
-  let mut preludes = Vec::new();
-  let mut index = 0;
+  prelude_ranges(rule)
+    .map(|range| rule[range].trim_end_matches(is_js_whitespace).to_string())
+    .collect()
+}
 
-  while rule[index..].starts_with('@') {
-    let Some(brace) = rule[index..].find('{') else {
-      break;
-    };
-
-    preludes.push(
-      rule[index..index + brace]
-        .trim_end_matches(is_js_whitespace)
-        .to_string(),
-    );
-    index += brace + 1;
-  }
-
-  preludes
+/// Where a rule's leading at-rule chain ends: just after the `{` of its
+/// innermost prelude, and 0 for a rule with none. Two rules whose texts agree
+/// up to there have the same preludes, so that part of the text can key a
+/// cache of the width sort key.
+pub fn at_rule_chain_end(rule: &str) -> usize {
+  prelude_ranges(rule).last().map_or(0, |range| range.end + 1)
 }
 
 /// The sort key for a rule's at-rule chain, or `None` if it has no single

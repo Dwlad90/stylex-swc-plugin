@@ -377,6 +377,41 @@ fn a_constant_holding_a_variable_renames_the_declarations_of_the_constant() {
   );
 }
 
+/// Ten constants take the one-automaton search. Each substitution applies
+/// once, in declaration order: a pattern that an earlier substitution brings
+/// in is applied only by a substitution that comes after it (`--c5:` arrives
+/// with `c8`, after `c5` has renamed, and stays). Measured on the plugin.
+#[test]
+fn many_constants_substitute_in_declaration_order() {
+  let rules = [
+    constant("c0", text("0px")),
+    constant("c1", text("var(--t1)")),
+    constant("c2", text("2px")),
+    constant("c3", text("var(--c7)")),
+    constant("c4", text("4px")),
+    constant("c5", text("var(--u5, 1px)")),
+    constant("c6", text("6px")),
+    constant("c7", text("7px")),
+    constant("c8", text("x --c5: y")),
+    constant("c9", text("z --c1: w")),
+    rule(
+      "x1",
+      ".x1{margin:var(--c0) var(--c3) var(--c9)}",
+      None,
+      3000.0,
+    ),
+    rule("x2", ".x2{--c1:1;--c5:5;padding:var(--c8)}", None, 3000.0),
+    rule("x3", ".x3{--c3:var(--c4)}", None, 3000.0),
+    rule("x4", ".x4{color:red}", None, 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x3{--c3:4px}\n.x2{--t1:1;--u5:5;padding:x --c5: y}\n.x4{color:red}\n.x1{margin:0px 7px z --c1: \
+     w}"
+  );
+}
+
 /// Every text a style holds is substituted, `ltr` then `rtl`, the rename
 /// included, and the specificity polyfill and the ancestor selector reach the
 /// RTL text as they reach the LTR one. Measured on the plugin.
@@ -578,11 +613,12 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
 }
 
 /// The specificity level cuts the last character of a blockless text, for
-/// the LTR and for the RTL text alike.
+/// the LTR and for the RTL text alike. In the first group it inserts nothing,
+/// and the two halves join back into the text: the plugin writes it as it is.
 #[test]
 fn the_specificity_level_refuses_to_cut_a_character_in_two() {
   for (ltr, rtl) in [(".a😀", None), (".a{b:c}", Some(".a😀"))] {
-    let rules = [rule("x", ltr, rtl, 3000.0)];
+    let rules = [rule("k", ".k{a:0}", None, 0.0), rule("x", ltr, rtl, 3000.0)];
     assert_eq!(
       process_stylex_rules(&rules, &ProcessStylexRulesConfig::default()),
       Err(ProcessStylexRulesError::CharacterCutInTwo {
@@ -590,6 +626,12 @@ fn the_specificity_level_refuses_to_cut_a_character_in_two() {
       })
     );
   }
+
+  let first_group = [rule("x", ".a😀", None, 3000.0)];
+  assert_eq!(
+    process_stylex_rules(&first_group, &ProcessStylexRulesConfig::default()),
+    Ok(".a😀".into())
+  );
 }
 
 /// `String.prototype.trim` removes U+FEFF and keeps U+0085, where `str::trim`

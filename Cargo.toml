@@ -64,6 +64,7 @@ strip = "symbols"
 #   boxed AST nodes, so there is nothing to vectorize.
 
 [workspace.dependencies]
+aho-corasick = "1.1.4"
 anyhow = "1.0.102"
 boa_engine = { version = "0.22.0", features = ["annex-b"] }
 color-backtrace = { version = "0.7.2" }

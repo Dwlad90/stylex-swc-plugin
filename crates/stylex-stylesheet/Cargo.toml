@@ -12,6 +12,7 @@ crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
+aho-corasick.workspace = true
 icu_collator.workspace = true
 indexmap.workspace = true
 rustc-hash.workspace = true

@@ -139,18 +139,45 @@ pub(crate) fn compare_by_collator(a: &str, b: &str) -> Ordering {
   ROOT_COLLATOR.compare(a, b)
 }
 
+/// A text as `localeCompare` reads it, with the test for the printable ASCII
+/// path made once: a sort compares each text many times.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Collated<'t> {
+  text: &'t str,
+  printable_ascii: bool,
+}
+
+impl<'t> Collated<'t> {
+  pub(crate) fn new(text: &'t str) -> Self {
+    Collated {
+      text,
+      printable_ascii: is_printable_ascii(text),
+    }
+  }
+}
+
 /// The order `a.localeCompare(b)` answers in Node.
+#[cfg(test)]
 pub(crate) fn compare(a: &str, b: &str) -> Ordering {
-  if is_printable_ascii(a) && is_printable_ascii(b) {
-    compare_printable_ascii(a.as_bytes(), b.as_bytes())
+  compare_collated(Collated::new(a), Collated::new(b))
+}
+
+fn compare_collated(a: Collated<'_>, b: Collated<'_>) -> Ordering {
+  if a.printable_ascii && b.printable_ascii {
+    compare_printable_ascii(a.text.as_bytes(), b.text.as_bytes())
   } else {
-    compare_by_collator(a, b)
+    compare_by_collator(a.text, b.text)
   }
 }
 
 /// `a.localeCompare(b)` as the number it answers in Node: -1, 0 or 1.
 pub(crate) fn locale_compare(a: &str, b: &str) -> f64 {
-  match compare(a, b) {
+  locale_compare_collated(Collated::new(a), Collated::new(b))
+}
+
+/// [`locale_compare`] of two texts read once.
+pub(crate) fn locale_compare_collated(a: Collated<'_>, b: Collated<'_>) -> f64 {
+  match compare_collated(a, b) {
     Ordering::Less => -1.0,
     Ordering::Equal => 0.0,
     Ordering::Greater => 1.0,

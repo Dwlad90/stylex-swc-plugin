@@ -19,16 +19,17 @@
 
 use std::borrow::Cow;
 
+use aho_corasick::AhoCorasick;
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_js::array_sort::array_tim_sort;
-use stylex_js::string::{js_replace_all, js_replace_first};
+use stylex_js::string::{js_replace_all, js_substitution};
 use stylex_js::value::{JsValue, MapKey};
 use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR};
 use stylex_utils::number::is_js_whitespace;
 
-use crate::collation::locale_compare;
+use crate::collation::{Collated, locale_compare, locale_compare_collated};
 mod read;
 
 use read::has_no_length;
@@ -39,8 +40,8 @@ pub use read::{
 };
 
 use crate::width_sort_key::{
-  WidthSortKey, at_rule_preludes, compare_width_sort_keys, declared_property_name,
-  width_sort_key_for_chain,
+  WidthSortKey, at_rule_chain_end, at_rule_preludes, compare_width_sort_keys,
+  declared_property_name, width_sort_key_for_chain,
 };
 
 /// The `:root, [dir="ltr"]` / `[dir="rtl"]` block that gives the logical float
@@ -89,12 +90,6 @@ fn last_brace_or_last_unit(text: &str) -> Option<usize> {
 }
 
 impl Rule {
-  /// [`last_brace_or_last_unit`] of one of this rule's texts, refused where
-  /// JavaScript would cut a character in two.
-  fn block_start(&self, text: &str) -> Result<usize, ProcessStylexRulesError> {
-    last_brace_or_last_unit(text).ok_or_else(|| self.cut_in_two())
-  }
-
   /// The refusal of a text of this rule that JavaScript would cut in two.
   fn cut_in_two(&self) -> ProcessStylexRulesError {
     ProcessStylexRulesError::CharacterCutInTwo {
@@ -132,20 +127,25 @@ fn collect_constants(rules: &[Rule]) -> (OrderedConstants, Vec<&Rule>) {
   (constants, non_constant_rules)
 }
 
-/// Every constant resolved against the constants as declared.
+/// `for (const [key, value] of constsMap.entries()) constsMap.set(key,
+/// resolveConstant(value))`: each constant resolved in declaration order. A
+/// `set` of a key that is already there changes the value in place, so a
+/// constant resolved later reads the resolved value of an earlier one.
 fn resolve_constants(
-  constants: &OrderedConstants,
+  mut constants: OrderedConstants,
 ) -> Result<OrderedConstants, ProcessStylexRulesError> {
-  let mut resolved = OrderedConstants::with_capacity_and_hasher(constants.len(), FxBuildHasher);
+  for index in 0..constants.len() {
+    let Some((_, value)) = constants.get_index(index) else {
+      continue;
+    };
+    let resolved = resolve_constant(value, &constants, &mut Vec::new())?;
 
-  for (name, value) in constants {
-    resolved.insert(
-      name.clone(),
-      resolve_constant(value, constants, &mut Vec::new())?,
-    );
+    if let Some((_, value)) = constants.get_index_mut(index) {
+      *value = resolved;
+    }
   }
 
-  Ok(resolved)
+  Ok(constants)
 }
 
 /// `resolveConstant`: a constant's value with every reference to another
@@ -171,22 +171,33 @@ pub(crate) fn resolve_constant(
   while let Some(captures) = CONSTANT_REFERENCE.captures_at(&result, position)
     && let (Some(whole), Some(name)) = (captures.get(0), captures.get(1))
   {
-    let reference = name.as_str().to_string();
-    let matched = whole.as_str().to_string();
-    let end = whole.end();
+    let reference = name.as_str();
+    let range = whole.range();
 
-    if visited.contains(&reference) {
-      return Err(ProcessStylexRulesError::CircularConstant(reference));
+    if visited.iter().any(|seen| seen == reference) {
+      return Err(ProcessStylexRulesError::CircularConstant(
+        reference.to_string(),
+      ));
     }
 
     let Some(referenced) = constants.get(format!("var({reference})").as_str()) else {
-      position = end;
+      position = range.end;
       continue;
     };
 
+    let reference = reference.to_string();
     visited.push(reference.clone());
     let replacement = resolve_constant(referenced, constants, visited)?;
-    result = js_replace_first(&result, &matched, &replacement.to_js_string());
+    // `result.replace(match[0], replacement.toString())`. The first
+    // occurrence of the matched text is this match: the search starts from
+    // the front, and an earlier occurrence would have matched first.
+    let substitution = js_substitution(
+      &replacement.to_js_string(),
+      &result[range.clone()],
+      &result[..range.start],
+      &result[range.end..],
+    );
+    result.replace_range(range, &substitution);
     visited.retain(|seen| *seen != reference);
     position = 0;
   }
@@ -213,82 +224,177 @@ struct Substitution<'c> {
   rename: Option<Rename>,
 }
 
-impl Substitution<'_> {
+impl<'c> Substitution<'c> {
+  fn of(var_ref: &'c str, value: &JsValue) -> Self {
+    let replacement = value.to_js_string().into_owned();
+    let rename = if replacement.starts_with("var(") && replacement.ends_with(')') {
+      // `trim()` removes the ECMAScript white space, not Unicode's.
+      let inside = replacement[4..replacement.len() - 1].trim_matches(is_js_whitespace);
+      let target_name = match inside.find(',') {
+        Some(comma) => inside[..comma].trim_matches(is_js_whitespace),
+        None => inside,
+      };
+      let const_name = &var_ref[4..var_ref.len() - 1];
+
+      Some(Rename {
+        from: format!("{const_name}:"),
+        to: format!("{target_name}:"),
+      })
+    } else {
+      None
+    };
+
+    Substitution {
+      var_ref,
+      replacement,
+      rename,
+    }
+  }
+
   /// `original.replaceAll(varRef, replacement)`, then, with a rename,
   /// `original.replaceAll(`${constName}:`, `${targetName}:`)`.
-  fn apply(&self, text: &mut String) {
-    if let Cow::Owned(replaced) = js_replace_all(text, self.var_ref, &self.replacement) {
-      *text = replaced;
-    }
+  fn apply<'t>(&self, text: Cow<'t, str>) -> Cow<'t, str> {
+    let text = match js_replace_all(&text, self.var_ref, &self.replacement) {
+      Cow::Owned(replaced) => Cow::Owned(replaced),
+      Cow::Borrowed(_) => text,
+    };
 
-    if let Some(rename) = &self.rename
-      && let Cow::Owned(renamed) = js_replace_all(text, &rename.from, &rename.to)
-    {
-      *text = renamed;
+    match &self.rename {
+      Some(rename) => match js_replace_all(&text, &rename.from, &rename.to) {
+        Cow::Owned(renamed) => Cow::Owned(renamed),
+        Cow::Borrowed(_) => text,
+      },
+      None => text,
     }
   }
 }
 
-/// The substitution of every constant, in declaration order.
-fn substitutions_of(constants: &OrderedConstants) -> Vec<Substitution<'_>> {
-  constants
-    .iter()
-    .map(|(var_ref, value)| {
-      let replacement = value.to_js_string().into_owned();
-      let rename = if replacement.starts_with("var(") && replacement.ends_with(')') {
-        // `trim()` removes the ECMAScript white space, not Unicode's.
-        let inside = replacement[4..replacement.len() - 1].trim_matches(is_js_whitespace);
-        let target_name = match inside.find(',') {
-          Some(comma) => inside[..comma].trim_matches(is_js_whitespace),
-          None => inside,
-        };
-        let const_name = &var_ref[4..var_ref.len() - 1];
+/// The substitution of every constant, in declaration order, and one
+/// automaton over all of their patterns.
+///
+/// The reference applies each substitution to each text in turn, and a
+/// substitution whose patterns the text does not hold changes nothing. So only
+/// the substitutions the automaton finds in a text are applied, in their
+/// order; after each one, the text is searched again for the ones that follow
+/// it, because a replacement can bring a pattern in or take one out. That is
+/// one pass over a text per substitution that applies, where the reference
+/// makes two per constant.
+struct Substitutions<'c> {
+  substitutions: Vec<Substitution<'c>>,
+  /// The patterns, `var_ref` and `rename.from` of each substitution, and the
+  /// substitution each pattern belongs to. `None` for a few patterns, which a
+  /// plain search finds as fast, and when the automaton cannot be built: every
+  /// substitution is then tried in turn.
+  patterns: Option<(AhoCorasick, Vec<usize>)>,
+}
 
-        Some(Rename {
-          from: format!("{const_name}:"),
-          to: format!("{target_name}:"),
-        })
-      } else {
-        None
-      };
+/// The fewest patterns for which one automaton is faster than a search per
+/// pattern.
+const AUTOMATON_MIN_PATTERNS: usize = 8;
 
-      Substitution {
-        var_ref: var_ref.as_str(),
-        replacement,
-        rename,
+impl<'c> Substitutions<'c> {
+  fn of(constants: &'c OrderedConstants) -> Self {
+    let substitutions: Vec<Substitution<'c>> = constants
+      .iter()
+      .map(|(var_ref, value)| Substitution::of(var_ref, value))
+      .collect();
+
+    let mut owners = Vec::new();
+    let mut patterns = Vec::new();
+    for (index, substitution) in substitutions.iter().enumerate() {
+      patterns.push(substitution.var_ref);
+      owners.push(index);
+      if let Some(rename) = &substitution.rename {
+        patterns.push(&rename.from);
+        owners.push(index);
       }
-    })
-    .collect()
+    }
+
+    let patterns = (patterns.len() >= AUTOMATON_MIN_PATTERNS)
+      .then(|| AhoCorasick::new(&patterns).ok())
+      .flatten()
+      .map(|automaton| (automaton, owners));
+
+    Substitutions {
+      substitutions,
+      patterns,
+    }
+  }
+
+  /// The first substitution, at `from` or after it, that finds a pattern of
+  /// its own in `text`.
+  fn first_found(&self, text: &str, from: usize) -> Option<usize> {
+    match &self.patterns {
+      Some((automaton, owners)) => automaton
+        .find_overlapping_iter(text)
+        .map(|found| owners[found.pattern().as_usize()])
+        .filter(|&owner| owner >= from)
+        .min(),
+      None => (from < self.substitutions.len()).then_some(from),
+    }
+  }
+
+  /// Every substitution applied to `text`, as the reference's loop applies
+  /// them. `None` when the text does not change.
+  fn apply(&self, text: &str) -> Option<String> {
+    let mut text = Cow::Borrowed(text);
+    let mut from = 0;
+
+    while let Some(index) = self.first_found(&text, from) {
+      text = self.substitutions[index].apply(text);
+      from = index + 1;
+    }
+
+    match text {
+      Cow::Owned(text) => Some(text),
+      Cow::Borrowed(_) => None,
+    }
+  }
 }
 
 /// Every rule with the constants substituted into its texts. A rule whose
-/// texts hold no `--` has nothing to substitute, and most rules are such: it
-/// is handed on as it is rather than copied.
+/// texts do not change is handed on as it is rather than copied, and most
+/// rules are such.
 fn substitute_constants<'r>(
   rules: Vec<&'r Rule>,
   constants: &OrderedConstants,
 ) -> Vec<Cow<'r, Rule>> {
-  let substitutions = substitutions_of(constants);
+  if constants.is_empty() {
+    return rules.into_iter().map(Cow::Borrowed).collect();
+  }
+
+  let substitutions = Substitutions::of(constants);
 
   rules
     .into_iter()
     .map(|rule| {
+      // Every pattern the substitution searches for, `var(--x)` and `--x:`,
+      // holds `--`.
       if !rule.style().mentions_a_variable() {
         return Cow::Borrowed(rule);
       }
 
-      let mut style = rule.style().clone();
-
       // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
       // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
       // other property is read after this, so none is substituted.
-      for text in [&mut style.ltr, &mut style.rtl] {
-        if let JsValue::String(text) = text {
-          for substitution in &substitutions {
-            substitution.apply(text);
-          }
-        }
+      let substituted = |text: &JsValue| match text {
+        JsValue::String(text) => substitutions.apply(text).map(JsValue::String),
+        _ => None,
+      };
+      let ltr = substituted(&rule.style().ltr);
+      let rtl = substituted(&rule.style().rtl);
+
+      if ltr.is_none() && rtl.is_none() {
+        return Cow::Borrowed(rule);
       }
+
+      let style = rule.style();
+      let style = RuleStyle {
+        ltr: ltr.unwrap_or_else(|| style.ltr.clone()),
+        rtl: rtl.unwrap_or_else(|| style.rtl.clone()),
+        const_key: style.const_key.clone(),
+        const_val: style.const_val.clone(),
+      };
 
       Cow::Owned(Rule::new(rule.class_name().clone(), style, rule.priority()))
     })
@@ -297,14 +403,15 @@ fn substitute_constants<'r>(
 
 // ==================== the sort ====================
 
-/// The media-query width sort key of every rule, read once through a cache
-/// keyed on the at-rule chain rather than at every comparison: parsing is
-/// expensive and the comparator runs O(n log n) times, and every rule has a
-/// distinct class name, so a key on the whole rule would never hit.
-fn width_sort_keys_of(rules: &[Cow<'_, Rule>]) -> Vec<Option<WidthSortKey>> {
-  let mut cache: FxHashMap<String, Option<WidthSortKey>> = FxHashMap::default();
+/// The media-query width sort keys of the rules: the distinct keys, and for
+/// each rule the index of its key. Each key is read once, through a cache
+/// keyed on the rule's text up to the end of its at-rule chain: parsing is
+/// expensive, and many rules share a chain.
+fn width_sort_keys_of<'r>(rules: &'r [Cow<'_, Rule>]) -> (Vec<WidthSortKey>, Vec<Option<usize>>) {
+  let mut keys = Vec::new();
+  let mut cache: FxHashMap<&'r str, Option<usize>> = FxHashMap::default();
 
-  rules
+  let of_rule = rules
     .iter()
     .map(|rule| {
       // A text that is not a string is refused in the comparator before its
@@ -317,18 +424,55 @@ fn width_sort_keys_of(rules: &[Cow<'_, Rule>]) -> Vec<Option<WidthSortKey>> {
         return None;
       }
 
-      let preludes = at_rule_preludes(text);
-      let chain = preludes.join("{");
-
-      if let Some(cached) = cache.get(&chain) {
-        return cached.clone();
-      }
-
-      let key = width_sort_key_for_chain(&preludes);
-      cache.insert(chain, key.clone());
-      key
+      let chain = &text[..at_rule_chain_end(text)];
+      *cache.entry(chain).or_insert_with(|| {
+        let key = width_sort_key_for_chain(&at_rule_preludes(text))?;
+        keys.push(key);
+        Some(keys.len() - 1)
+      })
     })
-    .collect()
+    .collect();
+
+  (keys, of_rule)
+}
+
+/// What the comparator reads of a rule's `ltr` text, read once before the sort
+/// rather than at each of its O(n log n) comparisons.
+struct TextFacts<'r> {
+  whole: Collated<'r>,
+  property_name: Collated<'r>,
+  /// `rule.slice(rule.lastIndexOf('{'))`, or `None` where JavaScript would cut
+  /// a character in two, which the comparator refuses when it reaches it.
+  block: Option<Collated<'r>>,
+}
+
+impl<'r> TextFacts<'r> {
+  fn of(text: &'r str) -> Self {
+    TextFacts {
+      whole: Collated::new(text),
+      property_name: Collated::new(declared_property_name(text)),
+      block: last_brace_or_last_unit(text).map(|start| Collated::new(&text[start..])),
+    }
+  }
+}
+
+/// One rule as the comparator reads it.
+struct SortFacts<'r> {
+  rule: &'r Rule,
+  width_key: Option<&'r WidthSortKey>,
+  /// The refusal of an `ltr` that is not a string, which the comparator
+  /// answers only when it reaches the text.
+  text: Result<TextFacts<'r>, ProcessStylexRulesError>,
+}
+
+impl<'r> SortFacts<'r> {
+  fn text(&self) -> Result<&TextFacts<'r>, ProcessStylexRulesError> {
+    self.text.as_ref().map_err(Clone::clone)
+  }
+
+  fn block(&self) -> Result<Collated<'r>, ProcessStylexRulesError> {
+    self.text()?.block.ok_or_else(|| self.rule.cut_in_two())
+  }
 }
 
 /// The comparator of the sort, answering a number as the reference's does: by
@@ -342,11 +486,11 @@ fn width_sort_keys_of(rules: &[Cow<'_, Rule>]) -> Vec<Option<WidthSortKey>> {
 /// being read. That is not a consistent order, which is why the sort is V8's
 /// own.
 fn compare_rules(
-  (a, key_a): (&Rule, Option<&WidthSortKey>),
-  (b, key_b): (&Rule, Option<&WidthSortKey>),
+  a: &SortFacts<'_>,
+  b: &SortFacts<'_>,
   use_legacy_classnames_sort: bool,
 ) -> Result<f64, ProcessStylexRulesError> {
-  let priority_comparison = a.priority() - b.priority();
+  let priority_comparison = a.rule.priority() - b.rule.priority();
 
   if priority_comparison != 0.0 {
     return Ok(priority_comparison);
@@ -355,16 +499,15 @@ fn compare_rules(
   if use_legacy_classnames_sort {
     // `classname1.localeCompare(classname2)`: the argument is spelled with
     // `String(...)`.
-    let classname1 = a.class_name().as_receiver()?;
+    let classname1 = a.rule.class_name().as_receiver()?;
 
-    return Ok(locale_compare(classname1, &b.class_name().spelling()));
+    return Ok(locale_compare(classname1, &b.rule.class_name().spelling()));
   }
 
-  let rule1 = a.ltr()?;
-  let rule2 = b.ltr()?;
+  let rule1 = a.text()?;
+  let rule2 = b.text()?;
 
-  let name_comparison =
-    locale_compare(declared_property_name(rule1), declared_property_name(rule2));
+  let name_comparison = locale_compare_collated(rule1.property_name, rule2.property_name);
 
   if name_comparison != 0.0 {
     return Ok(name_comparison);
@@ -374,7 +517,7 @@ fn compare_rules(
   // breakpoint order applies within a property, after it. Ordering by width
   // first would decide some pairs by width and others by declaration text,
   // which is not a consistent ordering.
-  let mq_comparison = compare_width_sort_keys(key_a, key_b);
+  let mq_comparison = compare_width_sort_keys(a.width_key, b.width_key);
 
   if mq_comparison != 0.0 {
     return Ok(mq_comparison);
@@ -382,15 +525,13 @@ fn compare_rules(
 
   // `rule.slice(rule.lastIndexOf('{'))`: the declaration block, or, for a text
   // with no block, its last character.
-  let property1 = &rule1[a.block_start(rule1)?..];
-  let property2 = &rule2[b.block_start(rule2)?..];
-  let property_comparison = locale_compare(property1, property2);
+  let property_comparison = locale_compare_collated(a.block()?, b.block()?);
 
   if property_comparison != 0.0 {
     return Ok(property_comparison);
   }
 
-  Ok(locale_compare(rule1, rule2))
+  Ok(locale_compare_collated(rule1.whole, rule2.whole))
 }
 
 /// `sortedRules`: the rules in the sheet's order, sorted as V8 sorts them.
@@ -398,15 +539,20 @@ fn sort_rules<'a>(
   rules: &'a [Cow<'_, Rule>],
   use_legacy_classnames_sort: bool,
 ) -> Result<Vec<&'a Rule>, ProcessStylexRulesError> {
-  let width_sort_keys = width_sort_keys_of(rules);
+  let (width_sort_keys, key_of_rule) = width_sort_keys_of(rules);
+  let facts: Vec<SortFacts<'_>> = rules
+    .iter()
+    .zip(&key_of_rule)
+    .map(|(rule, key)| SortFacts {
+      rule,
+      width_key: key.map(|index| &width_sort_keys[index]),
+      text: rule.ltr().map(TextFacts::of),
+    })
+    .collect();
   let mut order: Vec<usize> = (0..rules.len()).collect();
 
   array_tim_sort(&mut order, |&i, &j| {
-    compare_rules(
-      (&rules[i], width_sort_keys[i].as_ref()),
-      (&rules[j], width_sort_keys[j].as_ref()),
-      use_legacy_classnames_sort,
-    )
+    compare_rules(&facts[i], &facts[j], use_legacy_classnames_sort)
   })?;
 
   Ok(order.into_iter().map(|i| rules[i].as_ref()).collect())
@@ -529,24 +675,50 @@ fn deduplicate_by_class_name<'a>(group: &[&'a Rule]) -> Vec<&'a Rule> {
   deduplicated
 }
 
-/// The lines one style writes: its LTR text, and, when it has an RTL text,
-/// both texts under the two direction selectors or between the `@ltr` and
-/// `@rtl` comments.
-fn style_lines(
+/// `text` changed by `change`, or `text` itself when `change` leaves it as it
+/// is: most texts are written as they arrive.
+fn changed<'a>(text: Cow<'a, str>, change: impl FnOnce(&str) -> Cow<'_, str>) -> Cow<'a, str> {
+  let owned = match change(&text) {
+    Cow::Owned(changed) => Some(changed),
+    Cow::Borrowed(_) => None,
+  };
+  owned.map_or(text, Cow::Owned)
+}
+
+/// [`insert_specificity`] on a text of `rule`, refused where JavaScript would
+/// cut a character in two.
+fn with_specificity<'a>(
+  text: Cow<'a, str>,
+  pseudo: &str,
   rule: &Rule,
-  index: usize,
-  config: &ProcessStylexRulesConfig,
-  layers: &Layers<'_>,
-) -> Result<Vec<String>, ProcessStylexRulesError> {
-  let mut ltr_rule = rule.ltr()?.to_string();
+) -> Result<Cow<'a, str>, ProcessStylexRulesError> {
+  let owned = match insert_specificity(&text, pseudo) {
+    Some(Cow::Owned(changed)) => Some(changed),
+    Some(Cow::Borrowed(_)) => None,
+    None => return Err(rule.cut_in_two()),
+  };
+  Ok(owned.map_or(text, Cow::Owned))
+}
+
+/// Writes the lines one style writes: its LTR text, and, when it has an RTL
+/// text, both texts under the two direction selectors or between the `@ltr`
+/// and `@rtl` comments. `specificity` is the polyfill of the style's group,
+/// when the sheet has one.
+fn write_style(
+  out: &mut String,
+  rule: &Rule,
+  specificity: Option<&str>,
+  enable_ltr_rtl_comments: bool,
+) -> Result<(), ProcessStylexRulesError> {
+  let mut ltr_rule = Cow::Borrowed(rule.ltr()?);
   // An empty RTL text is as absent as a missing one (`rtlRule &&`,
   // `if (rtlRule)`, `rtlRule ?` all read it as false).
-  let mut rtl_rule = rule.rtl()?.map(str::to_string);
+  let mut rtl_rule = rule.rtl()?.map(Cow::Borrowed);
 
-  if !layers.on && !config.legacy_disable_layers {
-    ltr_rule = add_specificity_level(&ltr_rule, index).ok_or_else(|| rule.cut_in_two())?;
+  if let Some(pseudo) = specificity {
+    ltr_rule = with_specificity(ltr_rule, pseudo, rule)?;
     rtl_rule = match rtl_rule {
-      Some(rtl) => Some(add_specificity_level(&rtl, index).ok_or_else(|| rule.cut_in_two())?),
+      Some(rtl) => Some(with_specificity(rtl, pseudo, rule)?),
       None => None,
     };
   }
@@ -555,46 +727,70 @@ fn style_lines(
   // if so, turn it into .xtrlmmh.xtrlmmh, .xtrlmmh.xtrlmmh:root
   // This is to ensure the themes always have precedence over the
   // default variable values
-  ltr_rule = double_theme_root_selector(&ltr_rule);
-  rtl_rule = rtl_rule.map(|rtl| double_theme_root_selector(&rtl));
+  let ltr_rule = changed(ltr_rule, double_theme_root_selector);
+  let rtl_rule = rtl_rule.map(|rtl| changed(rtl, double_theme_root_selector));
 
-  Ok(match rtl_rule {
-    Some(rtl_rule) if config.enable_ltr_rtl_comments => vec![
-      format!("/* @ltr begin */{ltr_rule}/* @ltr end */"),
-      format!("/* @rtl begin */{rtl_rule}/* @rtl end */"),
-    ],
-    Some(rtl_rule) => vec![
-      add_ancestor_selector(&ltr_rule, "html:not([dir='rtl'])"),
-      add_ancestor_selector(&rtl_rule, "html[dir='rtl']"),
-    ],
-    None => vec![ltr_rule],
-  })
+  match rtl_rule {
+    Some(rtl_rule) if enable_ltr_rtl_comments => {
+      out.push_str("/* @ltr begin */");
+      out.push_str(&ltr_rule);
+      out.push_str("/* @ltr end */\n/* @rtl begin */");
+      out.push_str(&rtl_rule);
+      out.push_str("/* @rtl end */");
+    },
+    Some(rtl_rule) => {
+      write_with_ancestor(out, &ltr_rule, "html:not([dir='rtl'])");
+      out.push('\n');
+      write_with_ancestor(out, &rtl_rule, "html[dir='rtl']");
+    },
+    None => out.push_str(&ltr_rule),
+  }
+
+  Ok(())
 }
 
-/// One priority group written out: its styles' lines, inside a `@layer` block
-/// when layers are on and the group holds styles (a group of priority 0,
+/// Writes one priority group: its styles' lines, inside a `@layer` block when
+/// layers are on and the group holds styles (a group of priority 0,
 /// `@property`, `@keyframes`, `@position-try`, goes in no layer).
-fn render_group(
+fn write_group(
+  out: &mut String,
   group: &[&Rule],
   index: usize,
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
-) -> Result<String, ProcessStylexRulesError> {
+) -> Result<(), ProcessStylexRulesError> {
   // A group is never empty: `group_by_priority_level` opens one with a rule.
   let pri = group[0].priority();
-
-  let mut lines = Vec::with_capacity(group.len());
-  for rule in deduplicate_by_class_name(group) {
-    lines.extend(style_lines(rule, index, config, layers)?);
-  }
-  let collected_css = lines.join("\n");
-
   // Don't put @property, @keyframe, @position-try in layers
-  Ok(if layers.on && pri > 0.0 {
-    format!("@layer {}{{\n{collected_css}\n}}", layers.name(index))
-  } else {
-    collected_css
-  })
+  let in_layer = layers.on && pri > 0.0;
+  // The polyfill: `index` copies of `:not(#\#)`, the same for every style of
+  // the group.
+  let specificity =
+    (!layers.on && !config.legacy_disable_layers).then(|| SPECIFICITY_LEVEL.repeat(index));
+
+  if in_layer {
+    out.push_str("@layer ");
+    out.push_str(&layers.name(index));
+    out.push_str("{\n");
+  }
+
+  for (position, rule) in deduplicate_by_class_name(group).into_iter().enumerate() {
+    if position > 0 {
+      out.push('\n');
+    }
+    write_style(
+      out,
+      rule,
+      specificity.as_deref(),
+      config.enable_ltr_rtl_comments,
+    )?;
+  }
+
+  if in_layer {
+    out.push_str("\n}");
+  }
+
+  Ok(())
 }
 
 /// `processStylexRules`: the sheet for `rules` under `config`.
@@ -648,52 +844,79 @@ fn assemble(
   config: &ProcessStylexRulesConfig,
 ) -> Result<String, ProcessStylexRulesError> {
   let (constants, non_constant_rules) = collect_constants(rules);
-  let constants = resolve_constants(&constants)?;
+  let constants = resolve_constants(constants)?;
   let substituted = substitute_constants(non_constant_rules, &constants);
   let sorted_rules = sort_rules(&substituted, config.use_legacy_classnames_sort)?;
   let grouped = group_by_priority_level(&sorted_rules)?;
   let layers = Layers::of(config);
 
-  let collected_css = grouped
+  // Each rule is written once, or twice with an RTL text, with a few
+  // characters added.
+  let size: usize = sorted_rules
     .iter()
-    .enumerate()
-    .map(|(index, group)| render_group(group, index, config, &layers))
-    .collect::<Result<Vec<String>, _>>()?
-    .join("\n");
+    .map(|rule| text_length(&rule.style().ltr) + 2 * text_length(&rule.style().rtl))
+    .sum();
+  let mut sheet = String::with_capacity(size + size / 4);
 
-  let mut sheet = get_logical_float_vars(sorted_rules.iter().copied());
+  sheet.push_str(&get_logical_float_vars(sorted_rules.iter().copied()));
   sheet.push_str(&layers.statement(grouped.len()));
-  sheet.push_str(&collected_css);
+
+  for (index, group) in grouped.iter().enumerate() {
+    if index > 0 {
+      sheet.push('\n');
+    }
+    write_group(&mut sheet, group, index, config, &layers)?;
+  }
 
   Ok(sheet)
 }
 
+/// The length of a text in bytes, 0 for a value that is not a string.
+fn text_length(text: &JsValue) -> usize {
+  match text {
+    JsValue::String(text) => text.len(),
+    _ => 0,
+  }
+}
+
 // ==================== the selectors ====================
+
+/// One level of the specificity polyfill.
+const SPECIFICITY_LEVEL: &str = ":not(#\\#)";
 
 /// `addAncestorSelector`: `ancestor_selector` prefixed to the rule's own
 /// selector, inside the innermost at-rule when the rule sits in one. A
 /// `@keyframes` block holds no selector to prefix.
+#[cfg(test)]
 pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> String {
+  let mut out = String::new();
+  write_with_ancestor(&mut out, selector, ancestor_selector);
+  out
+}
+
+/// [`add_ancestor_selector`], written into `out`.
+fn write_with_ancestor(out: &mut String, selector: &str, ancestor_selector: &str) {
   if selector.starts_with("@keyframes") {
-    return selector.to_string();
+    out.push_str(selector);
+    return;
   }
 
   // `rfind` on a text that opens with `@` answers at or after 0; the `None`
-  // arm is folded into the "no at-rule" return above it rather than left as a
-  // branch nothing can reach.
-  let last_at_rule = match (selector.starts_with('@'), selector.rfind('@')) {
-    (true, Some(last_at_rule)) => last_at_rule,
-    _ => return format!("{ancestor_selector} {selector}"),
+  // arm is folded into the "no at-rule" arm rather than left as a branch
+  // nothing can reach.
+  let split = match (selector.starts_with('@'), selector.rfind('@')) {
+    // `indexOf('{', lastAtRule)` is -1 when no brace follows, and the two
+    // slices then split at 0: the ancestor goes in front of the whole text.
+    (true, Some(last_at_rule)) => selector[last_at_rule..]
+      .find('{')
+      .map_or(0, |brace| last_at_rule + brace + 1),
+    _ => 0,
   };
-  // `indexOf('{', lastAtRule)` is -1 when no brace follows, and the two slices
-  // then split at 0: the ancestor goes in front of the whole text.
-  let split = selector[last_at_rule..]
-    .find('{')
-    .map_or(0, |brace| last_at_rule + brace + 1);
-  let media_query_part = &selector[..split];
-  let rest = &selector[split..];
 
-  format!("{media_query_part}{ancestor_selector} {rest}")
+  out.push_str(&selector[..split]);
+  out.push_str(ancestor_selector);
+  out.push(' ');
+  out.push_str(&selector[split..]);
 }
 
 /// `addSpecificityLevel`: `index` copies of `:not(#\#)` on the rule's selector,
@@ -701,26 +924,36 @@ pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> 
 /// pseudo-element, else before the declaration block, else (a text with no
 /// block) before its last character. `None` where JavaScript would cut that
 /// character in two ([`last_brace_or_last_unit`]).
+#[cfg(test)]
 pub(crate) fn add_specificity_level(selector: &str, index: usize) -> Option<String> {
-  if selector.starts_with("@keyframes") {
-    return Some(selector.to_string());
+  insert_specificity(selector, &SPECIFICITY_LEVEL.repeat(index)).map(Cow::into_owned)
+}
+
+/// [`add_specificity_level`] with the copies already spelled. With no copy, as
+/// in the first group, the two halves join back into the text as it was, even
+/// where JavaScript cuts a character in two.
+fn insert_specificity<'s>(selector: &'s str, pseudo: &str) -> Option<Cow<'s, str>> {
+  if pseudo.is_empty() || selector.starts_with("@keyframes") {
+    return Some(Cow::Borrowed(selector));
   }
 
   let split = match selector.find("::") {
     Some(pseudo_element) => pseudo_element,
     None => last_brace_or_last_unit(selector)?,
   };
-  let before_curly = &selector[..split];
-  let after_curly = &selector[split..];
-  let pseudo = ":not(#\\#)".repeat(index);
+  let mut out = String::with_capacity(selector.len() + pseudo.len());
+  out.push_str(&selector[..split]);
+  out.push_str(pseudo);
+  out.push_str(&selector[split..]);
 
-  Some(format!("{before_curly}{pseudo}{after_curly}"))
+  Some(Cow::Owned(out))
 }
 
 /// `.x, .x:root` -> `.x.x, .x.x:root`, by the first class name, as the
-/// reference's `'.$1.$1, .$1.$1:root'` replacement reads it.
-pub(crate) fn double_theme_root_selector(rule: &str) -> String {
-  let mut out = String::with_capacity(rule.len());
+/// reference's `'.$1.$1, .$1.$1:root'` replacement reads it. A text with no
+/// such selector, nearly every one, is handed back as it is.
+pub(crate) fn double_theme_root_selector(rule: &str) -> Cow<'_, str> {
+  let mut out: Option<String> = None;
   let mut copied = 0;
   let mut matches = THEME_ROOT_SELECTOR.captures_iter(rule);
 
@@ -730,15 +963,23 @@ pub(crate) fn double_theme_root_selector(rule: &str) -> String {
     && let (Some(whole), Some(class_name)) = (captures.get(0), captures.get(1))
   {
     let class_name = class_name.as_str();
+    let out = out.get_or_insert_with(|| String::with_capacity(rule.len() * 2));
     out.push_str(&rule[copied..whole.start()]);
-    out.push_str(&format!(
-      ".{class_name}.{class_name}, .{class_name}.{class_name}:root"
-    ));
+    for piece in [
+      ".", class_name, ".", class_name, ", .", class_name, ".", class_name, ":root",
+    ] {
+      out.push_str(piece);
+    }
     copied = whole.end();
   }
 
-  out.push_str(&rule[copied..]);
-  out
+  match out {
+    Some(mut out) => {
+      out.push_str(&rule[copied..]);
+      Cow::Owned(out)
+    },
+    None => Cow::Borrowed(rule),
+  }
 }
 
 #[cfg(test)]

@@ -196,17 +196,42 @@ pub(super) fn has_no_length(rules: &JsValue) -> bool {
 /// The rules as `rules.filter(([, ruleObj]) => ...)` reads them: only an
 /// array has `filter`, a hole is skipped, and the callback destructures each
 /// rule, so a rule that is not iterable is refused.
-pub(crate) fn read_rules(rules: JsValue) -> Result<Vec<Rule>, ProcessStylexRulesError> {
+pub(crate) fn read_rules(rules: JsValue) -> Result<ReadRules, ProcessStylexRulesError> {
   let JsValue::Array(elements) = rules else {
     return Err(ProcessStylexRulesError::RulesNotAList(rules.describe()));
   };
 
-  elements
-    .into_iter()
-    .enumerate()
-    .filter(|(_, rule)| !matches!(rule, JsValue::Hole))
-    .map(|(index, rule)| read_rule(index, rule))
-    .collect()
+  let mut read = ReadRules {
+    rules: Vec::with_capacity(elements.len()),
+    unspreadable: None,
+  };
+
+  for (index, rule) in elements.into_iter().enumerate() {
+    if matches!(rule, JsValue::Hole) {
+      continue;
+    }
+
+    match read_rule(index, rule) {
+      Ok(rule) => read.rules.push(rule),
+      Err(error @ ProcessStylexRulesError::NoStyleObject { .. }) => {
+        read.unspreadable.get_or_insert(error);
+      },
+      Err(error) => return Err(error),
+    }
+  }
+
+  Ok(read)
+}
+
+/// The rules as `filter` reads them, and the refusal of the first style that
+/// the later spread cannot read. A `null` style is no constant
+/// (`ruleObj?.constKey` is `undefined`), and the reference throws on its
+/// spread only after it resolves the constants, so the refusal waits until
+/// then.
+#[derive(Debug, PartialEq)]
+pub(crate) struct ReadRules {
+  pub(crate) rules: Vec<Rule>,
+  pub(crate) unspreadable: Option<ProcessStylexRulesError>,
 }
 
 /// `([key, { ...styleObj }, priority])`: the first three items of the rule's
@@ -253,17 +278,29 @@ pub struct LayerOptions {
 impl LayerOptions {
   /// `rawUseLayers.before ?? []`, `rawUseLayers.after ?? []` and
   /// `rawUseLayers.prefix ?? ''`, read off an object. Any other value has none
-  /// of the properties, which gives the defaults.
-  fn read(use_layers: &JsValue) -> Result<Self, ProcessStylexRulesError> {
+  /// of the properties, which gives the defaults. A list the header cannot
+  /// spread is read as empty, and its refusal is handed back: the reference
+  /// throws it only where it writes the header.
+  fn read(use_layers: &JsValue) -> (Self, Option<ProcessStylexRulesError>) {
     let prefix = use_layers.property("prefix");
+    // The header spreads `before` first, so its refusal comes first.
+    let (before, after, refusal) = match (
+      read_layer_names("before", use_layers.property("before")),
+      read_layer_names("after", use_layers.property("after")),
+    ) {
+      (Ok(before), Ok(after)) => (before, after, None),
+      (Err(refusal), _) | (Ok(_), Err(refusal)) => (Vec::new(), Vec::new(), Some(refusal)),
+    };
 
-    Ok(LayerOptions {
-      before: read_layer_names("before", use_layers.property("before"))?,
-      after: read_layer_names("after", use_layers.property("after"))?,
+    let options = LayerOptions {
+      before,
+      after,
       prefix: prefix
         .to_js_boolean()
         .then(|| prefix.to_js_string().into_owned()),
-    })
+    };
+
+    (options, refusal)
   }
 }
 
@@ -318,23 +355,31 @@ impl ProcessStylexRulesConfig {
   /// any other value every option is at its default. `useLayers` is on for
   /// every value but `false` and a nullish one (`(useLayers ?? false) !==
   /// false`), and the three flags are read by truthiness.
-  pub(crate) fn read(config: &JsValue) -> Result<Self, ProcessStylexRulesError> {
+  ///
+  /// The refusal handed back is the one of a layer list that the header
+  /// cannot spread ([`LayerOptions`]), which waits for the header.
+  pub(crate) fn read(config: &JsValue) -> (Self, Option<ProcessStylexRulesError>) {
     if let JsValue::Boolean(use_layers) = config {
-      return Ok(Self::from(*use_layers));
+      return (Self::from(*use_layers), None);
     }
 
-    let use_layers = match config.property("useLayers") {
-      JsValue::Boolean(false) => None,
-      use_layers if use_layers.is_nullish() => None,
-      use_layers => Some(LayerOptions::read(use_layers)?),
+    let (use_layers, refusal) = match config.property("useLayers") {
+      JsValue::Boolean(false) => (None, None),
+      use_layers if use_layers.is_nullish() => (None, None),
+      use_layers => {
+        let (options, refusal) = LayerOptions::read(use_layers);
+        (Some(options), refusal)
+      },
     };
 
-    Ok(Self {
+    let config = Self {
       use_layers,
       enable_ltr_rtl_comments: config.property("enableLTRRTLComments").to_js_boolean(),
       legacy_disable_layers: config.property("legacyDisableLayers").to_js_boolean(),
       use_legacy_classnames_sort: config.property("useLegacyClassnamesSort").to_js_boolean(),
-    })
+    };
+
+    (config, refusal)
   }
 }
 

@@ -65,15 +65,15 @@ fn json(json: &str) -> JsValue {
 
 fn rules_of(rules: &str) -> Vec<Rule> {
   match read_rules(json(rules)) {
-    Ok(rules) => rules,
+    Ok(read) => read.rules,
     Err(error) => panic!("the rules read: {error}"),
   }
 }
 
 fn config_of(config: &str) -> ProcessStylexRulesConfig {
   match ProcessStylexRulesConfig::read(&json(config)) {
-    Ok(config) => config,
-    Err(error) => panic!("the config reads: {error}"),
+    (config, None) => config,
+    (_, Some(error)) => panic!("the config reads: {error}"),
   }
 }
 
@@ -130,7 +130,7 @@ fn use_layers_reads_every_spelling_javascript_gives_it() {
   );
   assert_eq!(
     ProcessStylexRulesConfig::read(&JsValue::Undefined),
-    Ok(ProcessStylexRulesConfig::default())
+    (ProcessStylexRulesConfig::default(), None)
   );
   assert_eq!(
     config_of(r#"{"useLayers": false}"#),
@@ -242,6 +242,97 @@ fn a_layer_option_that_is_not_iterable_is_refused() {
     }
     .to_string(),
     "the layer option before is a number, not a list or a string"
+  );
+}
+
+/// When two reads fail, the error is the one the reference meets first. Its
+/// order is: a circular constant, then the spread of a style, then the sort,
+/// then the grouping, then the `@layer` header, then the output. Measured on
+/// the plugin.
+#[test]
+fn of_two_failures_the_one_the_reference_meets_first_is_refused() {
+  let circular = r#"["xA", {"constKey": "xA", "constVal": "var(--xB)"}, 0],
+    ["xB", {"constKey": "xB", "constVal": "var(--xA)"}, 0]"#;
+  let circular_error = Err(ProcessStylexRulesError::CircularConstant("--xB".into()));
+  let before_5 = || json(r#"{"useLayers": {"before": 5}}"#);
+  let layer_error = Err(ProcessStylexRulesError::LayerOptionNotAList {
+    option: "before",
+    kind: "a number",
+  });
+
+  assert_eq!(
+    answer(
+      json(&format!(r#"[["x1", null, 3000], {circular}]"#)),
+      true.into()
+    ),
+    circular_error
+  );
+  assert_eq!(
+    answer(
+      json(&format!(
+        r#"[["x1", {{"ltr": ".a{{}}"}}, 3000], {circular}]"#
+      )),
+      before_5()
+    ),
+    circular_error
+  );
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": ".a{}"}, 3000], ["x2", {}, 3000]]"#),
+      before_5()
+    ),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
+      class_name: "x2".into(),
+      kind: "undefined"
+    })
+  );
+  assert_eq!(
+    answer(json(r#"[["x1", {"ltr": ".a{}"}, -1]]"#), before_5()),
+    Err(ProcessStylexRulesError::FirstRuleBelowZero {
+      class_name: "x1".into()
+    })
+  );
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": ".a{}", "rtl": 5}, 3000]]"#),
+      before_5()
+    ),
+    layer_error
+  );
+  // `filter` destructures each rule before any spread.
+  assert_eq!(
+    answer(json(r#"[["x1", null, 3000], 5]"#), true.into()),
+    Err(ProcessStylexRulesError::RuleNotAList {
+      index: 1,
+      kind: "a number"
+    })
+  );
+  // Of two styles that cannot be spread, the first is refused.
+  assert_eq!(
+    answer(json(r#"[["x1", null, 3000], ["x2"]]"#), true.into()),
+    Err(ProcessStylexRulesError::NoStyleObject {
+      index: 0,
+      kind: "null"
+    })
+  );
+  // The header spreads `before` before `after`.
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": ".a{}"}, 3000]]"#),
+      json(r#"{"useLayers": {"before": 5, "after": {}}}"#)
+    ),
+    layer_error
+  );
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {}, 3000], ["x2", null, 3000]]"#),
+      true.into()
+    ),
+    Err(ProcessStylexRulesError::NoStyleObject {
+      index: 1,
+      kind: "null"
+    })
   );
 }
 
@@ -1159,7 +1250,7 @@ fn a_string_rule_reads_its_characters() {
   assert!(rules[1].priority().is_nan());
   // One character has no style item, and `undefined` cannot be spread.
   assert_eq!(
-    read_rules(json(r#"["a"]"#)),
+    answer(json(r#"["a"]"#), true.into()),
     Err(ProcessStylexRulesError::NoStyleObject {
       index: 0,
       kind: "undefined"
@@ -1226,14 +1317,17 @@ fn a_style_that_is_not_an_object_reads_as_the_spread_reads_it() {
   }
 
   assert_eq!(
-    read_rules(json(r#"[["x0", {"ltr": ""}], ["x1", null, 3000]]"#)),
+    answer(
+      json(r#"[["x0", {"ltr": ""}], ["x1", null, 3000]]"#),
+      true.into()
+    ),
     Err(ProcessStylexRulesError::NoStyleObject {
       index: 1,
       kind: "null"
     })
   );
   assert_eq!(
-    read_rules(json(r#"[["x1"]]"#)),
+    answer(json(r#"[["x1"]]"#), true.into()),
     Err(ProcessStylexRulesError::NoStyleObject {
       index: 0,
       kind: "undefined"
@@ -1339,7 +1433,7 @@ fn a_hole_in_the_rules_is_skipped() {
     style(".x1{a:0}"),
     JsValue::Hole,
   ])])) {
-    Ok(rules) => rules,
+    Ok(read) => read.rules,
     Err(error) => panic!("the rule reads: {error}"),
   };
   assert!(rules[0].priority().is_nan());

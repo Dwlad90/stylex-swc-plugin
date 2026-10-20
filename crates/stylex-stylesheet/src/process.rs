@@ -839,7 +839,7 @@ pub fn process_stylex_rules(
     return Ok(String::new());
   }
 
-  assemble(rules, config)
+  assemble(rules, config, LateRefusals::default())
 }
 
 /// `processStylexRules(rules, config)` over the two arguments as JavaScript
@@ -853,24 +853,46 @@ pub fn process_stylex_rule_values(
     return Ok(String::new());
   }
 
-  let config = ProcessStylexRulesConfig::read(config)?;
-  let rules = read_rules(rules)?;
+  let (config, header_refusal) = ProcessStylexRulesConfig::read(config);
+  let read = read_rules(rules)?;
+  let late = LateRefusals {
+    spread: read.unspreadable,
+    header: header_refusal,
+  };
 
   // The list can be empty here (`[, ,]` has a length, and only holes): the
   // reference goes on and writes the `@layer` header alone.
-  assemble(&rules, &config)
+  assemble(&read.rules, &config, late)
 }
 
-/// The steps of `processStylexRules` after its early return.
+/// Refusals found while the arguments are read, which the reference throws
+/// only at a later step: a style its spread cannot read, after the constants
+/// are resolved, and a layer list the header cannot spread, after the rules
+/// are grouped. Rules and a config built in Rust have neither.
+#[derive(Default)]
+struct LateRefusals {
+  spread: Option<ProcessStylexRulesError>,
+  header: Option<ProcessStylexRulesError>,
+}
+
+/// `Err` of the refusal, if there is one.
+fn refuse_if_any(refusal: Option<ProcessStylexRulesError>) -> Result<(), ProcessStylexRulesError> {
+  refusal.map_or(Ok(()), Err)
+}
+
+/// The steps of `processStylexRules` after its early return, in its order.
 fn assemble(
   rules: &[Rule],
   config: &ProcessStylexRulesConfig,
+  late: LateRefusals,
 ) -> Result<String, ProcessStylexRulesError> {
   let (constants, non_constant_rules) = collect_constants(rules);
   let constants = resolve_constants(constants)?;
+  refuse_if_any(late.spread)?;
   let substituted = substitute_constants(non_constant_rules, &constants);
   let sorted_rules = sort_rules(&substituted, config.use_legacy_classnames_sort)?;
   let grouped = group_by_priority_level(&sorted_rules)?;
+  refuse_if_any(late.header)?;
   let layers = Layers::of(config);
 
   // Each rule is written once, or twice with an RTL text, with a few

@@ -51,13 +51,50 @@ fn a_cut_inside_a_surrogate_pair_is_refused() {
   assert_eq!(split_at_utf16_lengths("a😀", &[2, 1]), None);
 }
 
-/// Many pieces, each a few characters long, as a large build packs them.
+/// The largest length a `u32` holds is past the end of any text here, at the
+/// first piece, at a later one, and after the text is used up.
 #[test]
 fn lengths_past_the_end_of_the_text_are_refused_without_overflow() {
+  assert_eq!(split_at_utf16_lengths("ab", &[u32::MAX]), None);
   assert_eq!(split_at_utf16_lengths("ab", &[1, u32::MAX]), None);
+  assert_eq!(split_at_utf16_lengths("ab", &[2, u32::MAX]), None);
+  assert_eq!(split_at_utf16_lengths("", &[u32::MAX]), None);
   assert_eq!(split_at_utf16_lengths("é", &[u32::MAX, u32::MAX]), None);
 }
 
+/// After the last character, only empty pieces fit.
+#[test]
+fn empty_pieces_after_the_end_of_an_ascii_text_are_kept() {
+  assert_eq!(
+    split_at_utf16_lengths("ab", &[2, 0, 0]),
+    Some(vec!["ab", "", ""])
+  );
+  assert_eq!(split_at_utf16_lengths("ab", &[2, 0, 1]), None);
+}
+
+/// Many ASCII pieces of every length from 0 to 63, as a large build packs
+/// them, and one piece of several megabytes.
+#[test]
+fn a_large_ascii_text_splits_into_every_piece() {
+  let pieces: Vec<String> = (0..100_000).map(|index| "x".repeat(index % 64)).collect();
+  let text = pieces.concat();
+  let lengths: Vec<u32> = pieces.iter().map(|piece| piece.len() as u32).collect();
+
+  let Some(split) = split_at_utf16_lengths(&text, &lengths) else {
+    panic!("the lengths cover the text");
+  };
+  assert_eq!(split, pieces);
+
+  let whole = "y".repeat(8_000_000);
+  assert_eq!(
+    split_at_utf16_lengths(&whole, &[8_000_000]),
+    Some(vec![whole.as_str()])
+  );
+  assert_eq!(split_at_utf16_lengths(&whole, &[7_999_999]), None);
+  assert_eq!(split_at_utf16_lengths(&whole, &[8_000_001]), None);
+}
+
+/// Many pieces, each a few characters long, as a large build packs them.
 #[test]
 fn a_large_text_splits_into_every_piece() {
   let pieces: Vec<String> = (0..50_000).map(|index| format!("x{index}é")).collect();

@@ -16,15 +16,15 @@ pub fn split_at_utf16_lengths<'t>(text: &'t str, lengths: &[u32]) -> Option<Vec<
   let mut pieces = Vec::with_capacity(lengths.len());
 
   if text.is_ascii() {
-    // One byte is one unit.
-    let mut start: usize = 0;
+    // One byte is one unit. Each piece is cut from the front of the text
+    // not yet read, so no two lengths are added and none can overflow.
+    let mut rest = text;
     for &length in lengths {
-      // A sum past `usize` is past the end of the text too.
-      let end = start.checked_add(length as usize)?;
-      pieces.push(text.get(start..end)?);
-      start = end;
+      let (piece, tail) = rest.split_at_checked(length as usize)?;
+      pieces.push(piece);
+      rest = tail;
     }
-    return (start == text.len()).then_some(pieces);
+    return rest.is_empty().then_some(pieces);
   }
 
   let mut characters = text.char_indices();

@@ -11,14 +11,18 @@
 // answer, the reference against it, and the two against each other on rules this
 // compiler emits here and now.
 import * as fs from 'node:fs';
+import { createRequire } from 'node:module';
 import * as path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 
 import { processStylexRules, transform } from '../dist/index.js';
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
 import { loadBabelPlugin } from '../parity/lib/compilers.js';
 import { PROCESS_STYLEX_RULES_CASES, stylesheetFixturesDir } from '../parity/lib/fixtures.js';
+import { runNodeScriptOrThrow } from './nodeScript';
+
+const require = createRequire(import.meta.url);
 
 interface RecordedCall {
   rules: StyleXRule[];
@@ -38,25 +42,63 @@ const fixture = JSON.parse(
 
 const { processStylexRules: babelProcessStylexRules } = loadBabelPlugin();
 
-/** What one implementation answers for an input: the sheet, or that it refused. */
-type Answer = { sheet: string } | { refused: true };
+type ProcessStylexRulesFn = typeof processStylexRules;
+
+/** An implementation, called with values outside its published types. */
+function untyped(fn: ProcessStylexRulesFn): (rules: unknown, config?: unknown) => string {
+  return fn as (rules: unknown, config?: unknown) => string;
+}
+
+/**
+ * What one implementation answers for an input: the sheet, or the class and
+ * message of the error it throws.
+ */
+type Answer = { sheet: string } | { error: { name: string; message: string } };
 
 function answerOf(run: () => string): Answer {
   try {
     return { sheet: run() };
-  } catch {
-    return { refused: true };
+  } catch (error) {
+    return error instanceof Error
+      ? { error: { name: error.name, message: error.message } }
+      : { error: { name: typeof error, message: String(error) } };
   }
 }
 
 /** The two implementations on one input, for `expect(...).toEqual(...)`. */
-function answers(rules: readonly StyleXRule[], config?: unknown): [Answer, Answer] {
-  const typedConfig = config as boolean | ProcessStylexRulesConfig | null | undefined;
-
+function answers(rules: unknown, config?: unknown): [Answer, Answer] {
   return [
-    answerOf(() => processStylexRules(rules, typedConfig)),
-    answerOf(() => babelProcessStylexRules(rules, typedConfig)),
+    answerOf(() => untyped(processStylexRules)(rules, config)),
+    answerOf(() => untyped(babelProcessStylexRules)(rules, config)),
   ];
+}
+
+/** One input, by its index in a case list, on which the two answer differently. */
+interface Divergence {
+  index: number;
+  config: unknown;
+  native: Answer;
+  reference: Answer;
+}
+
+/**
+ * Every input, under each config, on which this export and the reference
+ * answer differently. A test asserts that there is none.
+ */
+function divergences(
+  cases: readonly unknown[],
+  configs: readonly unknown[] = [true, false, { useLegacyClassnamesSort: true }]
+): Divergence[] {
+  const found: Divergence[] = [];
+  for (const [index, rules] of cases.entries()) {
+    for (const config of configs) {
+      const [native, reference] = answers(rules, config);
+      if (JSON.stringify(native) !== JSON.stringify(reference)) {
+        found.push({ index, config, native, reference });
+      }
+    }
+  }
+  return found;
 }
 
 const STYLE: StyleXRule[1] = { ltr: '.x1{color:red}', rtl: null };
@@ -66,15 +108,41 @@ function styleOf(ltr: string): StyleXRule[1] {
   return { ltr, rtl: null };
 }
 
-/** The message a call refuses with; a call that answers fails the test. */
-function refused(run: () => string): string {
-  try {
-    run();
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
-  }
-  throw new Error('the call did not throw');
+/** The rules with getters that log their reads, and the log. */
+function withGetters(): [unknown[], string[]] {
+  const reads: string[] = [];
+  const read = <T>(name: string, value: T) => {
+    reads.push(name);
+    return value;
+  };
+  const style = {
+    get ltr() {
+      return read('ltr', '.x1{color:red}');
+    },
+    get constKey() {
+      return read('constKey', undefined);
+    },
+  };
+  const tuple = ['x1', style, 3000];
+  Object.defineProperty(tuple, 0, { get: () => read('[0]', 'x1'), enumerable: true });
+  const config = {
+    get useLayers() {
+      return read('useLayers', true);
+    },
+  };
+  return [[tuple, config], reads];
 }
+
+/** A chain of constants, each reading the next, in declaration order. */
+const chain = (names: readonly string[]) =>
+  names.map((name, index) => [
+    name,
+    {
+      constKey: name,
+      constVal: index + 1 < names.length ? `var(--${names[index + 1]}) 1px` : '2px',
+    },
+    0,
+  ]);
 
 describe('processStylexRules', () => {
   test('the fixture is the whole reference file', () => {
@@ -140,7 +208,7 @@ describe('processStylexRules', () => {
     }
   });
 
-  test('refuses a circular constant with the reference message', () => {
+  test('throws the reference error for a circular constant', () => {
     const rules: StyleXRule[] = [
       ['xA', { ltr: '', rtl: null, constKey: 'xA', constVal: 'var(--xB)' }, 0],
       ['xB', { ltr: '', rtl: null, constKey: 'xB', constVal: 'var(--xA)' }, 0],
@@ -148,85 +216,51 @@ describe('processStylexRules', () => {
     ];
 
     expect(() => processStylexRules(rules, true)).toThrow(
-      'circular reference detected for constant --xB'
+      new Error('circular reference detected for constant --xB')
     );
-    expect(() => babelProcessStylexRules(rules, true)).toThrow(
-      'circular reference detected for constant --xB'
-    );
+    expect(divergences([rules])).toEqual([]);
   });
 
-  test('refuses what the reference throws on, with the processStylexRules: prefix', () => {
-    const rules: StyleXRule[] = [['x1', { ltr: '.x1{color:red}', rtl: null }, 3000]];
+  test('throws the reference error, of the same class, wherever the reference throws', () => {
+    const revoked = Proxy.revocable<StyleXRule[]>([], {});
+    revoked.revoke();
 
-    expect(refused(() => processStylexRules([{ ltr: '.x{}' }] as unknown as StyleXRule[]))).toBe(
-      'processStylexRules: rule 0 is an object, not a [className, style, priority] list'
-    );
-    expect(refused(() => processStylexRules('ab' as unknown as StyleXRule[]))).toBe(
-      'processStylexRules: the rules are a string, not a list'
-    );
     expect(
-      refused(() =>
-        processStylexRules(rules, {
-          useLayers: { before: 5 },
-        } as unknown as ProcessStylexRulesConfig)
-      )
-    ).toBe('processStylexRules: the layer option before is a number, not a list or a string');
-    expect(refused(() => processStylexRules([['x1', { ltr: 5 }, 3000]] as never))).toBe(
-      'processStylexRules: the ltr text of class x1 is a number, not a string'
-    );
+      divergences([
+        [['x1', null, 3000]], // a null style cannot be spread
+        [['x1', undefined, 3000]],
+        [['x1', { rtl: '.x1{color:red}' }, 3000]], // no ltr text
+        [['x1', {}, 3000]],
+        [['x1', { ltr: null }, 3000]],
+        [['x1', { ltr: undefined }, 3000]],
+        [['x1', { ltr: 5 }, 3000]],
+        [['x1', { ltr: '.x1{a:0}', rtl: true }, 3000]], // a truthy rtl that is not a string
+        [['x1', STYLE, 3000], undefined], // the reference cannot iterate the second rule
+        [['x1']], // no style object
+        [['x1', STYLE, -1]], // a first rule at priority level -1 has no group
+        [{ ltr: '.x{}' }], // a rule that is not iterable
+        revoked.proxy,
+      ])
+    ).toEqual([]);
+
+    // A config read and a constant both fail: the reference reads the config
+    // first.
     expect(
-      refused(() =>
-        processStylexRules([
-          ['xA', { ltr: '', rtl: null, constKey: 'xA', constVal: 'var(--xB)' }, 0],
-          ['xB', { ltr: '', rtl: null, constKey: 'xB', constVal: 'var(--xA)' }, 0],
-          ['x1', { ltr: '.x1{color:var(--xA)}', rtl: null }, 3000],
-        ])
+      divergences(
+        [
+          [
+            ['xA', { constKey: 'xA', constVal: 'var(--xB)' }, 0],
+            ['xB', { constKey: 'xB', constVal: 'var(--xA)' }, 0],
+            ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+          ],
+        ],
+        [{ useLayers: { before: 5 } }, { useLayers: { after: {} } }]
       )
-    ).toBe('processStylexRules: circular reference detected for constant --xB');
+    ).toEqual([]);
   });
 
-  test('refuses a value that has no JavaScript data form, wherever it sits', () => {
-    const style = { ltr: '.x1{color:red}', rtl: null };
-    const selfHolding: Record<string, unknown> = { ...style };
-    selfHolding.self = selfHolding;
-    let deep: unknown = 'x';
-    for (let level = 0; level < 70; level++) {
-      deep = [deep];
-    }
-
-    for (const [rules, message] of [
-      [[['x1', style, 3000, () => 0]], 'the rules hold a function, which cannot be read'],
-      [[['x1', style, Symbol('s')]], 'the rules hold a symbol, which cannot be read'],
-      [
-        [['x1', style, 10n]],
-        'the rules hold a big integer or a value of an unknown kind, which cannot be read',
-      ],
-      [
-        [['x1', selfHolding, 3000]],
-        'the rules hold a value that contains itself, which cannot be read',
-      ],
-      [[['x1', style, deep]], 'the rules nest more than 64 levels deep, which cannot be read'],
-    ] as const) {
-      expect(refused(() => processStylexRules(rules as never))).toBe(
-        `processStylexRules: ${message}`
-      );
-    }
-    expect(refused(() => processStylexRules([['x1', style, 3000]], { a: () => 0 } as never))).toBe(
-      'processStylexRules: the config hold a function, which cannot be read'
-    );
-    // One object in two places is not a cycle.
-    const shared = { ltr: '.x1{color:red}', rtl: null };
-    expect(
-      processStylexRules([
-        ['x1', shared, 3000],
-        ['x1', shared, 3000],
-      ])
-    ).toBe(
-      babelProcessStylexRules([
-        ['x1', shared, 3000],
-        ['x1', shared, 3000],
-      ])
-    );
+  test('writes the reference sheet for a string rule and a string list', () => {
+    expect(divergences(['ab', ['ab'], [['ab1', ['a', { ltr: '.a{x:0}' }, 1]]]])).toEqual([]);
   });
 
   test('reads undefined, null, -0 and a number past 2^63 as JavaScript holds them', () => {
@@ -261,7 +295,7 @@ describe('processStylexRules', () => {
     ];
     for (const rules of cases) {
       for (const config of [true, false]) {
-        const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+        const [rust, babel] = answers(rules, config);
         expect(rust).toEqual(babel);
       }
     }
@@ -275,7 +309,7 @@ describe('processStylexRules', () => {
     withHole[1] = rule;
     for (const rules of [holes, withHole, [undefined, rule], '', { length: 0 }, { length: 1 }]) {
       for (const config of [true, false, { useLayers: { before: ['a'], after: ['b'] } }]) {
-        const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+        const [rust, babel] = answers(rules, config);
         expect(rust).toEqual(babel);
       }
     }
@@ -294,7 +328,7 @@ describe('processStylexRules', () => {
       ]);
     }
     for (const config of [true, false, { useLegacyClassnamesSort: true }]) {
-      const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+      const [rust, babel] = answers(rules, config);
       expect(rust).toEqual(babel);
     }
   });
@@ -465,14 +499,14 @@ describe('processStylexRules', () => {
         { useLegacyClassnamesSort: true },
       ]) {
         {
-          const [rust, babel] = answers(rules as unknown as StyleXRule[], config);
+          const [rust, babel] = answers(rules, config);
           expect(rust).toEqual(babel);
         }
       }
     }
   });
 
-  test('refuses a legacy sort receiver that is not a string, as V8 compares the pair', () => {
+  test('answers as the reference for a legacy sort receiver that is not a string', () => {
     const legacy = { useLegacyClassnamesSort: true };
     for (const rules of [
       [
@@ -492,29 +526,469 @@ describe('processStylexRules', () => {
         ['b', { ltr: '.b{a:0}' }, 1000],
       ],
     ]) {
-      const [rust, babel] = answers(rules as unknown as StyleXRule[], legacy);
+      const [rust, babel] = answers(rules, legacy);
       expect(rust).toEqual(babel);
     }
   });
 
-  test('refuses a style rule with no ltr text, as the reference throws on it', () => {
-    const cases: unknown[][] = [
-      [['x1', { rtl: '.x1{color:red}' }, 3000]],
-      [['x1', {}, 3000]],
-      [['x1', { ltr: null }, 3000]],
-      [['x1', { ltr: 5 }, 3000]],
-      [['x1', { ltr: '.x1{a:0}', rtl: true }, 3000]], // a truthy rtl that is not a string
-      [['x1', STYLE, 3000], undefined], // a sparse list: the reference cannot iterate the hole
-      [['x1']], // no style object
-    ];
-    for (const rules of cases) {
-      {
-        const [rust, babel] = answers(rules as unknown as StyleXRule[], true);
-        expect(rust).toEqual(babel);
-      }
-    }
-    expect(() => processStylexRules([['x1', { rtl: '.x1{color:red}' }, 3000]] as never)).toThrow(
-      'processStylexRules: the ltr text of class x1 is undefined, not a string'
+  // ==================== inputs the gate leaves to the reference ====================
+
+  test('runs every getter as often as the reference does, in the same order', () => {
+    const [[nativeRules, nativeConfig], nativeReads] = withGetters();
+    const [[babelRules, babelConfig], babelReads] = withGetters();
+    expect(untyped(processStylexRules)([nativeRules], nativeConfig)).toBe(
+      untyped(babelProcessStylexRules)([babelRules], babelConfig)
     );
+    expect(nativeReads).toEqual(babelReads);
+    // Two filters and the spread each read it.
+    expect(nativeReads.filter(name => name === 'constKey')).toHaveLength(3);
+  });
+
+  test('throws the error a getter throws, at the read that runs it', () => {
+    const throwing = {
+      get ltr(): string {
+        throw new RangeError('the ltr getter refuses');
+      },
+    };
+    expect(
+      divergences([
+        [['x1', throwing, 3000]],
+        [
+          ['x1', STYLE, 3000],
+          ['x2', throwing, 3000],
+        ],
+      ])
+    ).toEqual([]);
+  });
+
+  test('reads a Proxy of the rules, of a rule and of a style as the reference does', () => {
+    const traps: string[] = [];
+    const logging = <T extends object>(target: T): T =>
+      new Proxy(target, {
+        get(object, key, receiver) {
+          traps.push(String(key));
+          return Reflect.get(object, key, receiver);
+        },
+      });
+
+    expect(
+      divergences([
+        logging([['x1', STYLE, 3000]]),
+        [logging(['x1', STYLE, 3000])],
+        [['x1', logging({ ...STYLE }), 3000]],
+        [['x1', STYLE, 3000]].map(rule => logging(rule)),
+      ])
+    ).toEqual([]);
+    expect(traps.length).toBeGreaterThan(0);
+  });
+
+  test('coerces an object constant or class name as the reference does', () => {
+    const named = { toString: () => 'named' };
+    const once = {};
+    expect(
+      divergences([
+        [
+          ['xA', { constKey: 'xA', constVal: named }, 0],
+          ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+        ],
+        [
+          ['xA', { constKey: 'xA', constVal: new Date(0) }, 0],
+          ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+        ],
+        [
+          ['xA', { constKey: 'xA', constVal: new Map([[1, 2]]) }, 0],
+          ['x1', { ltr: '.x1{color:var(--xA)}' }, 3000],
+        ],
+        // One object as two class names is one Map key; two objects are two.
+        [
+          [once, { ltr: '.a{a:0}' }, 3000],
+          [once, { ltr: '.b{a:0}' }, 3000],
+        ],
+        [
+          [named, { ltr: '.a{a:0}' }, 3000],
+          ['named', { ltr: '.b{a:0}' }, 3000],
+        ],
+      ])
+    ).toEqual([]);
+  });
+
+  test('compares an array ltr text as the reference does, on either side', () => {
+    expect(
+      divergences([
+        [
+          ['x1', { ltr: ['.x1{a:0}'] }, 3000],
+          ['x2', { ltr: '.x2{a:0}' }, 3000],
+        ],
+        [
+          ['x2', { ltr: '.x2{a:0}' }, 3000],
+          ['x1', { ltr: ['.x1{a:0}'] }, 3000],
+        ],
+      ])
+    ).toEqual([]);
+  });
+
+  test('ignores a function, a symbol or a big integer where the reference never reads it', () => {
+    const configs = [true, { useLayers: true, fn: () => 0, sym: Symbol('s'), big: 10n }];
+    expect(
+      divergences(
+        [
+          [['x1', STYLE, 3000, () => 0]],
+          [['x1', STYLE, 3000, Symbol('s')]],
+          [['x1', STYLE, 3000, 10n]],
+          [['x1', { ...STYLE, fn: () => 0, sym: Symbol('s'), big: 10n }, 3000]],
+          [['x1', { ...STYLE, [Symbol('key')]: 'value' }, 3000]],
+        ],
+        configs
+      )
+    ).toEqual([]);
+    // Where the reference does read them, both throw.
+    expect(
+      divergences([
+        [['x1', STYLE, Symbol('s')]],
+        [['x1', STYLE, 10n]],
+        [[Symbol('s'), STYLE, 3000]],
+      ])
+    ).toEqual([]);
+  });
+
+  test('keeps a lone surrogate wherever it sits, as JavaScript holds it', () => {
+    const lone = '\uD800';
+    expect(
+      divergences(
+        [
+          [['x1', styleOf(`.x1{content:"${lone}"}`), 3000]],
+          [['x1', { ltr: '.x1{a:0}', rtl: `.x1{content:"${lone}"}` }, 3000]],
+          [[`x${lone}`, styleOf('.x1{a:0}'), 3000]],
+          [
+            ['xA', { constKey: 'xA', constVal: `a${lone}` }, 0],
+            ['x1', styleOf('.x1{content:var(--xA)}'), 3000],
+          ],
+          [
+            ['xA', { constKey: `k${lone}`, constVal: 'red' }, 0],
+            ['x1', styleOf('.x1{color:var(--xA)}'), 3000],
+          ],
+          [['x1', { ...STYLE, [`k${lone}`]: 'v' }, 3000]],
+        ],
+        [true, false, { useLayers: { before: [`a${lone}`], prefix: `p${lone}` } }]
+      )
+    ).toEqual([]);
+  });
+
+  test('sorts a lone surrogate, U+FFFD and U+10FFFF in the order JavaScript gives', () => {
+    const texts = ['\uD800', '�', '\u{10FFFF}'];
+    const orders = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ];
+    expect(
+      divergences(
+        orders.map(order =>
+          order.map(index => [`x${index}`, styleOf(`.x{content:"${texts[index]}"}`), 3000])
+        )
+      )
+    ).toEqual([]);
+  });
+
+  test('cuts an astral last character of a text with no block as JavaScript does', () => {
+    expect(
+      divergences([
+        [['x1', styleOf('.a😀'), 3000]],
+        [
+          ['x1', styleOf('ab:😁'), 3000],
+          ['x2', styleOf('ab:😀'), 3000],
+        ],
+        [
+          ['x0', styleOf('.k{a:0}'), 0],
+          ['x1', { ltr: '.a{b:c}', rtl: '.a😀' }, 3000],
+        ],
+      ])
+    ).toEqual([]);
+  });
+
+  test('reads the rules in odd shapes as the reference does', () => {
+    const frozen = Object.freeze([Object.freeze(['x1', Object.freeze({ ...STYLE }), 3000])]);
+    class Rules extends Array<unknown> {}
+    const subclassed = Rules.from([['x1', STYLE, 3000]]);
+    const named = Object.assign([['x1', STYLE, 3000]], { foo: 'bar' });
+    const withConstructor = Object.assign([['x1', STYLE, 3000]], { constructor: Array });
+    const sparse: unknown[] = [];
+    sparse.length = 1e7;
+    sparse[5] = ['x1', STYLE, 3000];
+    const inherited = ['x1', Object.create({ ltr: '.x1{a:0}' }), 3000];
+    const numericKeys = ['x1', { 2: 'b', ltr: '.x1{a:0}', 1: 'a' }, 3000];
+    const nullPrototype = ['x1', Object.assign(Object.create(null), STYLE), 3000];
+
+    expect(
+      divergences([
+        frozen,
+        subclassed,
+        named,
+        withConstructor,
+        [inherited],
+        [numericKeys],
+        [nullPrototype],
+        // A boxed number: `valueOf` runs at each comparison.
+        [['x1', STYLE, Reflect.construct(Number, [3000])]],
+        [['x1', STYLE, new Float64Array([3000])]],
+      ])
+    ).toEqual([]);
+
+    const started = performance.now();
+    expect(divergences([sparse], [true])).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  test('reads a deep or shared value only where the reference reads it', () => {
+    let shared: unknown = 'leaf';
+    for (let level = 0; level < 40; level++) {
+      shared = { a: shared, b: shared };
+    }
+    let deep: unknown = 'x';
+    for (let level = 0; level < 70; level++) {
+      deep = [deep];
+    }
+    let deepConfig: unknown = true;
+    for (let level = 0; level < 70; level++) {
+      deepConfig = { useLayers: deepConfig };
+    }
+
+    const started = performance.now();
+    expect(
+      divergences(
+        [
+          [['x1', { ...STYLE, unused: shared }, 3000]],
+          [['x1', STYLE, 3000, shared]],
+          // Babel writes `""` for a constant nested 70 arrays deep.
+          [
+            ['xA', { constKey: 'xA', constVal: deep }, 0],
+            ['x1', styleOf('.x1{color:var(--xA)}'), 3000],
+          ],
+        ],
+        [true, deepConfig]
+      )
+    ).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  test('reads a constant rule with no ltr text, or a text of any kind', () => {
+    expect(
+      divergences([
+        [
+          ['xA', { constKey: 'xA', constVal: 'red' }, 0],
+          ['x1', styleOf('.x1{color:var(--xA)}'), 3000],
+        ],
+        [
+          ['xA', { constKey: 'xA', constVal: 'red', ltr: 5, rtl: 7 }, 0],
+          ['x1', styleOf('.x1{color:var(--xA)}'), 3000],
+        ],
+        // A half-declared constant is a style rule.
+        [['xA', { constKey: 'xA' }, 0]],
+        [['xA', { constVal: 'red', ltr: '.xA{a:0}' }, 0]],
+        // An empty tuple has no style.
+        [[]],
+      ])
+    ).toEqual([]);
+  });
+
+  test('resolves constants in the order the reference resolves them', () => {
+    const reader = ['x1', styleOf('.x1{margin:var(--a);padding:var(--c);--a:0}'), 3000];
+
+    expect(
+      divergences([
+        [...chain(['a', 'b', 'c']), reader],
+        [...chain(['a', 'b', 'c']).toReversed(), reader],
+        // A name declared twice keeps its first position and its last value.
+        [
+          ['a', { constKey: 'a', constVal: 'var(--b)' }, 0],
+          ['b', { constKey: 'b', constVal: '1px' }, 0],
+          ['a', { constKey: 'a', constVal: 'var(--c)' }, 0],
+          ['c', { constKey: 'c', constVal: '3px' }, 0],
+          reader,
+        ],
+        // A replacement template with `$` patterns, and an unknown reference.
+        // Only a rule reads `a`: a constant that reads it loops without end
+        // upstream, because `$&` writes the reference back.
+        [
+          ['a', { constKey: 'a', constVal: "$$ $& $` $' $1 var(--zz)" }, 0],
+          ['b', { constKey: 'b', constVal: 'x var(--d) y' }, 0],
+          ['c', { constKey: 'c', constVal: 'var(--b)' }, 0],
+          ['d', { constKey: 'd', constVal: "$$ $` $' $1 var(--zz)" }, 0],
+          reader,
+        ],
+      ])
+    ).toEqual([]);
+  });
+
+  // ==================== built-ins and environment ====================
+
+  describe('with a changed built-in', () => {
+    const restore: Array<() => void> = [];
+
+    afterEach(() => {
+      for (const undo of restore.splice(0).toReversed()) {
+        undo();
+      }
+    });
+
+    /** Defines a property for one test, and puts back what was there. */
+    function patch(target: object, key: PropertyKey, value: unknown): void {
+      const previous = Object.getOwnPropertyDescriptor(target, key);
+      Object.defineProperty(target, key, { value, configurable: true, writable: true });
+      restore.push(() => {
+        if (previous === undefined) {
+          Reflect.deleteProperty(target, key);
+        } else {
+          Object.defineProperty(target, key, previous);
+        }
+      });
+    }
+
+    const rules = [
+      ['x1', styleOf('.x1{color:red}'), 3000],
+      ['x2', styleOf('.x2{color:blue}'), 3000],
+    ];
+
+    test('sorts with a replaced localeCompare', () => {
+      // A call before the change records the built-ins as they are.
+      expect(divergences([rules])).toEqual([]);
+      patch(String.prototype, 'localeCompare', function (this: string, other: string) {
+        return this < other ? 1 : this > other ? -1 : 0;
+      });
+      expect(divergences([rules])).toEqual([]);
+    });
+
+    test('reads an index or a property that a prototype holds', () => {
+      expect(divergences([rules])).toEqual([]);
+      patch(Array.prototype, 1, ['x9', styleOf('.x9{a:0}'), 3000]);
+      // oxlint-disable-next-line no-sparse-arrays -- a hole reads the prototype
+      expect(divergences([[rules[0], , rules[1]], [['x1', {}, 3000]]])).toEqual([]);
+    });
+
+    test('reads an ltr text that Object.prototype holds', () => {
+      expect(divergences([rules])).toEqual([]);
+      patch(Object.prototype, 'ltr', '.inherited{a:0}');
+      expect(divergences([[['x1', {}, 3000]], rules])).toEqual([]);
+    });
+
+    test('creates arrays through a replaced Array[Symbol.species]', () => {
+      expect(divergences([rules])).toEqual([]);
+      class Species extends Array<unknown> {}
+      const own = Object.assign([...rules], { constructor: { [Symbol.species]: Species } });
+      expect(divergences([own])).toEqual([]);
+      patch(Array, Symbol.species, Species);
+      expect(divergences([rules])).toEqual([]);
+    });
+  });
+});
+
+describe('processStylexRules in a child process', () => {
+  const distDir = path.join(packageDir, 'dist');
+
+  /** The rules of the fixture that a build emits, as JSON. */
+  const buildRules = JSON.stringify(
+    fixture.cases.flatMap(recorded => recorded.calls.map(call => call.rules))
+  );
+
+  test('writes the sheet natively for the rules a build emits', () => {
+    const outcome = runNodeScriptOrThrow(`
+      const reference = require(${JSON.stringify(path.join(distDir, 'process-stylex-rules/reference.js'))});
+      const create = reference.createReferenceProcessStylexRules;
+      let calls = 0;
+      reference.createReferenceProcessStylexRules = hook => {
+        const run = create(hook);
+        return (...args) => { calls++; return run(...args); };
+      };
+      const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
+      for (const rules of ${buildRules}) {
+        for (const config of [true, false, { enableLTRRTLComments: true }]) {
+          processStylexRules(rules, config);
+        }
+      }
+      process.stdout.write(String(calls));
+    `);
+
+    expect(outcome.stdout).toBe('0');
+  });
+
+  /**
+   * Whether the export and the reference answer alike, the sheet or the
+   * error, in a child process that runs `setup` before its first call. Both
+   * modules load first: some changes stop a module from loading at all.
+   */
+  function sameSheetAfter(setup: string, rules: string): string {
+    return runNodeScriptOrThrow(`
+      const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
+      const babel = require(${JSON.stringify(require.resolve('@stylexjs/babel-plugin'))});
+      ${setup}
+      const rules = ${rules};
+      const answer = run => {
+        try {
+          return 'sheet ' + run(rules, false);
+        } catch (error) {
+          return 'error ' + error.name + ': ' + error.message;
+        }
+      };
+      process.stdout.write(String(answer(processStylexRules) === answer(babel.processStylexRules)));
+    `).stdout;
+  }
+
+  test('sees a native function that a program moved before the first call', () => {
+    const rules = JSON.stringify([['a', styleOf('.a{float:var(--stylex-logical-start)}'), 3000]]);
+    for (const setup of [
+      'String.prototype.includes = Array.prototype.includes;',
+      'String.prototype.includes = Object.getPrototypeOf(Uint8Array.prototype).includes;',
+      'String.prototype.localeCompare = function localeCompare() { return 0; };',
+      'Object.defineProperty(Object.prototype, "ltr", { value: ".x{a:0}", configurable: true });',
+    ]) {
+      expect(sameSheetAfter(setup, rules)).toBe('true');
+    }
+  });
+
+  test('reads no global that a program can replace', () => {
+    const rules = `(() => {
+      const rule = ['a', { ltr: '.a{color:red}' }, 3000];
+      rule[Symbol.iterator] = function* () {
+        yield 'zz'; yield { ltr: '.zz{color:green}' }; yield 3000;
+      };
+      return [rule, ['b', { ltr: '.b{color:blue}' }, 3000]];
+    })()`;
+    expect(sameSheetAfter('', rules)).toBe('true');
+    expect(
+      sameSheetAfter(
+        'const S = Symbol; globalThis.Symbol = { iterator: "nope" }; globalThis.SymbolS = S;',
+        rules.replaceAll('Symbol.iterator', 'SymbolS.iterator')
+      )
+    ).toBe('true');
+    expect(
+      sameSheetAfter(
+        'globalThis.Boolean = () => true;',
+        '[["a", { ltr: ".a{a:0}", rtl: ".a{b:0}" }, 3000]]'
+      )
+    ).toBe('true');
+  });
+
+  test('sorts as the reference does under a locale with its own collation', () => {
+    const rules = [
+      ['x1', styleOf('.x1{content:"z"}'), 3000],
+      ['x2', styleOf('.x2{content:"ö"}'), 3000],
+      ['x3', styleOf('.x3{content:"o"}'), 3000],
+    ];
+    const outcome = runNodeScriptOrThrow(
+      `
+      const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
+      const babel = require(${JSON.stringify(require.resolve('@stylexjs/babel-plugin'))});
+      const rules = ${JSON.stringify(rules)};
+      const locale = new Intl.Collator().resolvedOptions().locale;
+      const same = processStylexRules(rules, false) === babel.processStylexRules(rules, false);
+      process.stdout.write(locale + ' ' + same);
+    `,
+      { env: { ...process.env, LANG: 'sv_SE.UTF-8', LC_ALL: 'sv_SE.UTF-8' } }
+    );
+
+    expect(outcome.stdout).toBe('sv-SE true');
   });
 });

@@ -23,6 +23,7 @@
     "bench": "node --import tsx/esm benchmark/bench.ts",
     "bench:budget": "node --import tsx/esm benchmark/bench-budget.ts",
     "bench:compare": "node --import tsx/esm benchmark/bench-compare.ts",
+    "bench:process-stylex-rules": "node --import tsx/esm benchmark/bench-process-stylex-rules.ts",
     "bench:revisions": "node --import tsx/esm benchmark/bench-revisions.ts",
     "bench:verdict": "node --import tsx/esm benchmark/bench-verdict.ts",
     "build": "napi build --platform --release --output-dir dist --js transform.js --dts transform.d.ts",

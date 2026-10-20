@@ -5,7 +5,8 @@
     "moduleResolution": "Bundler",
     "outDir": "lib",
     "rootDir": "..",
-    "isolatedModules": false
+    "isolatedModules": false,
+    "lib": ["es2023"]
   },
   "include": ["*.ts"],
   "exclude": ["lib"]

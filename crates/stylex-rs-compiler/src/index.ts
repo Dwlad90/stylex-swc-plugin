@@ -15,7 +15,6 @@ export type {
 
 import type {
   SourceMaps as NativeSourceMaps,
-  StyleXMetadata,
   StyleXOptions as NativeStyleXOptions,
   StyleXTransformResult,
 } from '../dist/transform';
@@ -42,58 +41,14 @@ export const PropertyValidationMode = Object.freeze({
 
 // ── The stylesheet step ─────────────────────────────────────────────
 
-/** One emitted rule, a row of `StyleXMetadata['stylex']`: the reference's `Rule`. */
-export type StyleXRule = StyleXMetadata['stylex'][number];
+import type { ProcessStylexRulesLayerOptions } from './process-stylex-rules/index.js';
 
-/**
- * The `useLayers` object form: layers around the priority layers, and a prefix
- * for their names. One shape for `processStylexRules` and for the plugins'
- * `useCSSLayers` option (`UseLayersType` below).
- */
-export interface ProcessStylexRulesLayerOptions {
-  readonly before?: ReadonlyArray<string>;
-  readonly after?: ReadonlyArray<string>;
-  readonly prefix?: string;
-}
-
-/**
- * The options of `processStylexRules`, as `@stylexjs/babel-plugin` spells
- * them. A superset of the type that package publishes in its `index.d.ts`
- * (0.19.1): `useLayers` also takes `null` (read as absent, as the runtime
- * reads it), and `useLegacyClassnamesSort` is declared, which the reference's
- * Flow source reads but its `.d.ts` omits.
- */
-export interface ProcessStylexRulesConfig {
-  readonly useLayers?: boolean | ProcessStylexRulesLayerOptions | null;
-  readonly enableLTRRTLComments?: boolean;
-  readonly legacyDisableLayers?: boolean;
-  readonly useLegacyClassnamesSort?: boolean;
-}
-
-/**
- * The stylesheet for the rules a build's `transform` calls emitted, as
- * `@stylexjs/babel-plugin`'s `processStylexRules` writes it, byte for byte:
- * constants resolved and substituted, the rules sorted and grouped by priority,
- * each group a `@layer` or carrying the specificity polyfill, RTL twins under
- * `html[dir='rtl']` and its negation or between `@ltr`/`@rtl` comments.
- *
- * `rules` is the concatenation of every file's `metadata.stylex`, in the order
- * the files were compiled; `config` is the reference's, a boolean standing for
- * `useLayers` or the options object. Both are read as the reference reads
- * them, a value outside the published types included, and the rules are sorted
- * with V8's sort algorithm. A circular constant throws with the reference's
- * message; the README lists the few inputs that are read differently.
- *
- * The signature is a superset of the one `@stylexjs/babel-plugin` 0.19.1
- * publishes: `rules` is `readonly` where the reference says `Array<Rule>`,
- * `config` also takes `null` (read as absent, as the runtime reads it), and
- * the tuple type is named `StyleXRule` here, `Rule` there. Every call that
- * typechecks against the reference typechecks here.
- */
-export const processStylexRules: (
-  rules: readonly StyleXRule[],
-  config?: boolean | ProcessStylexRulesConfig | null
-) => string = nativeBinding.processStylexRules;
+export { processStylexRules } from './process-stylex-rules/index.js';
+export type {
+  ProcessStylexRulesConfig,
+  ProcessStylexRulesLayerOptions,
+  StyleXRule,
+} from './process-stylex-rules/index.js';
 
 // ── Extended types ──────────────────────────────────────────────────
 

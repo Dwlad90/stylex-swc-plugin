@@ -45,7 +45,6 @@ pub mod process_stylex_rules;
 mod structs;
 mod utils;
 use log::{info, warn};
-use napi::bindgen_prelude::Unknown;
 use napi::{Env, Result};
 use std::{
   env, panic,
@@ -57,9 +56,7 @@ use stylex_logs::initializer::initialize as initialize_logger;
 use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 
-use stylex_js::value::JsValue;
 use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_stylesheet::process;
 use stylex_transform::StyleXTransform;
 use stylex_utils::swc::syntax_for_file;
 use swc_ecma_parser::{Parser, StringInput, lexer::Lexer};
@@ -77,7 +74,7 @@ use swc_core::{
 };
 
 use napi_derive::napi;
-use utils::{extract_stylex_metadata, read_js_value};
+use utils::extract_stylex_metadata;
 
 use crate::enums::SourceMaps;
 
@@ -488,42 +485,6 @@ pub fn transform(
       Err(napi::Error::from_reason(error_msg))
     },
   }
-}
-
-/// `processStylexRules(rules, config)`: the stylesheet for the rules a build's
-/// `transform` calls emitted, as `@stylexjs/babel-plugin` exports it and the
-/// bundler plugins consume it. The rules are the `metadata.stylex` rows of every
-/// transformed file, `[className, { ltr, rtl, constKey, constVal }, priority]`,
-/// in the order the files were compiled; `config` is the reference's.
-///
-/// Both arguments are read as JavaScript values (`utils::js_value_reader`) and
-/// then as the reference reads them (`stylex_stylesheet`'s `CONTEXT.md`,
-/// "Rule" and "Config"): a value outside the published types writes the sheet
-/// the reference writes, and a value the reference throws on is refused. The
-/// README lists what differs.
-///
-/// Every refusal carries the `processStylexRules:` prefix. The TypeScript
-/// signature is written out here rather than derived: the type a consumer sees
-/// is a superset of the one the reference publishes (readonly arrays, `null`,
-/// `useLegacyClassnamesSort`; `src/index.ts` lists them).
-#[rustfmt::skip]
-#[napi(
-  ts_args_type = "rules: readonly StyleXMetadata['stylex'][number][], config?: boolean | { readonly useLayers?: boolean | { readonly before?: readonly string[]; readonly after?: readonly string[]; readonly prefix?: string } | null; readonly enableLTRRTLComments?: boolean; readonly legacyDisableLayers?: boolean; readonly useLegacyClassnamesSort?: boolean } | null",
-  ts_return_type = "string"
-)]
-pub fn process_stylex_rules(
-  env: Env,
-  rules: Unknown<'_>,
-  config: Option<Unknown<'_>>,
-) -> Result<String> {
-  let rules = read_js_value(&env, rules, "the rules")?;
-  let config = match config {
-    Some(config) => read_js_value(&env, config, "the config")?,
-    None => JsValue::Undefined,
-  };
-
-  process::process_stylex_rule_values(rules, &config)
-    .map_err(|error| napi::Error::from_reason(format!("processStylexRules: {error}")))
 }
 
 #[cfg(test)]

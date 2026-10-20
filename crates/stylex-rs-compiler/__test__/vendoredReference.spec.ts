@@ -9,12 +9,14 @@ import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
 
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
+import { GUARDED_GLOBALS, UNGUARDED_GLOBALS } from '../dist/process-stylex-rules/built-ins.js';
 import { createReferenceProcessStylexRules } from '../dist/process-stylex-rules/reference.js';
 import { mediaQueryWidthBound } from '../dist/transform.js';
 import { loadBabelPlugin } from '../parity/lib/compilers.js';
 import { PROCESS_STYLEX_RULES_CASES, stylesheetFixturesDir } from '../parity/lib/fixtures.js';
 import { withLfEndings } from '../parity/lib/text.js';
 import {
+  REFERENCE_GLOBALS,
   renderVendoredReference,
   VENDORED_REFERENCE_FILE,
 } from '../parity/lib/vendored-reference.js';
@@ -54,6 +56,14 @@ describe('the vendored reference', () => {
     expect(committed).toBe(renderVendoredReference());
   });
 
+  test('reads only globals that the built-ins guard covers', () => {
+    // The generator fails when the copy reads a global outside
+    // REFERENCE_GLOBALS; each of those must be guarded, or need no guard.
+    for (const name of REFERENCE_GLOBALS) {
+      expect([...GUARDED_GLOBALS, ...UNGUARDED_GLOBALS]).toContain(name);
+    }
+  });
+
   for (const recorded of fixture.cases) {
     test(`writes the recorded sheet: ${recorded.name}`, () => {
       for (const call of recorded.calls) {
@@ -84,7 +94,7 @@ describe('the vendored reference', () => {
     const rules = rulesFor(preludes);
 
     expect(reference(rules)).toBe(babelProcessStylexRules(rules));
-    expect(reference([...rules].reverse())).toBe(babelProcessStylexRules([...rules].reverse()));
+    expect(reference(rules.toReversed())).toBe(babelProcessStylexRules(rules.toReversed()));
   });
 
   test('reads a media query the parser rejects as one with no bound', () => {

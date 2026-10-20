@@ -20,7 +20,9 @@ import { createRequire } from 'node:module';
 import { Bench } from 'tinybench';
 
 import { processStylexRules, type StyleXRule } from '../dist/index.js';
+import { nativeCollationOf } from '../dist/process-stylex-rules/collation.js';
 import { nativeInputOf } from '../dist/process-stylex-rules/fast-path-gate.js';
+import { collationDataVersion } from '../dist/transform.js';
 
 const require = createRequire(import.meta.url);
 const { processStylexRules: referenceProcessStylexRules } = require('@stylexjs/babel-plugin') as {
@@ -47,6 +49,13 @@ function rulesOf(size: number): StyleXRule[] {
   });
 }
 
+/**
+ * The collation of this process. Under a locale with a tailoring of its own,
+ * the export runs the reference, and the bench would compare the reference
+ * with itself.
+ */
+const collation = nativeCollationOf(collationDataVersion());
+
 const bench = new Bench({ time: 1_000, warmup: true });
 
 for (const size of SIZES) {
@@ -54,14 +63,17 @@ for (const size of SIZES) {
   if (processStylexRules(rules, true) !== referenceProcessStylexRules(rules, true)) {
     throw new Error(`the export and the reference write different sheets for ${size} rules`);
   }
-  if (nativeInputOf(rules, true, 'all') === null) {
-    throw new Error(`the gate leaves ${size} rules to the reference`);
+  if (nativeInputOf(rules, true, collation) === null) {
+    throw new Error(
+      `the gate leaves ${size} rules to the reference (collation '${collation}'); ` +
+        'run the bench under an English or root locale'
+    );
   }
 
   bench
     .add(`reference ${size}`, () => referenceProcessStylexRules(rules, true))
     .add(`export ${size}`, () => processStylexRules(rules, true))
-    .add(`gate ${size}`, () => nativeInputOf(rules, true, 'all'));
+    .add(`gate ${size}`, () => nativeInputOf(rules, true, collation));
 }
 
 await bench.run();

@@ -18,7 +18,9 @@ import { afterEach, describe, expect, test } from 'vitest';
 
 import { processStylexRules, transform } from '../dist/index.js';
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
+import { nativeCollationOf } from '../dist/process-stylex-rules/collation.js';
 import { nativeInputOf } from '../dist/process-stylex-rules/fast-path-gate.js';
+import { collationDataVersion } from '../dist/transform.js';
 import { loadBabelPlugin } from '../parity/lib/compilers.js';
 import { PROCESS_STYLEX_RULES_CASES, stylesheetFixturesDir } from '../parity/lib/fixtures.js';
 import { runNodeScriptOrThrow } from './nodeScript';
@@ -42,6 +44,18 @@ const fixture = JSON.parse(
 ) as { cases: RecordedCase[] };
 
 const { processStylexRules: babelProcessStylexRules } = loadBabelPlugin();
+
+/**
+ * How much text the native sort compares in this process. Where it is not
+ * every text, a test of text beyond printable ASCII compares the reference
+ * with itself, so such a test is skipped.
+ */
+const nativeCollation = nativeCollationOf(collationDataVersion());
+
+/** An environment whose default locale is `locale`, where ICU reads it from `LANG`. */
+function envWithLocale(locale: string): NodeJS.ProcessEnv {
+  return { ...process.env, LANG: `${locale}.UTF-8`, LC_ALL: `${locale}.UTF-8` };
+}
 
 type ProcessStylexRulesFn = typeof processStylexRules;
 
@@ -694,9 +708,27 @@ describe('processStylexRules', () => {
     ).toEqual([]);
   });
 
-  test('cuts an astral last character of a text with no block as JavaScript does', () => {
-    expect(
-      divergences([
+  test.skipIf(nativeCollation !== 'all')(
+    'sorts U+FFFD and U+10FFFF natively in the order JavaScript gives',
+    () => {
+      const cases = [
+        ['\uFFFD', '\u{10FFFF}'],
+        ['\u{10FFFF}', '\uFFFD'],
+      ].map(texts =>
+        texts.map((text, index) => [`x${index}`, styleOf(`.x{content:"${text}"}`), 3000])
+      );
+
+      for (const rules of cases) {
+        expect(nativeInputOf(rules, false, nativeCollation)).not.toBeNull();
+      }
+      expect(divergences(cases)).toEqual([]);
+    }
+  );
+
+  test.skipIf(nativeCollation !== 'all')(
+    'cuts an astral last character of a text with no block as JavaScript does',
+    () => {
+      const cases = [
         [['x1', styleOf('.a😀'), 3000]],
         [
           ['x1', styleOf('ab:😁'), 3000],
@@ -706,9 +738,14 @@ describe('processStylexRules', () => {
           ['x0', styleOf('.k{a:0}'), 0],
           ['x1', { ltr: '.a{b:c}', rtl: '.a😀' }, 3000],
         ],
-      ])
-    ).toEqual([]);
-  });
+      ];
+
+      for (const rules of cases) {
+        expect(nativeInputOf(rules, false, nativeCollation)).not.toBeNull();
+      }
+      expect(divergences(cases)).toEqual([]);
+    }
+  );
 
   test('reads the rules in odd shapes as the reference does', () => {
     const frozen = Object.freeze([Object.freeze(['x1', Object.freeze({ ...STYLE }), 3000])]);
@@ -916,7 +953,8 @@ describe('processStylexRules in a child process', () => {
   );
 
   test('writes the sheet natively for the rules a build emits', () => {
-    const outcome = runNodeScriptOrThrow(`
+    const outcome = runNodeScriptOrThrow(
+      `
       const reference = require(${JSON.stringify(path.join(distDir, 'process-stylex-rules/reference.js'))});
       const create = reference.createReferenceProcessStylexRules;
       let calls = 0;
@@ -931,7 +969,9 @@ describe('processStylexRules in a child process', () => {
         }
       }
       process.stdout.write(String(calls));
-    `);
+    `,
+      { env: envWithLocale('en_US') }
+    );
 
     expect(outcome.stdout).toBe('0');
   });
@@ -1012,14 +1052,18 @@ describe('processStylexRules in a child process', () => {
     ).toBe('true');
   });
 
-  test('sorts as the reference does under a locale with its own collation', () => {
-    const rules = [
-      ['x1', styleOf('.x1{content:"z"}'), 3000],
-      ['x2', styleOf('.x2{content:"ö"}'), 3000],
-      ['x3', styleOf('.x3{content:"o"}'), 3000],
-    ];
-    const outcome = runNodeScriptOrThrow(
-      `
+  // ICU on Windows reads the locale of the system, not `LANG`, and Node has no
+  // flag that sets it, so there the child cannot run under another locale.
+  test.skipIf(process.platform === 'win32')(
+    'sorts as the reference does under a locale with its own collation',
+    () => {
+      const rules = [
+        ['x1', styleOf('.x1{content:"z"}'), 3000],
+        ['x2', styleOf('.x2{content:"ö"}'), 3000],
+        ['x3', styleOf('.x3{content:"o"}'), 3000],
+      ];
+      const outcome = runNodeScriptOrThrow(
+        `
       const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
       const babel = require(${JSON.stringify(require.resolve('@stylexjs/babel-plugin'))});
       const rules = ${JSON.stringify(rules)};
@@ -1027,9 +1071,10 @@ describe('processStylexRules in a child process', () => {
       const same = processStylexRules(rules, false) === babel.processStylexRules(rules, false);
       process.stdout.write(locale + ' ' + same);
     `,
-      { env: { ...process.env, LANG: 'sv_SE.UTF-8', LC_ALL: 'sv_SE.UTF-8' } }
-    );
+        { env: envWithLocale('sv_SE') }
+      );
 
-    expect(outcome.stdout).toBe('sv-SE true');
-  });
+      expect(outcome.stdout).toBe('sv-SE true');
+    }
+  );
 });

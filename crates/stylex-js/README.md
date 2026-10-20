@@ -18,6 +18,8 @@ evaluator can ask these questions without the full transformation pipeline.
 - `evaluate_bin_expr`, which applies a numeric binary operator to two operands
 - `JsValue`, a JavaScript value as data, with its coercions, and
   `array_tim_sort`, `Array.prototype.sort` as V8 sorts
+- `split_at_utf16_lengths`, which cuts a text at lengths that JavaScript
+  counts in UTF-16 code units
 - A low crate: it depends on primitives, macros and a few small libraries only
 
 ## Architecture
@@ -31,6 +33,7 @@ evaluator can ask these questions without the full transformation pipeline.
 | `operators`  | `evaluate_bin_expr`, the numeric binary operators                                            |
 | `value`      | `JsValue`, a JavaScript value as data, and its coercions                                     |
 | `array_sort` | `array_tim_sort`, `Array.prototype.sort` as V8 sorts                                         |
+| `string`     | JavaScript string operations over Rust strings (`split_at_utf16_lengths`)                    |
 
 ## License
 

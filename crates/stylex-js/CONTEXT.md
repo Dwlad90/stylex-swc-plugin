@@ -6,12 +6,13 @@ predicate answers one yes/no question about an AST node, or reads a name off
 one; a coercion answers what the language says a value converts to. Neither kind
 transforms anything.
 
-The five modules — `helpers`, `coercions`, `operators`, `value` and
-`array_sort` — are not re-exported from the crate root, so an import site says
+The six modules — `helpers`, `coercions`, `operators`, `value`, `array_sort`
+and `string` — are not re-exported from the crate root, so an import site says
 which kind of helper it reaches for.
 [stylex-evaluator](../stylex-evaluator/CONTEXT.md) is the consumer of the
-first three; [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md) of the last
-two. The named
+first three; [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md) of `value`
+and `array_sort`; [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) of
+`value` and `string`. The named
 sets themselves live in [stylex-constants](../stylex-constants/CONTEXT.md).
 
 ## Language
@@ -139,6 +140,13 @@ _Avoid_: JSON value, dynamic value, any
 An array index that holds no element, `[a, , b]`. Every read takes it as
 `undefined`; only a built-in that skips holes, such as `filter`, tells it apart.
 _Avoid_: empty slot, missing element
+
+**UTF-16 length**:
+The length of a string as JavaScript counts it, in UTF-16 code units: one per
+character in the Basic Multilingual Plane, two for one outside it. A Rust
+`str` counts bytes. `split_at_utf16_lengths` cuts a text at such lengths, and
+refuses a cut between the two halves of one character.
+_Avoid_: char count, string length
 
 **Array sort**:
 `Array.prototype.sort` with a comparator, as V8 sorts (`array_tim_sort`, V8's

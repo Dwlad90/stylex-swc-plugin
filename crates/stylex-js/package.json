@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/stylex-js",
-  "description": "JavaScript evaluation helpers for the StyleX system",
+  "description": "JavaScript runtime helpers for the StyleX system",
   "version": "0.19.2",
   "private": true,
   "sideEffects": false,

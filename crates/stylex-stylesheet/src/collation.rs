@@ -157,6 +157,20 @@ impl<'t> Collated<'t> {
       printable_ascii: is_printable_ascii(text),
     }
   }
+
+  /// A slice of this text, read without a second scan when this text is
+  /// printable ASCII: every slice of it is too. The part must be a slice of
+  /// this text.
+  pub(crate) fn part(&self, part: &'t str) -> Self {
+    if self.printable_ascii {
+      Collated {
+        text: part,
+        printable_ascii: true,
+      }
+    } else {
+      Collated::new(part)
+    }
+  }
 }
 
 /// The order `a.localeCompare(b)` answers in Node.

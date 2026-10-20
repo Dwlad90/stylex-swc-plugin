@@ -462,10 +462,12 @@ struct TextFacts<'r> {
 
 impl<'r> TextFacts<'r> {
   fn of(text: &'r str) -> Self {
+    let whole = Collated::new(text);
+
     TextFacts {
-      whole: Collated::new(text),
-      property_name: Collated::new(declared_property_name(text)),
-      block: last_brace_or_last_unit(text).map(|start| Collated::new(&text[start..])),
+      whole,
+      property_name: whole.part(declared_property_name(text)),
+      block: last_brace_or_last_unit(text).map(|start| whole.part(&text[start..])),
     }
   }
 }

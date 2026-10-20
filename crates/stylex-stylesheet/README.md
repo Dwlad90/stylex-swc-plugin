@@ -17,6 +17,10 @@ sheet in the order the browser needs them. A port of `processStylexRules` from
 - `process_stylex_rule_values(rules, config)`: the same step over two
   JavaScript values, read as the reference's JavaScript reads them, a value
   outside the published types included (`CONTEXT.md`, "Value reading")
+- Typed errors (`ProcessStylexRulesError`) where the reference throws, and
+  where it would cut a character in two. The addon reads any error as "run
+  the reference" (`CONTEXT.md`, "Fallback"), so a consumer of the addon sees
+  the reference's own errors
 - The rules sorted with V8's sort algorithm, so a `NaN` priority gives the
   order Node gives (`CONTEXT.md`, "Sort")
 - The media-query width sort key and its total order (mobile first: `min-width`

@@ -48,8 +48,25 @@ The reading of the two arguments from a `JsValue`, in the reference's order:
 the early return on `rules.length === 0` (an empty array, an empty string, or
 an object whose `length` is 0), then the config, then the rules, with a hole
 skipped as `filter` skips it. A value the reference throws on is refused with
-a `ProcessStylexRulesError` of the port's own wording.
+a `ProcessStylexRulesError` of the port's own wording, and so is a text that
+the reference would cut in two (`CharacterCutInTwo`: a text with no `{` that
+ends in an astral character, which `slice` splits). These are the errors of
+the Rust API; the addon never shows them (see **Fallback**).
 _Avoid_: deserialization, parsing, validation
+
+**Fast path**:
+The addon's native `processStylexRules`: the rules a JavaScript gate proved
+plain, unpacked into `Rule`s and assembled by `process::process_stylex_rules`.
+It takes the shapes a build emits only, and answers no sheet where the
+reference throws.
+_Avoid_: native mode, Rust path
+
+**Fallback**:
+Upstream's own `processStylexRules`, copied out of the published plugin into
+the addon, which runs for every input the fast path does not take, and for
+every `ProcessStylexRulesError`. It writes the reference's sheet, or throws the
+reference's error, by construction.
+_Avoid_: slow path, JS mode, reference mode
 
 **Constant substitution**:
 Before the sort, every constant's value is resolved through the constants it

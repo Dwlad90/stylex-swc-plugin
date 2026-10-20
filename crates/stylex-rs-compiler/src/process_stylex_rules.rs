@@ -8,10 +8,13 @@
 //! would hold text that Rust cannot hold; the caller then runs the vendored
 //! reference, which throws the reference's own error or writes its sheet.
 
+use std::panic::{AssertUnwindSafe, catch_unwind};
+
 use napi::bindgen_prelude::{Float64Array, Uint8Array, Uint32Array};
 use napi_derive::napi;
 use stylex_js::string::split_at_utf16_lengths;
 use stylex_js::value::JsValue;
+use stylex_macros::stylex_error::SuppressPanicStderr;
 use stylex_stylesheet::collation::{CLDR_DATA_VERSION, ICU_DATA_VERSION, UNICODE_DATA_VERSION};
 use stylex_stylesheet::process::{
   ClassName, LayerOptions, ProcessStylexRulesConfig, Rule, RuleStyle, process_stylex_rules,
@@ -138,8 +141,18 @@ pub fn process_stylex_rules_native(
   config: NativeConfig,
 ) -> Option<String> {
   let rules = unpack_rules(&texts, &lengths, &kinds, &priorities)?;
+  let config = config.into();
 
-  process_stylex_rules(&rules, &config.into()).ok()
+  // A panic is a fault in the native half; the reference then writes the sheet.
+  catch_panic(|| process_stylex_rules(&rules, &config))?.ok()
+}
+
+/// The value of `run`, or `None` when it panics. A panic must not cross the
+/// NAPI boundary: the callback is `extern "C"`, so the panic would stop Node.
+pub(crate) fn catch_panic<T>(run: impl FnOnce() -> T) -> Option<T> {
+  let _suppress = SuppressPanicStderr::new();
+
+  catch_unwind(AssertUnwindSafe(run)).ok()
 }
 
 /// One `min-width` or `max-width` bound in px, as upstream's
@@ -154,12 +167,22 @@ pub struct MediaQueryWidthBound {
 /// `mediaQueryWidthSortKey(prelude)`: the single width bound an `@media`
 /// prelude sorts by, or `null` when it has none. The vendored reference calls
 /// it in place of the parser that the plugin bundles.
+///
+/// A panic in the parser throws a JavaScript error. An answer of `null` would
+/// sort the rule as if it had no bound, and give a sheet that differs from
+/// upstream's with no sign of the fault.
 #[napi]
-pub fn media_query_width_bound(prelude: String) -> Option<MediaQueryWidthBound> {
-  media_query_width_sort_key(&prelude).map(|bound| MediaQueryWidthBound {
+pub fn media_query_width_bound(prelude: String) -> napi::Result<Option<MediaQueryWidthBound>> {
+  let bound = catch_panic(|| media_query_width_sort_key(&prelude)).ok_or_else(|| {
+    napi::Error::from_reason(format!(
+      "Could not read the width bound of the media query \"{prelude}\"."
+    ))
+  })?;
+
+  Ok(bound.map(|bound| MediaQueryWidthBound {
     kind: bound.kind.as_str().to_string(),
     value: bound.value,
-  })
+  }))
 }
 
 /// The ICU data the native sort was built with.

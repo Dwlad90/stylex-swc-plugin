@@ -30,6 +30,14 @@ every input: a **gate** in JavaScript packs the rules for the native sheet when
 it can prove that sheet is the reference's, and the **fallback** runs a
 vendored copy of the reference for every other input. `parity:sheets` holds the
 sheets on every pull request.
+
+A panic in the native sheet answers `null`, so the fallback writes the sheet.
+A panic in `mediaQueryWidthBound`, which the fallback's sort calls, throws a
+JavaScript error: a `null` there would sort the rule as if it had no bound and
+hide the fault. A `rules` array from another realm (a Jest `vm` context, for
+example) always takes the fallback, which is about two times slower but
+correct. The coverage gate excludes this crate, so the panic arms and the NAPI
+entries are held by the JS suite, not by the gate.
 _Avoid_: CSS generation, sheet writer, post-processing
 
 **Native binding**:

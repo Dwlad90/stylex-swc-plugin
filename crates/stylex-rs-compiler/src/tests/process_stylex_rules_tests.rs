@@ -6,7 +6,7 @@ use stylex_stylesheet::process::{LayerOptions, ProcessStylexRulesConfig, RuleSty
 
 use super::{
   NativeConfig, RULE_KIND_CONSTANT as CONSTANT, RULE_KIND_STYLE as STYLE,
-  RULE_KIND_STYLE_WITH_RTL as STYLE_WITH_RTL, unpack_rules,
+  RULE_KIND_STYLE_WITH_RTL as STYLE_WITH_RTL, catch_panic, unpack_rules,
 };
 
 fn config() -> NativeConfig {
@@ -62,7 +62,7 @@ fn each_kind_unpacks_into_its_fields() {
 }
 
 #[test]
-fn no_rules_unpack_into_none() {
+fn no_rules_unpack_into_an_empty_list() {
   assert_eq!(unpack_rules("", &[], &[], &[]), Some(Vec::new()));
 }
 
@@ -128,5 +128,14 @@ fn an_empty_prefix_is_no_prefix() {
   assert_eq!(
     ProcessStylexRulesConfig::from(config).use_layers,
     Some(LayerOptions::default())
+  );
+}
+
+#[test]
+fn a_panic_in_the_native_half_is_caught() {
+  assert_eq!(catch_panic(|| 7), Some(7));
+  assert_eq!(
+    catch_panic(|| -> u8 { panic!("a fault in the native half") }),
+    None
   );
 }

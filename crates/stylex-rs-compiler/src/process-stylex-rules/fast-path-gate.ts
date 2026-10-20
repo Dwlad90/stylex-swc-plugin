@@ -394,7 +394,15 @@ export function nativeInputOf(
   }
 
   const ruleCount = rules.length;
-  const packer = new Packer(ruleCount);
+  // A sparse array can have a length far above the rules it holds. The first
+  // hole refuses it below, but the packer is sized first, and where the
+  // system cannot give that much memory the allocation throws.
+  let packer: Packer;
+  try {
+    packer = new Packer(ruleCount);
+  } catch {
+    return null;
+  }
 
   for (let index = 0; index < ruleCount; index++) {
     const descriptor = Reflect.getOwnPropertyDescriptor(rules, index);

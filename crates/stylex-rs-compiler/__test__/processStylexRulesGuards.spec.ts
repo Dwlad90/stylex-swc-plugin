@@ -225,6 +225,15 @@ describe('the gate', () => {
     ];
     expect(nativeInputOf(accentedConstant, true, 'printable-ascii')).toBeNull();
   });
+
+  test('leaves a sparse list of any length to the reference', () => {
+    const rule = ['x1', { ltr: '.x1{a:0}', rtl: null }, 3000];
+    for (const length of [2, 2 ** 20, 2 ** 32 - 1]) {
+      const rules: unknown[] = [rule];
+      rules.length = length;
+      expect(nativeInputOf(rules, false, 'all')).toBeNull();
+    }
+  });
 });
 
 describe('the built-ins guard', () => {

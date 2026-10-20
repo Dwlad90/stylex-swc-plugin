@@ -4,15 +4,21 @@
 //! `packages/@stylexjs/babel-plugin/src/index.js` at the commit `CONTEXT.md`
 //! names, followed function by function and in its order:
 //! `getLogicalFloatVars`, `processStylexRules` (with `resolveConstant` inside
-//! it), `addAncestorSelector`, `addSpecificityLevel`. The reference's one
-//! function body is split here along its own blocks (the constants, the
-//! substitution, the sort, the groups, the output), so that a change upstream
-//! maps onto one function. Where the reference leans on a JavaScript built-in
-//! whose behaviour shapes the output -- `localeCompare`,
-//! `String.prototype.replace` with a string replacement, `trim`, V8's
-//! `Array.prototype.sort`, `new Map(...)`'s keeping of the first position
-//! under the last value, `slice(-1)`, and the coercions `String(...)` and
-//! `Number(...)` -- the port names the built-in and does what it does.
+//! it), `addAncestorSelector`, `addSpecificityLevel`.
+//!
+//! The reference's one function body is split here along its own blocks (the
+//! constants, the substitution, the sort, the groups, the output), so that a
+//! change upstream maps onto one function.
+//!
+//! The reference leans on JavaScript built-ins whose behaviour shapes the
+//! output. The port names each one and does what it does:
+//!
+//! - `localeCompare`
+//! - `String.prototype.replace` with a string replacement
+//! - `trim` and `slice(-1)`
+//! - V8's `Array.prototype.sort`
+//! - `new Map(...)`, which keeps the first position under the last value
+//! - the coercions `String(...)` and `Number(...)`
 //!
 //! `read` holds the rules and the config as the reference reads them; this
 //! module holds the steps that follow.

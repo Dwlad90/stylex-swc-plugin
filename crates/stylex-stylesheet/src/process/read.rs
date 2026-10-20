@@ -8,6 +8,11 @@
 //! Where the reference throws only when a value is used (a class name compared
 //! under the legacy sort, an `ltr` text rendered), the value is kept as it is
 //! and refused at that use.
+//!
+//! One case is refused where the reference goes on: an array `ltr` text that
+//! the sort reads only as the argument of `localeCompare`, which coerces it.
+//! The addon's gate never packs an array, so the export runs the reference
+//! for it.
 
 use std::borrow::Cow;
 use std::fmt;
@@ -65,9 +70,13 @@ impl From<&str> for ClassName {
 /// the value as it arrived; a missing property is `undefined`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuleStyle {
+  /// `ltr`: the rule's text, written for both directions unless `rtl` is set.
   pub ltr: JsValue,
+  /// `rtl`: the text for right-to-left pages, or a falsy value for none.
   pub rtl: JsValue,
+  /// `constKey`: the name of the constant a `defineConsts` rule declares.
   pub const_key: JsValue,
+  /// `constVal`: the value of that constant.
   pub const_val: JsValue,
 }
 
@@ -115,18 +124,22 @@ impl RuleStyle {
 pub struct Rule(ClassName, RuleStyle, f64);
 
 impl Rule {
+  /// A rule from its three parts, with the priority already read as a number.
   pub fn new(class_name: ClassName, style: RuleStyle, priority: f64) -> Self {
     Rule(class_name, style, priority)
   }
 
+  /// The class name, the first item of the tuple.
   pub fn class_name(&self) -> &ClassName {
     &self.0
   }
 
+  /// The style object, the second item of the tuple.
   pub fn style(&self) -> &RuleStyle {
     &self.1
   }
 
+  /// The priority, the third item of the tuple. A lower priority sorts first.
   pub fn priority(&self) -> f64 {
     self.2
   }
@@ -168,7 +181,9 @@ impl Rule {
 /// Which of a style's two texts a refusal names.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextDirection {
+  /// The `ltr` text.
   Ltr,
+  /// The `rtl` text.
   Rtl,
 }
 
@@ -270,7 +285,9 @@ fn read_rule(index: usize, rule: JsValue) -> Result<Rule, ProcessStylexRulesErro
 /// it.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LayerOptions {
+  /// `before`: the layers declared ahead of the priority layers.
   pub before: Vec<String>,
+  /// `after`: the layers declared after the priority layers.
   pub after: Vec<String>,
   /// `None` when the prefix is falsy; else `String(prefix)`, which can be
   /// empty (an empty array is truthy and spells as nothing).
@@ -335,9 +352,18 @@ fn read_layer_names(
 /// `None`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ProcessStylexRulesConfig {
+  /// `useLayers`: each priority group in its own `@layer`, or `None` for no
+  /// layers.
   pub use_layers: Option<LayerOptions>,
+  /// `enableLTRRTLComments`: a rule with an RTL text is written between
+  /// `/* @ltr begin */` and `/* @rtl end */` comments, in place of the
+  /// direction selectors.
   pub enable_ltr_rtl_comments: bool,
+  /// `legacyDisableLayers`: a sheet without layers gets no specificity
+  /// polyfill either.
   pub legacy_disable_layers: bool,
+  /// `useLegacyClassnamesSort`: rules of one priority sorted by class name,
+  /// not by their text.
   pub use_legacy_classnames_sort: bool,
 }
 
@@ -407,7 +433,8 @@ pub enum ProcessStylexRulesError {
   #[error("rule {index} has {kind} in place of its style object")]
   NoStyleObject { index: usize, kind: &'static str },
   /// A style rule's `ltr` text, or its truthy `rtl` text, is not a string
-  /// where it is read as one.
+  /// where it is read as one. An array `ltr` text is refused also where the
+  /// reference coerces it, as the argument of `localeCompare`.
   #[error("the {direction} text of class {class_name} is {kind}, not a string")]
   TextNotAString {
     direction: TextDirection,

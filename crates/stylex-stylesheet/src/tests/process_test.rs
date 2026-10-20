@@ -812,8 +812,6 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
     })
   );
 
-  // The rules sort apart before the last character is read, and the sheet is
-  // written with layers, so no character is cut.
   // The second operand ends in the emoji, the first in an ASCII character.
   let second = [
     rule("a", "ab:😀", None, 3000.0),
@@ -826,6 +824,8 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
     })
   );
 
+  // The rules sort apart before the last character is read, and the sheet is
+  // written with layers, so no character is cut.
   let apart = [
     rule("a", "ab:😁", None, 3000.0),
     rule("b", "ac:😀", None, 3000.0),

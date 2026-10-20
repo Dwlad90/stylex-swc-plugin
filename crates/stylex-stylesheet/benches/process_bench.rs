@@ -20,8 +20,8 @@ use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use stylex_js::value::JsValue;
 use stylex_stylesheet::process::{ProcessStylexRulesConfig, Rule, RuleStyle, process_stylex_rules};
 
-/// Rules per build, five times apart, so a linear cost reads differently from
-/// an `n log n` one.
+/// Rules per build, ten, then five times apart, so a linear cost reads
+/// differently from an `n log n` one.
 const SIZES: [usize; 3] = [1_000, 10_000, 50_000];
 
 /// The properties a rule declares, in rotation. Rules for the same property

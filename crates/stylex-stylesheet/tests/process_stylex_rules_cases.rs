@@ -95,6 +95,15 @@ fn the_fixture_holds_every_test_of_the_reference_file() {
   );
 }
 
+/// Every case, by name, so a case that a later recording adds runs even
+/// before it has a test of its own below.
+#[test]
+fn every_case_of_the_fixture_answers_as_the_plugin_does() {
+  for case in &fixture().cases {
+    assert_case(&case.name);
+  }
+}
+
 /// `no rules`
 #[test]
 fn no_rules() {

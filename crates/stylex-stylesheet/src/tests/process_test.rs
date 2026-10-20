@@ -1644,6 +1644,26 @@ fn an_ltr_text_that_is_not_a_string_is_refused_where_it_is_read() {
   );
 }
 
+/// The one place the port is stricter than the reference: V8 passes an array
+/// `ltr` text to `localeCompare` as its argument, which coerces it, and a
+/// later rule of its class then replaces it. The plugin writes
+/// `.x2{b:0}\n.x1{a:0}` for these rules; the port refuses the array. The
+/// addon's gate never packs an array, so the export runs the reference here.
+#[test]
+fn an_array_ltr_text_is_refused_where_the_reference_coerces_it() {
+  let rules = json(
+    r#"[["x2", {"ltr": [".x2{c:0}"]}, 1000], ["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}, 1000]]"#,
+  );
+
+  assert!(matches!(
+    answer(rules, false.into()),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
+      ..
+    })
+  ));
+}
+
 /// A style rule's `rtl` is read behind `if (rtlRule)`: a falsy value is no
 /// RTL text, and a truthy value that is not a string is refused where it is
 /// written. Measured on the plugin (`rtl: false` and `rtl: 0` write the LTR

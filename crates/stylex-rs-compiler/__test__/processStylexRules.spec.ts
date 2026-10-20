@@ -18,6 +18,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 
 import { processStylexRules, transform } from '../dist/index.js';
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
+import { nativeInputOf } from '../dist/process-stylex-rules/fast-path-gate.js';
 import { loadBabelPlugin } from '../parity/lib/compilers.js';
 import { PROCESS_STYLEX_RULES_CASES, stylesheetFixturesDir } from '../parity/lib/fixtures.js';
 import { runNodeScriptOrThrow } from './nodeScript';
@@ -737,9 +738,10 @@ describe('processStylexRules', () => {
       ])
     ).toEqual([]);
 
-    const started = performance.now();
+    // The gate stops at the first hole, so a sparse list costs only the
+    // reference's own walk. A clock bound here failed under a parallel run.
+    expect(nativeInputOf(sparse, true, 'all')).toBeNull();
     expect(divergences([sparse], [true])).toEqual([]);
-    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   test('reads a deep or shared value only where the reference reads it', () => {
@@ -756,7 +758,9 @@ describe('processStylexRules', () => {
       deepConfig = { useLayers: deepConfig };
     }
 
-    const started = performance.now();
+    // The gate takes the rule natively without a walk of the unused key: a
+    // walk of the 40 shared levels would not end.
+    expect(nativeInputOf([['x1', { ...STYLE, unused: shared }, 3000]], true, 'all')).not.toBeNull();
     expect(
       divergences(
         [
@@ -771,7 +775,6 @@ describe('processStylexRules', () => {
         [true, deepConfig]
       )
     ).toEqual([]);
-    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   test('reads a constant rule with no ltr text, or a text of any kind', () => {

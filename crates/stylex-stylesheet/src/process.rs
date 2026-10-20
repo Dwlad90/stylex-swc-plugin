@@ -168,6 +168,19 @@ impl Rule {
     }
   }
 
+  /// [`last_brace_or_last_unit`] of one of this rule's texts, refused where
+  /// JavaScript would cut a character in two.
+  fn block_start(&self, text: &str) -> Result<usize, ProcessStylexRulesError> {
+    last_brace_or_last_unit(text).ok_or_else(|| self.cut_in_two())
+  }
+
+  /// The refusal of a text of this rule that JavaScript would cut in two.
+  fn cut_in_two(&self) -> ProcessStylexRulesError {
+    ProcessStylexRulesError::CharacterCutInTwo {
+      class_name: self.class_name().spelling().into_owned(),
+    }
+  }
+
   fn text_not_a_string(
     &self,
     direction: TextDirection,
@@ -403,6 +416,14 @@ pub enum ProcessStylexRulesError {
      grouped; use a priority of 0 or more"
   )]
   FirstRuleBelowZero { class_name: String },
+  /// A text with no `{` ends with a character outside the Basic Multilingual
+  /// Plane, and the reference cuts it in two with `slice`. A `str` cannot hold
+  /// half a character.
+  #[error(
+    "the text of class {class_name} has no declaration block and ends with a character that \
+     JavaScript cuts in two"
+  )]
+  CharacterCutInTwo { class_name: String },
 }
 
 /// The `:root, [dir="ltr"]` / `[dir="rtl"]` block that gives the logical float
@@ -526,24 +547,20 @@ pub(crate) fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str
   Cow::Owned(out)
 }
 
-/// Where `text.slice(-1)` begins: the start of the last character, 0 for an
-/// empty text. JavaScript counts UTF-16 units, so for a character outside the
-/// Basic Multilingual Plane (an emoji) it splits the surrogate pair; a `str`
-/// cannot hold half a pair, so the port starts at the whole character
-/// (`.a😀` splits before the emoji where the reference splits inside it).
-fn last_character_start(text: &str) -> usize {
-  match text.char_indices().next_back() {
-    Some((index, _)) => index,
-    None => 0,
-  }
-}
-
 /// Where `text.slice(text.lastIndexOf('{'))` begins: at the last `{`, or, when
-/// there is none and `lastIndexOf` answers -1, at the last character.
-fn last_brace_or_last_character(text: &str) -> usize {
-  match text.rfind('{') {
-    Some(brace) => brace,
-    None => last_character_start(text),
+/// there is none and `lastIndexOf` answers -1, at the last UTF-16 unit (0 for
+/// an empty text). `None` when that unit is the second half of a character
+/// outside the Basic Multilingual Plane (an emoji): JavaScript then cuts the
+/// character in two, and a `str` cannot hold either half.
+fn last_brace_or_last_unit(text: &str) -> Option<usize> {
+  if let Some(brace) = text.rfind('{') {
+    return Some(brace);
+  }
+
+  match text.char_indices().next_back() {
+    Some((_, character)) if character.len_utf16() == 2 => None,
+    Some((index, _)) => Some(index),
+    None => Some(0),
   }
 }
 
@@ -826,8 +843,8 @@ fn compare_rules(
 
   // `rule.slice(rule.lastIndexOf('{'))`: the declaration block, or, for a text
   // with no block, its last character.
-  let property1 = &rule1[last_brace_or_last_character(rule1)..];
-  let property2 = &rule2[last_brace_or_last_character(rule2)..];
+  let property1 = &rule1[a.block_start(rule1)?..];
+  let property2 = &rule2[b.block_start(rule2)?..];
   let property_comparison = locale_compare(property1, property2);
 
   if property_comparison != 0.0 {
@@ -988,8 +1005,11 @@ fn style_lines(
   let mut rtl_rule = rule.rtl()?.map(str::to_string);
 
   if !layers.on && !config.legacy_disable_layers {
-    ltr_rule = add_specificity_level(&ltr_rule, index);
-    rtl_rule = rtl_rule.map(|rtl| add_specificity_level(&rtl, index));
+    ltr_rule = add_specificity_level(&ltr_rule, index).ok_or_else(|| rule.cut_in_two())?;
+    rtl_rule = match rtl_rule {
+      Some(rtl) => Some(add_specificity_level(&rtl, index).ok_or_else(|| rule.cut_in_two())?),
+      None => None,
+    };
   }
 
   // check if the selector looks like .xtrlmmh, .xtrlmmh:root
@@ -1134,22 +1154,22 @@ pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> 
 /// `addSpecificityLevel`: `index` copies of `:not(#\#)` on the rule's selector,
 /// the `@layer` polyfill for a sheet written without layers. They go before a
 /// pseudo-element, else before the declaration block, else (a text with no
-/// block) before its last character.
-pub(crate) fn add_specificity_level(selector: &str, index: usize) -> String {
+/// block) before its last character. `None` where JavaScript would cut that
+/// character in two ([`last_brace_or_last_unit`]).
+pub(crate) fn add_specificity_level(selector: &str, index: usize) -> Option<String> {
   if selector.starts_with("@keyframes") {
-    return selector.to_string();
+    return Some(selector.to_string());
   }
-
-  let pseudo = ":not(#\\#)".repeat(index);
 
   let split = match selector.find("::") {
     Some(pseudo_element) => pseudo_element,
-    None => last_brace_or_last_character(selector),
+    None => last_brace_or_last_unit(selector)?,
   };
   let before_curly = &selector[..split];
   let after_curly = &selector[split..];
+  let pseudo = ":not(#\\#)".repeat(index);
 
-  format!("{before_curly}{pseudo}{after_curly}")
+  Some(format!("{before_curly}{pseudo}{after_curly}"))
 }
 
 /// `.x, .x:root` -> `.x.x, .x.x:root`, by the first class name, as the

@@ -513,36 +513,53 @@ fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_keyfra
 
 #[test]
 fn the_specificity_level_goes_before_a_pseudo_element_else_before_the_block() {
-  assert_eq!(add_specificity_level(".x{color:red}", 0), ".x{color:red}");
+  assert_eq!(
+    add_specificity_level(".x{color:red}", 0),
+    Some(".x{color:red}".into())
+  );
   assert_eq!(
     add_specificity_level(".x{color:red}", 2),
-    ".x:not(#\\#):not(#\\#){color:red}"
+    Some(".x:not(#\\#):not(#\\#){color:red}".into())
   );
   assert_eq!(
     add_specificity_level(".x::before{content:''}", 1),
-    ".x:not(#\\#)::before{content:''}"
+    Some(".x:not(#\\#)::before{content:''}".into())
   );
   assert_eq!(
     add_specificity_level("@keyframes k{0%{left:0}}", 3),
-    "@keyframes k{0%{left:0}}"
+    Some("@keyframes k{0%{left:0}}".into())
   );
   // `lastIndexOf('{')` is -1 for a text with no block, and `slice(0, -1)` then
   // keeps all but the last character.
-  assert_eq!(add_specificity_level("abc", 1), "ab:not(#\\#)c");
-  assert_eq!(add_specificity_level("", 1), ":not(#\\#)");
+  assert_eq!(
+    add_specificity_level("abc", 1),
+    Some("ab:not(#\\#)c".into())
+  );
+  assert_eq!(add_specificity_level("", 1), Some(":not(#\\#)".into()));
 }
 
-/// A text with no block splits before its last character, whatever its
-/// width: the plugin writes `.a:not(#\#)é`. For a character outside the
-/// Basic Multilingual Plane, JavaScript splits the UTF-16 surrogate pair
-/// (`.a\uD83D:not(#\#)\uDE00`, two lone surrogates); a `str` cannot hold half
-/// a pair, so the port splits before the whole character.
+/// A text with no block splits before its last character: the plugin writes
+/// `.a:not(#\#)é`. For a character outside the Basic Multilingual Plane,
+/// JavaScript splits the UTF-16 surrogate pair (`.a\uD83D:not(#\#)\uDE00`, two
+/// lone surrogates). A `str` cannot hold half a pair, so the port refuses it,
+/// and the addon runs the reference instead.
 #[test]
 fn the_specificity_level_splits_a_blockless_text_before_its_last_character() {
-  assert_eq!(add_specificity_level(".aé", 1), ".a:not(#\\#)é");
-  assert_eq!(add_specificity_level(".aé", 2), ".a:not(#\\#):not(#\\#)é");
-  assert_eq!(add_specificity_level("é", 1), ":not(#\\#)é");
-  assert_eq!(add_specificity_level(".a😀", 1), ".a:not(#\\#)😀");
+  assert_eq!(
+    add_specificity_level(".aé", 1),
+    Some(".a:not(#\\#)é".into())
+  );
+  assert_eq!(
+    add_specificity_level(".aé", 2),
+    Some(".a:not(#\\#):not(#\\#)é".into())
+  );
+  assert_eq!(add_specificity_level("é", 1), Some(":not(#\\#)é".into()));
+  assert_eq!(add_specificity_level(".a😀", 1), None);
+  // A pseudo-element comes first, so the last character is not cut.
+  assert_eq!(
+    add_specificity_level(".a::b😀", 1),
+    Some(".a:not(#\\#)::b😀".into())
+  );
 
   // Through the sheet: the rule at group index 1, with an RTL twin.
   let rules = [
@@ -575,13 +592,45 @@ fn the_tie_break_reads_the_last_character_of_a_text_with_no_block() {
   ];
   assert_eq!(sheet(&accent, &without_layers()), "ab:e\nab:é");
 
-  // JavaScript compares the low surrogates of two emoji; the port compares the
-  // whole characters, and the two agree for these.
+  // JavaScript compares the low surrogates of two emoji, which a `str` cannot
+  // hold, so the port refuses the pair. V8's first comparison takes the
+  // second rule as its left operand, so the refusal names `b`.
   let emoji = [
     rule("a", "ab:😁", None, 3000.0),
     rule("b", "ab:😀", None, 3000.0),
   ];
-  assert_eq!(sheet(&emoji, &without_layers()), "ab:😀\nab:😁");
+  assert_eq!(
+    process_stylex_rules(&emoji, &without_layers()),
+    Err(ProcessStylexRulesError::CharacterCutInTwo {
+      class_name: "b".into()
+    })
+  );
+
+  // The rules sort apart before the last character is read, and the sheet is
+  // written with layers, so no character is cut.
+  let apart = [
+    rule("a", "ab:😁", None, 3000.0),
+    rule("b", "ac:😀", None, 3000.0),
+  ];
+  assert_eq!(
+    sheet(&apart, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@layer priority1{\nab:😁\nac:😀\n}"
+  );
+}
+
+/// The specificity level cuts the last character of a blockless text, for
+/// the LTR and for the RTL text alike.
+#[test]
+fn the_specificity_level_refuses_to_cut_a_character_in_two() {
+  for (ltr, rtl) in [(".a😀", None), (".a{b:c}", Some(".a😀"))] {
+    let rules = [rule("x", ltr, rtl, 3000.0)];
+    assert_eq!(
+      process_stylex_rules(&rules, &ProcessStylexRulesConfig::default()),
+      Err(ProcessStylexRulesError::CharacterCutInTwo {
+        class_name: "x".into()
+      })
+    );
+  }
 }
 
 /// `String.prototype.trim` removes U+FEFF and keeps U+0085, where `str::trim`

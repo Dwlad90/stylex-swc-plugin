@@ -77,6 +77,17 @@ function readOwn(object: object, key: PropertyKey): Read {
   return 'value' in descriptor ? descriptor.value : REFUSED;
 }
 
+let iterator: symbol | undefined;
+
+/**
+ * `Symbol.iterator`, read once from the fresh realm: well-known symbols are
+ * shared by all realms, and the `Symbol` global is the program's to replace.
+ */
+function iteratorSymbol(): symbol {
+  iterator ??= freshRealm().Symbol.iterator;
+  return iterator;
+}
+
 /** A non-Proxy object whose prototype is `Object.prototype` or `null`. */
 function isPlainObject(value: unknown): value is object {
   if (
@@ -283,10 +294,8 @@ function packRule(
     return false;
   }
 
-  // An own iterator would replace the array iterator. The symbol comes from
-  // the fresh realm (well-known symbols are shared by all realms), because the
-  // `Symbol` global is the program's to replace.
-  if (Reflect.getOwnPropertyDescriptor(rule, freshRealm().Symbol.iterator) !== undefined) {
+  // An own iterator would replace the array iterator.
+  if (Reflect.getOwnPropertyDescriptor(rule, iteratorSymbol()) !== undefined) {
     return false;
   }
 

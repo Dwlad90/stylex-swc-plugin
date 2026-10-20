@@ -952,6 +952,8 @@ describe('processStylexRules in a child process', () => {
     fixture.cases.flatMap(recorded => recorded.calls.map(call => call.rules))
   );
 
+  // `LANG` sets an English locale where ICU reads it. On Windows ICU reads the
+  // locale of the system, which is English on the CI runners.
   test('writes the sheet natively for the rules a build emits', () => {
     const outcome = runNodeScriptOrThrow(
       `

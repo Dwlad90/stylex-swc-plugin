@@ -70,6 +70,8 @@ interface RecordedProperty {
  */
 interface RecordedHolder {
   readonly holder: object;
+  /** The same holder in the fresh realm. */
+  readonly twin: object;
   readonly keyCount: number;
   readonly prototype: object | null;
 }
@@ -164,9 +166,6 @@ class Recorder {
     return true;
   }
 
-  /** The holders of the fresh realm, each at the index of its twin in `holders`. */
-  readonly others: object[] = [];
-
   /** Records every own property of `holder`, its key count and its prototype. */
   compareHolder(holder: unknown, other: unknown): boolean {
     if (typeof holder !== 'object' && typeof holder !== 'function') {
@@ -182,30 +181,36 @@ class Recorder {
       return false;
     }
 
-    this.holders.push({ holder, keyCount: keys.length, prototype: reflect.getPrototypeOf(holder) });
-    this.others.push(other as object);
+    this.holders.push({
+      holder,
+      twin: other as object,
+      keyCount: keys.length,
+      prototype: reflect.getPrototypeOf(holder),
+    });
     return this.compareProperties(holder, other as object, keys);
   }
 
   /**
    * Whether the prototype of each recorded holder is the twin of the
-   * prototype that the same holder has in the fresh realm. `functionPrototype`
-   * is this realm's `Function.prototype`, which is no recorded holder.
+   * prototype that the same holder has in the fresh realm. `Function.prototype`
+   * is no recorded holder, so it is paired here: a function of this module
+   * has this realm's own one.
    */
-  comparePrototypes(functionPrototype: object): boolean {
+  comparePrototypes(): boolean {
     const reflect = freshReflect();
-    const twinOf = new Map<unknown, unknown>();
-    twinOf.set(freshRealm().Function.prototype, functionPrototype);
+    const ourFromTheirs = new Map<unknown, unknown>();
+    ourFromTheirs.set(freshRealm().Function.prototype, reflect.getPrototypeOf(recordBuiltIns));
     // Indexed loops: an early exit from a `for...of` reads `return` through
     // the very prototypes this checks.
-    for (let index = 0; index < this.others.length; index++) {
-      twinOf.set(this.others[index], (this.holders[index] as RecordedHolder).holder);
+    for (let index = 0; index < this.holders.length; index++) {
+      const { holder, twin } = this.holders[index]!;
+      ourFromTheirs.set(twin, holder);
     }
 
-    for (let index = 0; index < this.others.length; index++) {
-      const theirs = reflect.getPrototypeOf(this.others[index] as object);
-      const ours = (this.holders[index] as RecordedHolder).prototype;
-      if (theirs === null ? ours !== null : twinOf.get(theirs) !== ours) {
+    for (let index = 0; index < this.holders.length; index++) {
+      const { twin, prototype } = this.holders[index]!;
+      const theirs = reflect.getPrototypeOf(twin);
+      if (theirs === null ? prototype !== null : ourFromTheirs.get(theirs) !== prototype) {
         return false;
       }
     }
@@ -362,8 +367,7 @@ function recordBuiltIns(): BuiltInRecord | null {
   if (
     ourIterators.length === 0 ||
     !ourIterators.every((holder, index) => recorder.compareHolder(holder, theirIterators[index])) ||
-    // A function of this module has this realm's own `Function.prototype`.
-    !recorder.comparePrototypes(freshReflect().getPrototypeOf(recordBuiltIns) as object) ||
+    !recorder.comparePrototypes() ||
     !nativeFunctionsSitInPlace()
   ) {
     return null;

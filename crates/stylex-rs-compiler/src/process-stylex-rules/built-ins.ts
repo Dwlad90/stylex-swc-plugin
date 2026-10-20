@@ -18,6 +18,10 @@
  * code of the program. Once the guard holds, this realm's `Reflect` is intact
  * too, and the gate uses it: a call into the fresh realm costs much more.
  *
+ * For the same reason, the guard loops over an array of this realm with an
+ * index, never with `for...of`. An early exit from `for...of` reads `return`
+ * through the iterator prototypes, which a program can change.
+ *
  * The first call costs about 10 ms, and the fresh realm stays alive for the
  * life of the process. A runtime with no working `node:vm` gets no record,
  * and each call then goes to the reference.
@@ -200,8 +204,7 @@ class Recorder {
     const reflect = freshReflect();
     const ourFromTheirs = new Map<unknown, unknown>();
     ourFromTheirs.set(freshRealm().Function.prototype, reflect.getPrototypeOf(recordBuiltIns));
-    // Indexed loops: an early exit from a `for...of` reads `return` through
-    // the very prototypes this checks.
+    // Indexed loops, as the module doc says.
     for (let index = 0; index < this.holders.length; index++) {
       const { holder, twin } = this.holders[index]!;
       ourFromTheirs.set(twin, holder);
@@ -395,8 +398,7 @@ export function builtInsAreIntact(): boolean {
   const reflect = freshReflect();
   const { holders, properties } = record;
 
-  // Indexed loops: an early exit from a `for...of` reads `return` through an
-  // iterator prototype, which a program may have changed.
+  // Indexed loops, as the module doc says.
   for (let index = 0; index < holders.length; index++) {
     const { holder, keyCount, prototype } = holders[index]!;
     if (

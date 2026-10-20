@@ -89,7 +89,7 @@ export function nativeCollationOf(
     return 'none';
   }
 
-  // An indexed loop, so that no iterator of the program runs.
+  // An indexed loop, for the reason the module doc of `built-ins.ts` gives.
   const names = freshReflect().ownKeys(DEFAULT_OPTIONS);
   for (let index = 0; index < names.length; index++) {
     const name = names[index] as keyof typeof DEFAULT_OPTIONS;

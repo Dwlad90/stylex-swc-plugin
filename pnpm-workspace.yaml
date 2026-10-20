@@ -244,7 +244,7 @@ catalogs:
     'webpack': '>=5.0.0'
 
   runtime:
-    '@stylexjs/babel-plugin': '^0.19.1'
+    '@stylexjs/babel-plugin': '0.19.1'
     '@stylexjs/eslint-plugin': '^0.19.1'
     '@stylexjs/open-props': '^0.11.1'
     '@stylexjs/stylex': '^0.19.1'

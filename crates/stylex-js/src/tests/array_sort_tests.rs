@@ -1,9 +1,10 @@
 // Tests for V8's TimSort.
 // Source: crates/stylex-js/src/array_sort.rs
 //
-// The V8 rows are measured on Node 24 (V8 13.6.233) by a script that builds
-// the same input from the same MINSTD generator and sorts an index array with
-// `Array.prototype.sort`, recording every comparator call. A row holds the
+// The V8 rows are measured on Node 24 (V8 13.6.233) by
+// `scripts/measure-v8-sort.mjs`, which builds the same input from the same
+// MINSTD generator and sorts an index array with `Array.prototype.sort`,
+// recording every comparator call. A row holds the
 // number of calls, an FNV-1a checksum of the `(a, b)` operands in call order,
 // and an FNV-1a checksum of the sorted order. Equal checksums mean the port
 // makes each comparison V8 makes, in V8's order, and ends in V8's order.
@@ -38,7 +39,7 @@ fn fnv(values: impl IntoIterator<Item = usize>) -> u32 {
   hash
 }
 
-/// How a scenario's comparator reads its two numbers per item.
+/// How a scenario's comparator answers.
 #[derive(Clone, Copy)]
 enum Comparator {
   /// `K[a] - K[b]`: a consistent order.
@@ -46,6 +47,16 @@ enum Comparator {
   /// `P[a] - P[b]` unless it is 0, else `K[a] - K[b]`. With a `NaN` or an
   /// infinite priority, this is not a consistent order.
   Priority,
+  /// An answer from a MINSTD generator of this seed for each call: less,
+  /// greater, a tie or `NaN`, whatever the items are.
+  Random(u64),
+  /// `K[a] - K[b]` for the first `after` calls, then the answers of `script`
+  /// in call order, then `rest` for every later call.
+  Scripted {
+    after: usize,
+    script: &'static [f64],
+    rest: f64,
+  },
 }
 
 struct Measured {
@@ -66,8 +77,13 @@ fn measure(
   let (priorities, keys): (Vec<f64>, Vec<f64>) = (0..n).map(|i| make(i, &mut random)).unzip();
   let calls = RefCell::new(Vec::new());
   let mut items: Vec<usize> = (0..n).collect();
+  let mut answers = Minstd(match comparator {
+    Comparator::Random(seed) => seed,
+    _ => 1,
+  });
 
   let sorted: Result<(), usize> = array_tim_sort(&mut items, |&a, &b| {
+    let call = calls.borrow().len() / 2;
     calls.borrow_mut().extend([a, b]);
 
     Ok(match comparator {
@@ -79,6 +95,15 @@ fn measure(
         } else {
           keys[a] - keys[b]
         }
+      },
+      Comparator::Random(_) => [-1.0, 1.0, 0.0, f64::NAN][(answers.next() % 4) as usize],
+      Comparator::Scripted {
+        after,
+        script,
+        rest,
+      } => match call.checked_sub(after) {
+        None => keys[a] - keys[b],
+        Some(index) => script.get(index).copied().unwrap_or(rest),
       },
     })
   });
@@ -306,6 +331,98 @@ fn infinite_priorities_sort_as_v8_sorts() {
     4_049_990_009,
     3_837_625_699,
     [5, 7, 8, 11, 12, 15, 25, 37],
+  );
+}
+
+/// Keys of a run of 300, then of 40 items that fall between its items. The
+/// merge of the two runs is `merge_high`, and each side wins often enough in
+/// a row to gallop.
+fn high_gallop_key(i: usize) -> f64 {
+  if i < 300 {
+    (i * 10) as f64
+  } else {
+    ((i - 300) * 75 + 5) as f64
+  }
+}
+
+#[test]
+fn merge_high_gallops_as_v8_gallops() {
+  let measured = measure(340, 37, |i, _| (0.0, high_gallop_key(i)), Comparator::Key);
+
+  assert_v8(
+    measured,
+    671,
+    2_027_395_964,
+    4_174_909_381,
+    [0, 300, 1, 2, 3, 4, 5, 6],
+  );
+}
+
+/// The same input with a `NaN` priority on every ninth item.
+#[test]
+fn merge_high_with_nan_priorities_sorts_as_v8_sorts() {
+  let measured = measure(
+    340,
+    37,
+    |i, _| {
+      let priority = if i % 9 == 0 { f64::NAN } else { 0.0 };
+      (priority, high_gallop_key(i))
+    },
+    Comparator::Priority,
+  );
+
+  assert_v8(
+    measured,
+    357,
+    1_287_087_313,
+    2_839_715_361,
+    [0, 1, 2, 3, 4, 5, 6, 7],
+  );
+}
+
+/// A comparator that answers at random still gives V8's order: the answers
+/// come in call order, and each call is the one V8 makes.
+#[test]
+fn a_random_comparator_sorts_as_v8_sorts() {
+  assert_v8(
+    measure(65, 0, |_, _| (0.0, 0.0), Comparator::Random(41)),
+    266,
+    180_744_368,
+    1_079_752_199,
+    [0, 1, 2, 33, 3, 34, 10, 15],
+  );
+  assert_v8(
+    measure(1000, 0, |_, _| (0.0, 0.0), Comparator::Random(43)),
+    5780,
+    3_711_921_848,
+    3_620_645_125,
+    [381, 6, 9, 47, 0, 1, 16, 568],
+  );
+}
+
+/// Two runs of 40. The first 79 calls find them. Then the merge trims nothing
+/// from the first run, because the first item of the second run sorts before
+/// it, and all of the second run, because each of its items sorts after the
+/// last item of the first: the merge ends with nothing to merge.
+#[test]
+fn a_merge_that_empties_the_second_run_ends_as_v8_ends() {
+  let measured = measure(
+    80,
+    0,
+    |i, _| (0.0, (if i < 40 { i } else { i - 40 }) as f64),
+    Comparator::Scripted {
+      after: 79,
+      script: &[-1.0],
+      rest: 1.0,
+    },
+  );
+
+  assert_v8(
+    measured,
+    90,
+    2_244_254_514,
+    1_385_968_469,
+    [0, 1, 2, 3, 4, 5, 6, 7],
   );
 }
 

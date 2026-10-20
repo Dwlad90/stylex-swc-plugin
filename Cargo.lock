@@ -3476,6 +3476,7 @@ dependencies = [
 name = "stylex_stylesheet"
 version = "0.19.2"
 dependencies = [
+ "criterion",
  "icu_collator",
  "indexmap",
  "rustc-hash",
@@ -3486,6 +3487,7 @@ dependencies = [
  "stylex_js",
  "stylex_regex",
  "stylex_utils",
+ "swc_malloc",
  "thiserror 2.0.21",
 ]
 

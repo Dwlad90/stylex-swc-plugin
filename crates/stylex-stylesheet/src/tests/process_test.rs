@@ -6,10 +6,10 @@
 use stylex_js::value::JsValue;
 
 use crate::process::{
-  ClassName, LayerOptions, OrderedConstants, ProcessStylexRulesConfig, ProcessStylexRulesError,
-  Rule, RuleStyle, TextDirection, add_ancestor_selector, add_specificity_level,
-  get_logical_float_vars, process_stylex_rule_values, process_stylex_rules, read_rules,
-  resolve_constant,
+  ClassName, LayerOptions, MAX_CONSTANT_DEPTH, OrderedConstants, ProcessStylexRulesConfig,
+  ProcessStylexRulesError, Rule, RuleStyle, TextDirection, add_ancestor_selector,
+  add_specificity_level, get_logical_float_vars, process_stylex_rule_values, process_stylex_rules,
+  read_rules, resolve_constant,
 };
 
 fn rule(class_name: &str, ltr: &str, rtl: Option<&str>, priority: f64) -> Rule {
@@ -427,6 +427,65 @@ fn a_circular_constant_is_refused_by_name() {
   assert_eq!(
     error.to_string(),
     "circular reference detected for constant --xB"
+  );
+}
+
+/// A chain of constants `--c0` to `--c{depth}`, each one a reference to the
+/// next, and the last one `red`. Resolving `--c0` follows `depth` references.
+fn constant_chain(depth: usize) -> OrderedConstants {
+  (0..=depth)
+    .map(|link| {
+      let value = if link == depth {
+        text("red")
+      } else {
+        text(&format!("var(--c{})", link + 1))
+      };
+      (format!("var(--c{link})"), value)
+    })
+    .collect()
+}
+
+#[test]
+fn a_constant_chain_at_the_depth_limit_resolves() {
+  let constants = constant_chain(MAX_CONSTANT_DEPTH);
+
+  assert_eq!(
+    resolve_constant(&constants["var(--c0)"], &constants, &mut Vec::new()),
+    Ok(text("red"))
+  );
+}
+
+#[test]
+fn a_constant_chain_past_the_depth_limit_is_refused() {
+  let constants = constant_chain(MAX_CONSTANT_DEPTH + 1);
+
+  assert_eq!(
+    resolve_constant(&constants["var(--c0)"], &constants, &mut Vec::new()),
+    Err(ProcessStylexRulesError::ConstantChainTooDeep)
+  );
+  assert_eq!(
+    ProcessStylexRulesError::ConstantChainTooDeep.to_string(),
+    format!("a constant chain is deeper than {MAX_CONSTANT_DEPTH} links")
+  );
+}
+
+/// A chain far deeper than the limit is refused at the limit, so it neither
+/// overflows the stack nor takes time that grows with its length.
+#[test]
+fn a_very_deep_constant_chain_is_refused_without_a_stack_overflow() {
+  let depth = 50_000;
+  let mut rules: Vec<Rule> = constant_chain(depth)
+    .into_iter()
+    .map(|(key, value)| {
+      let name = &key["var(--".len()..key.len() - 1];
+      constant(name, value)
+    })
+    .collect();
+  rules.push(rule("x1", ".x1{color:var(--c0)}", None, 3000.0));
+
+  assert_eq!(
+    process_stylex_rules(&rules, &without_layers()),
+    Err(ProcessStylexRulesError::ConstantChainTooDeep)
   );
 }
 

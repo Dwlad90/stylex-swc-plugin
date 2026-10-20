@@ -141,6 +141,12 @@ fn resolve_constants(
   Ok(constants)
 }
 
+/// The deepest chain of constants that `resolve_constant` follows. Real
+/// sheets chain two or three constants. V8 runs out of stack near 10,000
+/// links, so past this limit the reference decides: it resolves the chain, or
+/// it throws its own `RangeError`.
+pub(crate) const MAX_CONSTANT_DEPTH: usize = 256;
+
 /// `resolveConstant`: a constant's value with every reference to another
 /// constant replaced by that constant's resolved value. A reference to a
 /// constant the sheet does not declare stays as written. The search restarts
@@ -173,10 +179,15 @@ pub(crate) fn resolve_constant(
       ));
     }
 
-    let Some(referenced) = constants.get(format!("var({reference})").as_str()) else {
+    // The match is `var(--name)`, which is the key of the constant it names.
+    let Some(referenced) = constants.get(whole.as_str()) else {
       position = range.end;
       continue;
     };
+
+    if visited.len() >= MAX_CONSTANT_DEPTH {
+      return Err(ProcessStylexRulesError::ConstantChainTooDeep);
+    }
 
     let reference = reference.to_string();
     visited.push(reference.clone());

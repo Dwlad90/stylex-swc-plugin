@@ -14,6 +14,8 @@ use std::fmt;
 
 use stylex_js::value::{JsValue, MapKey};
 
+use super::MAX_CONSTANT_DEPTH;
+
 /// A rule's class name, which the reference uses three ways: spelled with
 /// `String(...)` in a constant's name, as a `Map` key in the dedupe
 /// (`SameValueZero`, so `1` and `'1'` are two class names), and as the
@@ -390,6 +392,10 @@ pub enum ProcessStylexRulesError {
   /// A constant's value refers, through any chain of constants, to itself.
   #[error("circular reference detected for constant {0}")]
   CircularConstant(String),
+  /// A chain of constants deeper than the native resolver follows. The
+  /// reference decides: it resolves the chain, or its stack overflows.
+  #[error("a constant chain is deeper than {MAX_CONSTANT_DEPTH} links")]
+  ConstantChainTooDeep,
   /// The rules are not an array, so they have no `filter`.
   #[error("the rules are {0}, not a list")]
   RulesNotAList(&'static str),

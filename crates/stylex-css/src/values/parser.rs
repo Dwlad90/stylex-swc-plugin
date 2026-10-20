@@ -88,6 +88,7 @@
 
 use crate::css::common::nests_too_deeply;
 use postcss_value_parser::{Node, NodeKind, ValueParser};
+use stylex_utils::number::is_js_whitespace;
 
 /// The parts of `css_string`, in the order the expansion consumes them.
 ///
@@ -238,9 +239,7 @@ enum Emit<'a> {
 /// keeps. Neither character is whitespace to the scanner, so whichever survives
 /// the trim ends up inside a word and inside a class name.
 fn js_trim(css_string: &str) -> &str {
-  css_string.trim_matches(|character: char| {
-    character == '\u{feff}' || (character.is_whitespace() && character != '\u{85}')
-  })
+  css_string.trim_matches(is_js_whitespace)
 }
 
 #[cfg(test)]

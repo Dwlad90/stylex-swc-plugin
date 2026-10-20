@@ -809,6 +809,25 @@ describe('processStylexRules', () => {
           ['c', { constKey: 'c', constVal: '3px' }, 0],
           reader,
         ],
+        // Ten constants: the addon searches them with one automaton.
+        [
+          ...[
+            ['c0', '0px'],
+            ['c1', 'var(--t1)'],
+            ['c2', '2px'],
+            ['c3', 'var(--c7)'],
+            ['c4', '4px'],
+            ['c5', 'var(--u5, 1px)'],
+            ['c6', '6px'],
+            ['c7', '7px'],
+            ['c8', 'x --c5: y'],
+            ['c9', 'z --c1: w'],
+          ].map(([name, value]) => [name, { constKey: name, constVal: value }, 0]),
+          ['x1', styleOf('.x1{margin:var(--c0) var(--c3) var(--c9)}'), 3000],
+          ['x2', styleOf('.x2{--c1:1;--c5:5;padding:var(--c8)}'), 3000],
+          ['x3', styleOf('.x3{--c3:var(--c4)}'), 3000],
+          ['x4', { ltr: '.x4{a:var(--c2)}', rtl: '.x4{b:var(--c6)}' }, 3000],
+        ],
         // A replacement template with `$` patterns, and an unknown reference.
         // Only a rule reads `a`: a constant that reads it loops without end
         // upstream, because `$&` writes the reference back.

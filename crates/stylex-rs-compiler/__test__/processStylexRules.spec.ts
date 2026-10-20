@@ -965,6 +965,11 @@ describe('processStylexRules in a child process', () => {
       'String.prototype.includes = Object.getPrototypeOf(Uint8Array.prototype).includes;',
       'String.prototype.localeCompare = function localeCompare() { return 0; };',
       'Object.defineProperty(Object.prototype, "ltr", { value: ".x{a:0}", configurable: true });',
+      `Object.setPrototypeOf(
+        Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]())),
+        { get return() { throw new Error('closed'); } }
+      );`,
+      'Object.setPrototypeOf(Map.prototype, Object.create(Object.prototype));',
     ]) {
       expect(sameSheetAfter(setup, rules)).toBe('true');
     }

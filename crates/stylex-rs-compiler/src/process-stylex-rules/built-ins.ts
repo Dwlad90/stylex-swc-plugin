@@ -17,6 +17,10 @@
  * realm's `Reflect`, which no program can reach, so the guard itself runs no
  * code of the program. Once the guard holds, this realm's `Reflect` is intact
  * too, and the gate uses it: a call into the fresh realm costs much more.
+ *
+ * The first call costs about 10 ms, and the fresh realm stays alive for the
+ * life of the process. A runtime with no working `node:vm` gets no record,
+ * and each call then goes to the reference.
  */
 
 import { types } from 'node:util';
@@ -59,10 +63,15 @@ interface RecordedProperty {
   readonly descriptor: PropertyDescriptor;
 }
 
-/** One built-in object, and how many own keys it had on the first call. */
+/**
+ * One built-in object, how many own keys it had on the first call, and its
+ * prototype then. A read that misses an own key walks up to the prototype, so
+ * a program that swaps it can run its own code inside the reference.
+ */
 interface RecordedHolder {
   readonly holder: object;
   readonly keyCount: number;
+  readonly prototype: object | null;
 }
 
 interface BuiltInRecord {
@@ -90,7 +99,7 @@ export function freshRealm(): Realm {
   return cachedRealm;
 }
 
-function freshReflect(): typeof Reflect {
+export function freshReflect(): typeof Reflect {
   return freshRealm().Reflect;
 }
 
@@ -155,7 +164,10 @@ class Recorder {
     return true;
   }
 
-  /** Records every own property of `holder`, and its key count. */
+  /** The holders of the fresh realm, each at the index of its twin in `holders`. */
+  readonly others: object[] = [];
+
+  /** Records every own property of `holder`, its key count and its prototype. */
   compareHolder(holder: unknown, other: unknown): boolean {
     if (typeof holder !== 'object' && typeof holder !== 'function') {
       return false;
@@ -170,8 +182,35 @@ class Recorder {
       return false;
     }
 
-    this.holders.push({ holder, keyCount: keys.length });
+    this.holders.push({ holder, keyCount: keys.length, prototype: reflect.getPrototypeOf(holder) });
+    this.others.push(other as object);
     return this.compareProperties(holder, other as object, keys);
+  }
+
+  /**
+   * Whether the prototype of each recorded holder is the twin of the
+   * prototype that the same holder has in the fresh realm. `functionPrototype`
+   * is this realm's `Function.prototype`, which is no recorded holder.
+   */
+  comparePrototypes(functionPrototype: object): boolean {
+    const reflect = freshReflect();
+    const twinOf = new Map<unknown, unknown>();
+    twinOf.set(freshRealm().Function.prototype, functionPrototype);
+    // Indexed loops: an early exit from a `for...of` reads `return` through
+    // the very prototypes this checks.
+    for (let index = 0; index < this.others.length; index++) {
+      twinOf.set(this.others[index], (this.holders[index] as RecordedHolder).holder);
+    }
+
+    for (let index = 0; index < this.others.length; index++) {
+      const theirs = reflect.getPrototypeOf(this.others[index] as object);
+      const ours = (this.holders[index] as RecordedHolder).prototype;
+      if (theirs === null ? ours !== null : twinOf.get(theirs) !== ours) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 
@@ -323,6 +362,8 @@ function recordBuiltIns(): BuiltInRecord | null {
   if (
     ourIterators.length === 0 ||
     !ourIterators.every((holder, index) => recorder.compareHolder(holder, theirIterators[index])) ||
+    // A function of this module has this realm's own `Function.prototype`.
+    !recorder.comparePrototypes(freshReflect().getPrototypeOf(recordBuiltIns) as object) ||
     !nativeFunctionsSitInPlace()
   ) {
     return null;
@@ -337,20 +378,33 @@ function recordBuiltIns(): BuiltInRecord | null {
  * later call compares it with what the first call recorded.
  */
 export function builtInsAreIntact(): boolean {
-  record ??= recordBuiltIns();
+  try {
+    record ??= recordBuiltIns();
+  } catch {
+    // No fresh realm: `node:vm` is missing or does not work in this runtime.
+    record = null;
+  }
   if (record === null) {
     return false;
   }
 
   const reflect = freshReflect();
+  const { holders, properties } = record;
 
-  for (const { holder, keyCount } of record.holders) {
-    if (reflect.ownKeys(holder).length !== keyCount) {
+  // Indexed loops: an early exit from a `for...of` reads `return` through an
+  // iterator prototype, which a program may have changed.
+  for (let index = 0; index < holders.length; index++) {
+    const { holder, keyCount, prototype } = holders[index]!;
+    if (
+      reflect.ownKeys(holder).length !== keyCount ||
+      reflect.getPrototypeOf(holder) !== prototype
+    ) {
       return false;
     }
   }
 
-  for (const { holder, key, descriptor } of record.properties) {
+  for (let index = 0; index < properties.length; index++) {
+    const { holder, key, descriptor } = properties[index]!;
     const now = reflect.getOwnPropertyDescriptor(holder, key);
     if (
       now === undefined ||

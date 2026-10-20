@@ -10,7 +10,7 @@
  * are the same.
  */
 
-import { freshRealm } from './built-ins.js';
+import { freshRealm, freshReflect } from './built-ins.js';
 
 /** How much of the text the native sort can compare as `localeCompare` does here. */
 export type NativeCollation =
@@ -48,23 +48,56 @@ export interface CollationDataVersion {
   readonly cldr: string;
 }
 
+/** The part of a realm that the collation guard reads. */
+export interface CollationRealm {
+  readonly Intl?: typeof Intl;
+}
+
+/**
+ * The language and the options of the default collation, or `null` when this
+ * runtime has no `Intl` that can tell them. A Node built without ICU has no
+ * `Intl`, and an unknown locale tag makes `new Locale(...)` throw.
+ */
+function defaultCollationOf(
+  realm: CollationRealm | undefined
+): { language: string; options: Intl.ResolvedCollatorOptions } | null {
+  try {
+    const realmIntl = (realm ?? freshRealm()).Intl;
+    if (realmIntl === undefined) {
+      return null;
+    }
+    const options = new realmIntl.Collator().resolvedOptions();
+    return { language: new realmIntl.Locale(options.locale).language, options };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * How much text the native sort can compare, for this process. The default
  * locale is read through the fresh realm's `Intl`, because a program can
- * replace `Intl.Collator` without any change to `localeCompare`.
+ * replace `Intl.Collator` without any change to `localeCompare`. A test can
+ * pass a realm of its own.
  */
 export function nativeCollationOf(
   dataVersion: CollationDataVersion,
-  versions: NodeJS.ProcessVersions = process.versions
+  versions: NodeJS.ProcessVersions = process.versions,
+  realm?: CollationRealm
 ): NativeCollation {
-  const realmIntl = freshRealm().Intl;
-  const options = new realmIntl.Collator().resolvedOptions();
-  const language = new realmIntl.Locale(options.locale).language;
+  const collation = defaultCollationOf(realm);
+  if (collation === null) {
+    return 'none';
+  }
 
-  const hasDefaultOptions = Object.entries(DEFAULT_OPTIONS).every(
-    ([name, value]) => options[name as keyof typeof options] === value
-  );
-  if (!hasDefaultOptions || !ROOT_COLLATION_LANGUAGES.includes(language)) {
+  // An indexed loop, so that no iterator of the program runs.
+  const names = freshReflect().ownKeys(DEFAULT_OPTIONS);
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index] as keyof typeof DEFAULT_OPTIONS;
+    if (collation.options[name] !== DEFAULT_OPTIONS[name]) {
+      return 'none';
+    }
+  }
+  if (!ROOT_COLLATION_LANGUAGES.includes(collation.language)) {
     return 'none';
   }
 

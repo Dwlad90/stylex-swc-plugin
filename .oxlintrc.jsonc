@@ -391,6 +391,9 @@
     "**/playwright-report",
     "**/test-results",
     "**/.turbo",
+    // Upstream's processStylexRules, copied out of the published plugin as it
+    // is. The sync test compares it with the plugin byte for byte.
+    "crates/stylex-rs-compiler/src/process-stylex-rules/reference.ts",
   ],
   "overrides": [
     {

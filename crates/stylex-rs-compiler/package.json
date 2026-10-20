@@ -7,6 +7,8 @@
   "files": [
     "dist/index.d.ts",
     "dist/index.js",
+    "dist/process-stylex-rules/*.d.ts",
+    "dist/process-stylex-rules/*.js",
     "dist/transform.d.ts",
     "dist/transform.js",
     "README.md",
@@ -54,6 +56,7 @@
     "typecheck:parity": "tsc --noEmit --project parity/tsconfig.json",
     "typecheck:test": "tsc --noEmit --project __test__/tsconfig.json",
     "typecheck:ts": "tsc --noEmit",
+    "vendor:reference": "node --import tsx/esm parity/vendor-reference.ts",
     "version": "napi version"
   },
   "config": {

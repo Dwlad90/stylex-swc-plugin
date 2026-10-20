@@ -41,6 +41,7 @@ static MUSL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 mod glibc_compat;
 
 mod enums;
+pub mod process_stylex_rules;
 mod structs;
 mod utils;
 use log::{info, warn};

@@ -37,6 +37,20 @@ use std::sync::LazyLock;
 
 use icu_collator::{CollatorBorrowed, options::CollatorOptions};
 
+/// The ICU major version whose collation data the collator was built with:
+/// `icu_collator_data` 2.3 holds the data of ICU 78 (CLDR 48). Beyond
+/// printable ASCII, the order is Node's order only on a Node that ships the
+/// same data, so the addon compares this with `process.versions.icu`.
+pub const ICU_DATA_VERSION: &str = "78";
+
+/// The Unicode version of the same data, compared with
+/// `process.versions.unicode`.
+pub const UNICODE_DATA_VERSION: &str = "17.0";
+
+/// The CLDR major version of the same data, compared with
+/// `process.versions.cldr`.
+pub const CLDR_DATA_VERSION: &str = "48";
+
 /// Printable ASCII in primary weight order, as V8 (ICU 78) collates it with
 /// the default locale, letters case folded: the space, then the punctuation
 /// and symbols in the collation's order, then the digits, then the letters.

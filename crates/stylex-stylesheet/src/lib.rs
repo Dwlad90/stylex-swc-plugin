@@ -16,6 +16,6 @@
 
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
-mod collation;
+pub mod collation;
 pub mod process;
 pub mod width_sort_key;

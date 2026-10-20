@@ -5,8 +5,36 @@
 use std::cmp::Ordering;
 
 use crate::collation::{
-  PRIMARY_ORDER, PRIMARY_RANK, build_primary_rank, compare, compare_by_collator,
+  CLDR_DATA_VERSION, ICU_DATA_VERSION, PRIMARY_ORDER, PRIMARY_RANK, UNICODE_DATA_VERSION,
+  build_primary_rank, compare, compare_by_collator,
 };
+
+/// The data version the addon compares with Node's follows the data crate.
+/// When this fails after an update of `icu_collator_data`, read the ICU and
+/// Unicode versions in that crate's README, and set both constants.
+#[test]
+fn the_data_version_follows_the_data_crate() {
+  let lock_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../Cargo.lock");
+  let lock = match std::fs::read_to_string(lock_path) {
+    Ok(lock) => lock,
+    Err(error) => panic!("cannot read {lock_path}: {error}"),
+  };
+  let data_version = lock
+    .split("[[package]]")
+    .find(|package| package.contains("name = \"icu_collator_data\""))
+    .and_then(|package| {
+      package
+        .lines()
+        .find_map(|line| line.strip_prefix("version = "))
+    });
+
+  assert_eq!(
+    data_version,
+    Some("\"2.3.0\""),
+    "ICU {ICU_DATA_VERSION}, Unicode {UNICODE_DATA_VERSION} and CLDR {CLDR_DATA_VERSION} are the \
+     data of version 2.3.0"
+  );
+}
 
 /// The rank table names every printable byte once, one-based, a letter's two
 /// cases sharing a rank, and nothing else.

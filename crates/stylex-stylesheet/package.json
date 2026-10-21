@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylesheet",
   "description": "The StyleX stylesheet step: the rules a compile emits, assembled into one sheet",
-  "version": "0.19.2",
+  "version": "0.20.0-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [

@@ -105,6 +105,12 @@ function rawStats(
   };
 }
 
+/** The `budget.json` file that the release gate reads. */
+function loadCommittedBudget(): BudgetFile {
+  const budgetPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'budget.json');
+  return parseBudget(JSON.parse(fs.readFileSync(budgetPath, 'utf8')), 'budget.json');
+}
+
 function entry(name: string, ceilingMs: number): BudgetEntry {
   return {
     name,
@@ -410,6 +416,29 @@ describe('evaluateBudget — canonical environment', () => {
     expect(report.status).toBe('pass');
     expect(report.environment.cpu.model).toBe('Intel Xeon');
   });
+
+  // In October 2026, GitHub moved `ubuntu-latest` from ubuntu24 to ubuntu26.
+  // Release run 39500461760 ran on ubuntu26. All its benchmarks were below
+  // their ceilings, but the image family check stopped the release.
+  test('the committed budget.json accepts the ubuntu26 image family', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [0.2])], {
+        ...CANONICAL_ENV,
+        runnerImage: 'ubuntu26',
+        runnerImageVersion: '20261012.163.1',
+      }),
+      loadCommittedBudget()
+    );
+    const imageProblems = report.problems.filter(problem =>
+      problem.kind.startsWith('environment-runner-image')
+    );
+    expect(imageProblems).toEqual([
+      expect.objectContaining({
+        kind: 'environment-runner-image-version',
+        severity: 'diagnostic',
+      }),
+    ]);
+  });
 });
 
 describe('evaluateBudget — pending calibration', () => {
@@ -631,8 +660,7 @@ describe('parseBudget', () => {
   });
 
   test('the committed budget.json parses', () => {
-    const budgetPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'budget.json');
-    const committed = parseBudget(JSON.parse(fs.readFileSync(budgetPath, 'utf8')), 'budget.json');
+    const committed = loadCommittedBudget();
     expect(committed.canonical.target).toBe('x86_64-unknown-linux-gnu');
     expect(committed.canonical.node).toBe('v24.18.0');
     expect(committed.subject).toBe('candidate');

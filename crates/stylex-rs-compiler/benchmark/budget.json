@@ -7,7 +7,7 @@
     "target": "x86_64-unknown-linux-gnu",
     "node": "v24.18.0",
     "runner": "ubuntu-latest",
-    "runnerImages": ["ubuntu24"],
+    "runnerImages": ["ubuntu24", "ubuntu26"],
     "runnerImageVersions": ["20260831.293.1", "20260907.300.1"]
   },
   "policy": {
@@ -15,7 +15,7 @@
     "increases": "A budget increase requires a dedicated reviewed change recording the affected benchmark, old and new ceilings, the repeated raw measurements, the cause and user impact, the alternatives considered, and why optimization or rollback is not appropriate.",
     "decreases": "Ceilings may ratchet down to lock in a proven improvement once repeated measurements support the lower value.",
     "automation": "No task, script, or workflow in this repository may write this file. A breach never updates the budget: it blocks the release. A seeding or recalibration change may compute the entries with a one-off script from archived run reports, because every value is checkable afterwards: evidence names the runs and parseEntry re-derives each ceilingMs from observedUpperMs times headroom.",
-    "environment": "Ceilings are only valid on the canonical target, Node version and runner image family. Drift in any of those three is a recalibration failure, not a comparison. runnerImageVersions records the exact image builds the ceilings were seeded on. A run on another build is reported as a diagnostic and does not stop the release, because GitHub rebuilds the image about every week and the project releases less often than that; the headroom over observedUpperMs covers the difference. A run that records no build at all stays a failure, because that is a defect in the measurement file. The CPU model cannot be pinned either: the report prints it in the environment line and it never stops a release, so spread the seeding runs across the models that appear."
+    "environment": "Ceilings are only valid on the canonical target, the canonical Node version and a runner image family in runnerImages. Drift in any of those three is a recalibration failure, not a comparison. The ceilings were seeded on ubuntu24. In October 2026, GitHub moved ubuntu-latest to ubuntu26. The budget accepts ubuntu26 without new seeding, for this reason. Release run 39028484585 on ubuntu24 and release run 39500461760 on ubuntu26 used the same CPU model, AMD EPYC 7763. For each benchmark, divide the ubuntu26 p95 by the ubuntu24 p95. The median of these ratios is 1.016, and all ratios are between 0.966 and 1.041. A change of CPU model has a larger effect. Two ubuntu24 runs on EPYC 9V74 and EPYC 7763 have a median ratio of 1.28. runnerImageVersions names only ubuntu24 builds, so a run on ubuntu26 reports its image build as a diagnostic. The next seeding run replaces this exception. runnerImageVersions records the exact image builds the ceilings were seeded on. A run on another build is reported as a diagnostic and does not stop the release, because GitHub rebuilds the image about every week and the project releases less often than that; the headroom over observedUpperMs covers the difference. A run that records no build at all stays a failure, because that is a defect in the measurement file. The CPU model cannot be pinned either: the report prints it in the environment line and it never stops a release, so spread the seeding runs across the models that appear."
   },
   "entries": [
     {

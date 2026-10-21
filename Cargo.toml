@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 rust-version = "1.97.0"
-version = "0.19.2"
+version = "0.20.0-rc.1"
 
 
 # Set the options for dependencies (not crates in the workspace), this mostly impacts cold builds
@@ -64,6 +64,7 @@ strip = "symbols"
 #   boxed AST nodes, so there is nothing to vectorize.
 
 [workspace.dependencies]
+aho-corasick = "1.1.4"
 anyhow = "1.0.102"
 boa_engine = { version = "0.22.0", features = ["annex-b"] }
 color-backtrace = { version = "0.7.2" }
@@ -74,6 +75,13 @@ ctor = "1.0.7"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
 fancy-regex = "0.19.0"
+# The plain engine, for an expression without a backreference or a look-around.
+# `fancy_regex` answers every search with a `Result`, because its backtracking
+# engine can stop at a limit; an expression without those features never runs
+# that engine, so for it the `Err` is a state the type names and the expression
+# cannot reach, an uncoverable arm in a workspace that gates on regions. `regex`
+# has no such arm. It is already in the tree as `fancy-regex`'s own engine.
+regex = "1.12.3"
 # Root collation for the pseudo-key comparator. Six of its crates are new to
 # this workspace; the other 26 in its tree already arrive through SWC's
 # `idna_adapter`. `crates/stylex-css/src/utils/pre_rule.rs` costs the choice

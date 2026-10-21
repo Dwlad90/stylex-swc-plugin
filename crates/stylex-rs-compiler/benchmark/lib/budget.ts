@@ -340,7 +340,7 @@ function checkEnvironment(
     problems.push(
       makeProblem(
         'environment-runner-image',
-        'raw stats records no runner image; ceilings seeded on ' +
+        'raw stats records no runner image; ceilings for ' +
           `${canonical.runnerImages.join(', ')} cannot be compared`
       )
     );
@@ -349,7 +349,7 @@ function checkEnvironment(
       makeProblem(
         'environment-runner-image',
         `runner image drifted to ${environment.runnerImage} ` +
-          `(seeded on ${canonical.runnerImages.join(', ')}) — recalibration required`
+          `(accepted: ${canonical.runnerImages.join(', ')}) — recalibration required`
       )
     );
   }

@@ -384,7 +384,7 @@ pub fn resolve_file_path(
 
 /// Tries to find the corresponding pnpm path for a resolved node_modules path.
 /// pnpm stores packages in
-/// node_modules/.pnpm/<package-name>@<version>/node_modules/<package-name> This
+/// `node_modules/.pnpm/<package-name>@<version>/node_modules/<package-name>`. This
 /// function checks if such a path exists and returns it if found.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {

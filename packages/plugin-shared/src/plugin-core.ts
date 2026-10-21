@@ -1,8 +1,7 @@
 import path from 'path';
 
-import stylexBabelPlugin from '@stylexjs/babel-plugin';
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
-import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
+import { processStylexRules } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, StyleXRule, TransformedOptions } from '@stylexswc/rs-compiler';
 
 import {
   BUILD_INFO_STYLEX_KEY,
@@ -348,7 +347,7 @@ export class StyleXPluginCore {
     // Take styles for the modules that were included in the last compilation.
     const allRules: StyleXRule[] = Array.from(this.stylexRules.values()).flat();
 
-    return stylexBabelPlugin.processStylexRules(allRules, this.transformedOptions);
+    return processStylexRules(allRules, this.transformedOptions);
   }
 
   /**

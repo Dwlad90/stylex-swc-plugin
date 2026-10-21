@@ -39,6 +39,17 @@ export const PropertyValidationMode = Object.freeze({
   Silent: 'silent',
 } as const);
 
+// ── The stylesheet step ─────────────────────────────────────────────
+
+import type { ProcessStylexRulesLayerOptions } from './process-stylex-rules/index.js';
+
+export { processStylexRules } from './process-stylex-rules/index.js';
+export type {
+  ProcessStylexRulesConfig,
+  ProcessStylexRulesLayerOptions,
+  StyleXRule,
+} from './process-stylex-rules/index.js';
+
 // ── Extended types ──────────────────────────────────────────────────
 
 /** StyleX compiler options (native options + TS-only fields). */
@@ -49,13 +60,7 @@ export interface StyleXOptions extends NativeStyleXOptions {
   swcPlugins?: Array<[string, Record<string, unknown>]>;
 }
 
-export type UseLayersType =
-  | boolean
-  | {
-      before?: ReadonlyArray<string>;
-      after?: ReadonlyArray<string>;
-      prefix?: string;
-    };
+export type UseLayersType = boolean | ProcessStylexRulesLayerOptions;
 
 export type TransformedOptions = Partial<
   Pick<

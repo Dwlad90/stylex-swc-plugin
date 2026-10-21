@@ -41,6 +41,7 @@ static MUSL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 mod glibc_compat;
 
 mod enums;
+pub mod process_stylex_rules;
 mod structs;
 mod utils;
 use log::{info, warn};
@@ -88,7 +89,7 @@ fn source_maps_config(source_map: Option<&SourceMaps>) -> SourceMapsConfig {
 
 /// The extensions whose modules are JavaScript rather than TypeScript.
 ///
-/// Not [`stylex_path_resolver::resolvers::EXTENSIONS`], which is the list of
+/// Not `stylex_path_resolver::resolvers::EXTENSIONS`, which is the list of
 /// suffixes to *try* when resolving an import path and includes `.md`. This one
 /// answers which language a file was authored in, and only its own caller wants
 /// it.

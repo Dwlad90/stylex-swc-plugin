@@ -96,18 +96,19 @@ fn evaluated_array_receiver(items: &[EvaluateResultValue]) -> ObjectMethodReceiv
 
 /// The array literal a fold answers, read as the object its indices name.
 ///
-/// Every slot of an [evaluator-written
-/// array](../../CONTEXT.md#evaluator-written-array) holds one present element
-/// and no spread. This reads the slots rather than trusting that, because a
-/// second reader that trusts the first drifts from it: a hole passed over
-/// before the index is counted moves every later key up one, and a spread read
-/// as a single element names a list under its own name. Both write a stylesheet
-/// the source does not describe, which is the answer
-/// [`evaluated_array_receiver`] already refuses to give.
+/// Every slot of an [evaluator-written array] holds one present element and no
+/// spread. This reads the slots rather than trusting that, because a second
+/// reader that trusts the first drifts from it: a hole passed over before the
+/// index is counted moves every later key up one, and a spread read as a single
+/// element names a list under its own name. Both write a stylesheet the source
+/// does not describe, which is the answer [`evaluated_array_receiver`] already
+/// refuses to give.
 ///
 /// The array is taken by value, and each element moves into the property it
 /// names. The caller owns the value and has no other use for it, so copying
 /// every element out of it would copy the whole subtree of each.
+///
+/// [evaluator-written array]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 fn written_array_receiver(array: ArrayLit) -> ObjectMethodReceiver {
   let mut props = Vec::with_capacity(array.elems.len());
   let mut key = IndexKey::default();

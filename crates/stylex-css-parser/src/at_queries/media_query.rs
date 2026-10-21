@@ -845,13 +845,14 @@ impl DimensionIntervals {
 /// build that dies. Under the node budget a pure ladder expands to about
 /// fourteen rungs where the old depth bound reached twenty; no single budget
 /// does both, because the shape that blows up sits under any depth that keeps
-/// twenty. Real ladders are a handful of rungs. See
-/// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md) for the
+/// twenty. Real ladders are a handful of rungs. See [ADR 0001] for the
 /// measurements and for what is still not capped.
 ///
 /// What this caps is one `and` list, which is what the boundary is crossed once
 /// for -- so a query holding several, such as a comma-separated disjunction,
 /// costs that many times as much.
+///
+/// [ADR 0001]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-css-parser/docs/adr/0001-the-official-compilers-output-wins.md
 const MAX_DISTRIBUTION_NODES: u64 = 1 << 18;
 
 /// How many times distributing `rules` can split before it runs out of clauses.

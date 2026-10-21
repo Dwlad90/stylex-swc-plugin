@@ -13,6 +13,7 @@ fn tl(tokens: Vec<SimpleToken>) -> TokenList {
     tokens,
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   }
 }
 
@@ -145,6 +146,67 @@ fn parse_to_end_fails_when_tokens_remain() {
   assert!(
     msg.contains("end of input") || msg.contains("Expected"),
     "msg: {msg}"
+  );
+}
+
+/// `cssparser` closes a block the input leaves open at its end, so the parse
+/// alone reads `(min-width: 500px` as `(min-width: 500px)`. The reference's
+/// tokenizer refuses the first, and `parse_to_end` does here, whatever the
+/// parser made of the closed reading; `parse` reads the tokens as they are.
+#[test]
+fn parse_to_end_fails_when_a_block_is_not_closed() {
+  use crate::at_queries::media_query::MediaQuery;
+  use crate::css_types::Calc;
+
+  for (parser, closed, unclosed) in [
+    (
+      MediaQuery::parser().map(|query| query.to_string(), None),
+      "(min-width: 500px)",
+      "(min-width: 500px",
+    ),
+    (
+      MediaQuery::parser().map(|query| query.to_string(), None),
+      "screen and (min-width: 500px) and (hover: hover)",
+      "screen and (min-width: 500px) and (hover: hover",
+    ),
+    (
+      Calc::parser().map(|calc| calc.to_string(), None),
+      "calc(1px + 2px)",
+      "calc(1px + 2px",
+    ),
+    (
+      Calc::parser().map(|calc| calc.to_string(), None),
+      "calc((1px + 2px) * 2)",
+      "calc((1px + 2px) * 2",
+    ),
+  ] {
+    assert!(parser.parse_to_end(closed).is_ok(), "{closed} parses");
+
+    let Err(refusal) = parser.parse_to_end(unclosed) else {
+      panic!("{unclosed} must be refused");
+    };
+    assert!(
+      refusal
+        .to_string()
+        .contains("a block is not closed before the end of the input"),
+      "{unclosed}: {refusal}"
+    );
+    assert!(
+      parser.parse(unclosed).is_ok(),
+      "{unclosed} still parses on the closed reading without the end check"
+    );
+  }
+
+  // A stray closing delimiter is a leftover token, as before.
+  assert!(
+    MediaQuery::parser()
+      .parse_to_end("(min-width: 500px))")
+      .is_err()
+  );
+  assert!(
+    MediaQuery::parser()
+      .parse_to_end(")(min-width: 500px")
+      .is_err()
   );
 }
 

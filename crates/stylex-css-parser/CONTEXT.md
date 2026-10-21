@@ -26,6 +26,14 @@ loose node list of the
 [value scanner](../postcss-value-parser/CONTEXT.md).
 _Avoid_: stream, input, lexer
 
+**Unclosed block**:
+A parenthesis block or function the input leaves open at its end. `cssparser`
+closes it for the author, so the tokens read as if it were closed; the token
+list keeps a mark that it was not, and `parse_to_end` refuses the input on
+that mark whatever the parser made of the closed reading, as the reference's
+tokenizer refuses it. `parse` alone reads the tokens as they are.
+_Avoid_: unbalanced parens, auto-closed function
+
 **CSS type**:
 A parser for one value type from the CSS grammar — `Color`, `Length`, `Angle`,
 `Calc`. Named for the specification's production, so `<length-percentage>` is

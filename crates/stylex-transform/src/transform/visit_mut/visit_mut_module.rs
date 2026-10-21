@@ -27,6 +27,9 @@ use stylex_ast::ast::imports::local_binding_of;
 use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 use stylex_enums::core::TransformationCycle;
 use stylex_state::state_manager::{BindingWrites, flush_pending_insertions};
+// Only the doc links in this file use this import.
+#[cfg(doc)]
+use stylex_state::state_manager::StateManager;
 
 /// Span covering the whole source, used for the module-level scope frame so
 /// top-level bindings enclose every `sx` site. The scope stack is seeded with

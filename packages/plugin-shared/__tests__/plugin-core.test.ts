@@ -1,6 +1,6 @@
 import path from 'path';
 
-import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import { processStylexRules } from '@stylexswc/rs-compiler';
 import type { TransformedOptions } from '@stylexswc/rs-compiler';
 import { describe, expect, test } from 'vitest';
 
@@ -331,28 +331,27 @@ describe('StyleXPluginCore.transformedOptions', () => {
 // the test above cannot see that. Each one is therefore set against the real
 // assembler and asked to change what it writes.
 describe('the assembly options reach processStylexRules', () => {
-  // `@stylexjs/babel-plugin@0.19.1` reads `useLegacyClassnamesSort` but leaves
-  // it out of the published type of `processStylexRules`. What this package
-  // hands that step is a `TransformedOptions`, so each case builds one and
-  // passes it: the same value production sends, and one the type accepts.
+  // What this package hands that step is a `TransformedOptions`, so each case
+  // builds one and passes it to the assembler the package calls, this
+  // compiler's own `processStylexRules`: the same value production sends.
   function assemble(
-    rules: Parameters<typeof stylexBabelPlugin.processStylexRules>[0],
+    rules: Parameters<typeof processStylexRules>[0],
     options: TransformedOptions
   ): string {
-    return stylexBabelPlugin.processStylexRules(rules, options);
+    return processStylexRules(rules, options);
   }
 
   // One priority for both rules, so the tie-break decides the order. By class
   // name `xa` comes first; by declaration `color` comes before `display`, which
   // puts `xb` first. The two sorts therefore disagree on this pair.
-  const rules: Parameters<typeof stylexBabelPlugin.processStylexRules>[0] = [
+  const rules: Parameters<typeof processStylexRules>[0] = [
     ['xb', { ltr: '.xb{color:red}', rtl: null }, 3000],
     ['xa', { ltr: '.xa{display:block}', rtl: null }, 3000],
   ];
 
   // Two priorities, because the assembler raises specificity per level and a
   // single level is already the lowest one.
-  const tieredRules: Parameters<typeof stylexBabelPlugin.processStylexRules>[0] = [
+  const tieredRules: Parameters<typeof processStylexRules>[0] = [
     ['xa', { ltr: '.xa{display:block}', rtl: null }, 1000],
     ['xb', { ltr: '.xb{color:red}', rtl: null }, 3000],
   ];

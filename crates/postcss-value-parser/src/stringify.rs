@@ -136,7 +136,7 @@ pub fn stringify_node(node: &Node) -> String {
   out
 }
 
-/// [`stringify`], with an override consulted for every node it reaches.
+/// [`stringify()`], with an override consulted for every node it reaches.
 pub fn stringify_with(nodes: &[Node], custom: Custom<'_>) -> String {
   let mut out = String::with_capacity(estimated_len(nodes));
   write_list(nodes, &mut Some(custom), &mut out);

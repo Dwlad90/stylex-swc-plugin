@@ -319,11 +319,12 @@ pub(super) fn refusal_for_a_property_read(prop: &MemberProp) -> Option<Refusal> 
   member_prop_name(prop).and_then(refusal_for_a_property_name)
 }
 
-/// The words a [refused fold](../../../../../CONTEXT.md) hands the caller,
-/// ready to be raised as a deopt.
+/// The words a [refused fold] hands the caller, ready to be raised as a deopt.
 ///
 /// Borrowed where the rule has one fixed sentence and owned where it names the
 /// method or the limit it refused on, so the common path allocates nothing.
+///
+/// [refused fold]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 pub(crate) type Refusal = Cow<'static, str>;
 
 /// Why the guard did not hand a call to the engine — the outcome, where

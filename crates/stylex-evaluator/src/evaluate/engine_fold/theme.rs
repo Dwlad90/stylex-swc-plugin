@@ -12,9 +12,8 @@
 //! What the language has for a value whose members are answered rather than
 //! stored is a proxy, so that is what crosses. The identity travels as the two
 //! plain values a member's name is derived from, and one Rust function derives
-//! it — the same one [`ThemeRef::get`](
-//! stylex_state::theme_ref::ThemeRef::get) calls, so the engine and
-//! the evaluator cannot come to answer the same read differently.
+//! it — the same one [`ThemeRef::get`] calls, so the engine and the evaluator
+//! cannot come to answer the same read differently.
 //!
 //! The traps are written in JavaScript rather than assembled here because the
 //! `toString` a group needs is a closure over the group's hash, and the engine's

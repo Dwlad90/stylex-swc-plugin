@@ -279,11 +279,16 @@ can stand a fraction of a percent on either side of `observedUpperMs` times
 that was not applied.
 
 Ceilings are valid only on the canonical environment
-(`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24` image family). Drift in
-any of those three is a recalibration failure rather than a comparison. Two
-properties of the machine cannot be pinned and neither stops a release: the
-report prints the CPU model in its environment line, and it reports an image
-build the ceilings do not name as a diagnostic. GitHub rebuilds the image
+(`x86_64-unknown-linux-gnu`, Node 24.18.0, an image family in `runnerImages`).
+Drift in any of those three is a recalibration failure rather than a
+comparison. The ceilings were seeded on `ubuntu24`. The budget also accepts
+`ubuntu26` without new seeding. On the same CPU model, the p95 of each
+benchmark on `ubuntu26` is between 0.966 and 1.041 times its p95 on
+`ubuntu24`. The `environment` policy in `budget.json` gives the runs. The next
+seeding run replaces this exception. Two properties of the machine cannot be
+pinned and neither stops a release: the report prints the CPU model in its
+environment line, and it reports an image build the ceilings do not name as a
+diagnostic. GitHub rebuilds the image
 about every week and the project releases less often than that, so a failure
 there would stop nearly every release for a cause no change here can answer;
 the headroom covers the difference. A run that records no image build at all

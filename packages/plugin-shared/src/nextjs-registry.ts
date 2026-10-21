@@ -1,4 +1,4 @@
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+import type { StyleXRule } from '@stylexswc/rs-compiler';
 
 import { NEXTJS_COMPILER_NAMES, isNextJsCompilerName } from './constants';
 import type { NextJsCompilerName } from './constants';

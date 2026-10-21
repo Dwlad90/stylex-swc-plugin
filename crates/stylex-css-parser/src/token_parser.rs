@@ -1508,6 +1508,20 @@ fn parse_to_end_error(
   label: &str,
   parse_error: Option<String>,
 ) -> Option<CssParseError> {
+  // A block the input leaves open was closed by the tokenizer, so the parse
+  // itself cannot see it; the reference's tokenizer refuses such input, and so
+  // does this. Read first: a parser that happened to succeed on the closed
+  // reading has still not parsed what was written.
+  if tokens.unclosed_block {
+    tokens.set_current_index(initial_index);
+    return Some(CssParseError::ParseError {
+      message: format!(
+        "Expected {} but a block is not closed before the end of the input",
+        label
+      ),
+    });
+  }
+
   if let Some(error) = parse_error {
     let consumed_tokens = tokens.slice(initial_index, Some(tokens.current_index));
     tokens.set_current_index(initial_index);

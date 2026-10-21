@@ -115,7 +115,7 @@ pub(crate) fn plan_fallbacks(count: usize, mut is_var: impl FnMut(usize) -> bool
 }
 
 /// The single value a fallback chain collapses to, folded from its parts in the
-/// order [`Fallbacks::chain`] lists them.
+/// order that the chain of a [`Fallbacks`] plan lists them.
 ///
 /// Each part is a variable's own name — `--x` for a `var(--x)` argument — or the
 /// text of the value the chain bottoms out on.

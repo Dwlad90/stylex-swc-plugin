@@ -1,5 +1,8 @@
-import stylexBabelPlugin from '@stylexjs/babel-plugin';
-import { transform as stylexTransform, normalizeRsOptions } from '@stylexswc/rs-compiler';
+import {
+  transform as stylexTransform,
+  normalizeRsOptions,
+  processStylexRules,
+} from '@stylexswc/rs-compiler';
 import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
 
 import type { TransformOptions } from './types';
@@ -66,7 +69,7 @@ export default function createBundler() {
   function bundle(transformedOptions: TransformedOptions) {
     const rules = Array.from(styleXRulesMap.values()).flat();
 
-    const css = stylexBabelPlugin.processStylexRules(rules, transformedOptions);
+    const css = processStylexRules(rules, transformedOptions);
     return css;
   }
 

@@ -166,14 +166,15 @@ impl FoldKey {
   }
 }
 
-/// A thread's engine and the [fold memo](../../../../../CONTEXT.md) that may only
-/// live as long as it does.
+/// A thread's engine and the [fold memo] that may only live as long as it does.
 ///
 /// The two are one value because their lifetimes are one lifetime. A compiled
 /// script belongs to a particular engine's realm, so a memo that outlived its
 /// engine would hand a later engine a script from a realm that no longer exists,
 /// and a memo built before the engine would have nothing to parse against.
 /// Holding them together is what makes both impossible to write.
+///
+/// [fold memo]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
 pub(super) struct Engine {
   pub(super) context: Context,
   /// One compiled script per distinct printed expression.
@@ -206,7 +207,7 @@ pub(super) struct Engine {
   /// every group in the build reads through.
   pub(super) var_group: JsFunction,
   /// The reader and the caller every printed fold that needs one is handed —
-  /// see [`backstop`](super::backstop).
+  /// see [`backstop`].
   pub(super) backstops: Backstops,
 }
 
@@ -234,7 +235,7 @@ impl Engine {
   /// A context with the one runtime limit its default leaves open, without the
   /// one thing the language provides that this compiler cannot — function source
   /// text — with the `Math` statics of Node in place of the ones that differ
-  /// (see [`math`](super::math)), and with an empty memo.
+  /// (see [`math`]), and with an empty memo.
   ///
   /// Answers a refusal rather than asserting, because the assignment runs inside
   /// an evaluation whose whole contract is that it may fail — and because an
@@ -448,7 +449,7 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
 }
 
 /// One tree of the printed source with each `**` changed into a call of the
-/// native that computes it as Node does (see [`math`](super::math)), and with
+/// native that computes it as Node does (see [`math`]), and with
 /// the fold's two checks put in. Answers whether the tree needs the checks.
 fn prepared_for_the_engine(tree: &mut Expr) -> bool {
   math::exponentiation_as_native_calls(tree);

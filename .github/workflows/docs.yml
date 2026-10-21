@@ -35,8 +35,6 @@ jobs:
 
       - name: Generate documentation
         run: pnpm run docs
-        env:
-          RUSTDOCFLAGS: --enable-index-page -Zunstable-options
 
       - name: Setup Pages
         uses: actions/configure-pages@v6

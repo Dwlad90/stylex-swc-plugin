@@ -1,8 +1,10 @@
 # Git Conventions
 
 - Follow the commit message convention: `<type>(<scope>): <description>`, where
-  `type` is one of `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
-  and `scope` is the area of the codebase affected.
+  `type` is one of the types in `.czrc` and `scope` is the area of the codebase
+  affected. `commitlint.config.js` reads the same list, so a type that is not
+  there fails the `commit-msg` hook. Use `perf` for a change that makes code
+  faster and `build` for a change to the build or its dependencies.
 - Spell the scope as **the name the package declares**, so there is nothing to
   remember and nothing to choose: the Cargo `name` for a crate
   (`stylex_transform`, `stylex_css_parser`), the npm name without its `@` for a

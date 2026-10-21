@@ -191,12 +191,13 @@ struct MediaEntry {
 /// is not a defect -- it is what the language does with a duplicate key, and
 /// upstream's object does it too. The second is. That is faithful rather than accidental, and nothing is
 /// reported for it, because the reference implementation reports nothing. It is
-/// a **ported upstream defect, not a design** -- see
-/// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md). When
-/// the upstream report is resolved this follows it.
+/// a **ported upstream defect, not a design** -- see [ADR 0001]. When the
+/// upstream report is resolved this follows it.
 ///
 /// TODO(upstream-report): record the facebook/stylex issue number here and in
 /// the ADR once the report drafted for it is filed.
+///
+/// [ADR 0001]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-css-parser/docs/adr/0001-the-official-compilers-output-wins.md
 //
 // JS-parity: insertion order is observable here, so this is an `FxIndexMap`
 // rather than an `FxHashMap` -- it stands in for the plain JavaScript object

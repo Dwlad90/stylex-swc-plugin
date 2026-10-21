@@ -375,16 +375,27 @@ mod boundaries_and_refusals {
   }
 
   /// The same shape unterminated. This parser closes an unclosed `calc(` for
-  /// the author rather than refusing it, so the assertion is that it
-  /// terminates and finds the operand -- not that it errors. Pinned because a
-  /// parser that ran off the end here would do so silently.
+  /// the author, and `parse_to_end` refuses the input as the reference does
+  /// (its tokenizer never closes a block). The assertion is that it terminates
+  /// with that refusal rather than running off the end, which it would do
+  /// silently; `parse` alone still reads the closed form and finds the operand.
   #[test]
-  fn a_deeply_nested_unterminated_calc_terminates_with_its_operand() {
+  fn a_deeply_nested_unterminated_calc_terminates_with_a_refusal() {
     let input = format!("calc({}1.1px", "calc(".repeat(200));
 
     match Calc::parser().parse_to_end(&input) {
+      Ok(calc) => panic!("expected the unclosed calc to be refused, got {calc}"),
+      Err(error) => assert!(
+        error
+          .to_string()
+          .contains("a block is not closed before the end of the input"),
+        "{error:?}"
+      ),
+    }
+
+    match Calc::parser().parse(&input) {
       Ok(calc) => assert_eq!(calc.to_string(), "calc(1.1px)"),
-      Err(error) => panic!("expected the unclosed calc to be tolerated: {error:?}"),
+      Err(error) => panic!("the closed reading finds the operand: {error:?}"),
     }
   }
 }

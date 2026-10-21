@@ -30,7 +30,8 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   compiler's closed sets, most of them user-facing options.
 - **stylex-js** ([CONTEXT.md](./crates/stylex-js/CONTEXT.md)) -- predicates,
   coercions and numeric operators over JavaScript semantics, asked before
-  trusting an expression and while folding one.
+  trusting an expression and while folding one; a JavaScript value as data, and
+  V8's array sort.
 - **stylex-logs** ([CONTEXT.md](./crates/stylex-logs/CONTEXT.md)) -- the logging
   backend and message format the Node host sees.
 - **stylex-path-resolver**
@@ -39,6 +40,10 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-css-parser**
   ([CONTEXT.md](./crates/stylex-css-parser/CONTEXT.md)) -- parser combinators
   for CSS _values_; never stylesheets or selectors.
+- **stylex-stylesheet**
+  ([CONTEXT.md](./crates/stylex-stylesheet/CONTEXT.md)) -- the stylesheet
+  step: the emitted rules assembled into one sheet, a port of
+  `processStylexRules`.
 - **stylex-structures**
   ([CONTEXT.md](./crates/stylex-structures/CONTEXT.md)) -- the data carried
   between phases: options, the per-file pass, and small value types.

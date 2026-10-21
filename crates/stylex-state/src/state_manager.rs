@@ -779,7 +779,7 @@ pub struct StateManager {
   /// violations, probed as its own step of the reference-resolution chain.
   /// Keyed by full `Id` (`(Atom, SyntaxContext)`), so a write to a shadowing
   /// binding never deopts the outer one. Populated by the `Discover` pre-scan
-  /// ([`ModuleBindingsCollector`]), in the same walk that fills
+  /// (`ModuleBindingsCollector`), in the same walk that fills
   /// [`Self::binding_mutations`].
   ///
   /// Behind an `Rc` for the reason the memoized module is. All four sets are
@@ -814,7 +814,7 @@ pub struct StateManager {
   /// glossary defines the term and why the `Id` is what makes it scope-aware.
   /// Read through [`Self::declares_binding`].
   ///
-  /// Populated by the `Discover` pre-scan ([`ModuleBindingsCollector`]) in
+  /// Populated by the `Discover` pre-scan (`ModuleBindingsCollector`) in
   /// either of its modes, in the same walk that fills the two write sets above.
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub declared_bindings: Rc<FxHashSet<Id>>,
@@ -945,7 +945,7 @@ pub struct StateManager {
   /// declarators it directly references in its initializer / body.
   ///
   /// Built during `finalize_module` after the mark phase
-  /// ([`build_decl_use_graph`]) and consumed by [`compute_live_set`] to
+  /// (`build_decl_use_graph`) and consumed by `compute_live_set` to
   /// run a forward mark-and-sweep that replaces the legacy count-based
   /// cleanup.
   pub decl_uses: FxHashMap<DeclId, FxHashSet<DeclId>>,
@@ -957,7 +957,7 @@ pub struct StateManager {
   /// namespaces.
   pub roots: FxHashSet<DeclId>,
 
-  /// Transient live-set computed by [`compute_live_set`] at the start
+  /// Transient live-set computed by `compute_live_set` at the start
   /// of `finalize_module`. Each `DeclId` in the set must survive the
   /// sweep; declarators absent from `decl_uses` entirely also survive
   /// via the "not-in-graph ⇒ keep by default" fallback.

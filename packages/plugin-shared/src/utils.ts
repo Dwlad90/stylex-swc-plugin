@@ -1,8 +1,7 @@
 import path from 'path';
 
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import { normalizeRsOptions, shouldTransformFile, transform } from '@stylexswc/rs-compiler';
-import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, StyleXRule, StyleXTransformResult } from '@stylexswc/rs-compiler';
 import type webpack from 'webpack';
 
 import {

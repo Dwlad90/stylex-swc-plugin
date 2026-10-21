@@ -125,7 +125,49 @@ Transforming the example above with source maps enabled
 ```
 
 The `metadata.stylex` rules are what bundler plugins collect to build the final
-CSS file.
+CSS file, through `processStylexRules`:
+
+```ts
+import { processStylexRules } from '@stylexswc/rs-compiler';
+
+// Every file's `metadata.stylex`, concatenated in compile order.
+const css = processStylexRules(rules, { useLayers: true });
+```
+
+It takes the options `@stylexjs/babel-plugin`'s export takes -- `useLayers`
+(`true`, `false` or `{ before, after, prefix }`), `enableLTRRTLComments`,
+`legacyDisableLayers`, `useLegacyClassnamesSort`, or a bare boolean standing for
+`useLayers` -- and writes the same bytes for the same arguments, for every
+input. Where the reference throws, this export throws the same error: the same
+class, the same message, at the same point.
+
+Two halves make that hold:
+
+- **The fast path.** The addon writes the sheet in Rust when it can prove that
+  its sheet is the reference's. A gate in JavaScript checks that each value the
+  reference reads is a plain value in a shape a build emits (no getter, no
+  Proxy, no lone surrogate), that the built-ins the reference calls are the
+  ones a fresh realm holds, and that the default collation of this process is
+  the root collation the addon sorts with. The rules a build emits always take
+  this path.
+- **The fallback.** For every other input, and wherever the reference throws,
+  the export runs upstream's own `processStylexRules`, copied out of the
+  published plugin (`src/process-stylex-rules/reference.ts`). The one change in
+  the copy: it parses a media query with the addon's parser, because the
+  plugin does not publish its own. A test fails when the copy and the installed
+  plugin differ; `pnpm vendor:reference` writes it again.
+
+Two limits remain. A program that replaces a function of Node's `vm` or
+`util` module before it loads the addon can hide a changed built-in from the
+guard. And when a program changes a built-in, the fallback parses media queries
+with the addon's parser, which the change does not reach, where upstream's
+parser would see it.
+
+The signature is a superset of the published one: `rules` is `readonly`,
+`config` and `useLayers` also take `null` (read as absent, as the runtime
+reads them), `useLegacyClassnamesSort` is declared (the reference's Flow
+source reads it, its `.d.ts` omits it), and the tuple type is named
+`StyleXRule`.
 
 The `map` above is abridged; by default it also carries `sourcesContent` and
 column-accurate `mappings` — see [`inlineSourcesContent`](#inlinesourcescontent)

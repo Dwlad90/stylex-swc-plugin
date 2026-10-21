@@ -48,6 +48,7 @@
     "**/performance_fixture/**",
     "**/*.toml",
     ".github/scripts/templates/benchmark-index.html",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "crates/stylex-rs-compiler/src/process-stylex-rules/reference.ts"
   ]
 }

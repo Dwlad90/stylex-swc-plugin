@@ -21,6 +21,10 @@ use crate::{functions::FunctionConfigType, state_manager::StateManager};
 use stylex_state_index::key_span_index::KeySpanIndex;
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
+// Only the doc links in this file use this import.
+#[cfg(doc)]
+use crate::functions::FunctionConfig;
+
 pub type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
 pub type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
 

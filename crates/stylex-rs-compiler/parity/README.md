@@ -27,6 +27,7 @@ declarations behind without anyone noticing.
 | ---------------------- | -------------------------------------- | ----- |
 | `parity`               | `checks` matrix, every pull request    | ~2.5s |
 | `parity:positions`     | the same step                          | ~2s   |
+| `parity:sheets`        | the same step                          | ~2s   |
 | `fuzz:pseudo-order`    | the same step                          | ~2s   |
 | `fuzz:shorthand`       | `parity-sweep`, the nightly schedule   | ~97s  |
 | `fuzz:prototypes`      | the same job                           | ~2s   |

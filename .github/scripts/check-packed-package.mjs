@@ -134,7 +134,7 @@ export function extractTarball(tarball, destination) {
     }
   };
   walk(root);
-  return { root, entries: entries.toSorted() };
+  return { root, entries: entries.toSorted((a, b) => a.localeCompare(b, 'en')) };
 }
 
 function isMainModule() {

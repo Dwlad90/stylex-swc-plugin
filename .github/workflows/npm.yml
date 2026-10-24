@@ -826,9 +826,10 @@ jobs:
 
           ls -R crates/stylex-rs-compiler/dist/*
       - name: Check the packed package loads
-        # The tarball as `pnpm publish` would ship it: every `files` entry
-        # matches something and every relative require in it resolves inside
-        # it. 0.20.0-rc.1 shipped `dist/index.js` without the directory it
+        # The tarball as `pnpm publish` would ship it, installed by pnpm into
+        # a fresh project and required, imported and type-checked there, with
+        # `napi prepublish` run first for the manifest the publish writes.
+        # 0.20.0-rc.1 shipped `dist/index.js` without the directory it
         # requires and could not be loaded; the test jobs run on the whole
         # build artifact and cannot see what this job assembles.
         run: node .github/scripts/check-packed-package.mjs crates/stylex-rs-compiler

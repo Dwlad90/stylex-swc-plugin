@@ -815,12 +815,24 @@ jobs:
       - name: Move artifacts
         run: pnpm exec turbo run artifacts --filter @stylexswc/rs-compiler --continue
       - name: Move and list artifacts
+        # Every file the build emitted beside the native binding, which `napi
+        # artifacts` has moved into the platform packages: `tsc` writes more
+        # than `index.*` and `transform.*` (`dist/process-stylex-rules/`), and
+        # the package's `files` list decides what the tarball carries.
         run: |
           mkdir -p crates/stylex-rs-compiler/dist
 
-          yes | cp -rf crates/stylex-rs-compiler/artifacts/bindings-aarch64-apple-darwin/{index,transform}.* crates/stylex-rs-compiler/dist/
+          rsync -a --exclude='*.node' crates/stylex-rs-compiler/artifacts/bindings-aarch64-apple-darwin/ crates/stylex-rs-compiler/dist/
 
           ls -R crates/stylex-rs-compiler/dist/*
+      - name: Check the packed package loads
+        # The tarball as `pnpm publish` would ship it, installed by pnpm into
+        # a fresh project and required, imported and type-checked there, with
+        # `napi prepublish` run first for the manifest the publish writes.
+        # 0.20.0-rc.1 shipped `dist/index.js` without the directory it
+        # requires and could not be loaded; the test jobs run on the whole
+        # build artifact and cannot see what this job assembles.
+        run: node .github/scripts/check-packed-package.mjs crates/stylex-rs-compiler
       - name: Build all public packages
         run: |
           pnpm run build --filter "{./packages/*}" --filter "!@stylexswc/*swc*" --filter "!{./crates/*}" --only --continue

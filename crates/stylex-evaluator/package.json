@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/evaluator",
   "description": "The JavaScript evaluator the StyleX compiler folds authored expressions with",
-  "version": "0.20.0-rc.2",
+  "version": "0.20.0",
   "private": true,
   "sideEffects": false,
   "files": [

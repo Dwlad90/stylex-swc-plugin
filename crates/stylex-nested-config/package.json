@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nested-config",
   "description": "Nested config flattening for the StyleX SWC plugin",
-  "version": "0.20.0-rc.2",
+  "version": "0.20.0",
   "private": true,
   "sideEffects": false,
   "files": [

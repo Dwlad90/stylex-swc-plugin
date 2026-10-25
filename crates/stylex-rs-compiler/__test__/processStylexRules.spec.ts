@@ -208,6 +208,73 @@ describe('processStylexRules', () => {
     }
   });
 
+  // An at-rule from `defineConsts` used as a condition key reaches the
+  // consuming module as its `var(--hash)` placeholder, and the compile step
+  // priced it as one: 3000, the share of an attribute selector, where the
+  // literal `@media` gets 200 (facebook/stylex#1988). Once the assembly knows
+  // the constant, the rule sorts and is layered as the literal is
+  // (facebook/stylex#1989). The expectation is the plugin's with that change
+  // applied; the published 0.19.1 sorts the constant-keyed rule after the
+  // attribute rule, so the reference is not consulted here.
+  test('sorts an imported at-rule constant used as a condition key as the literal at-rule', () => {
+    const rootDir = __dirname;
+    const options = { dev: false, unstable_moduleResolution: { type: 'haste' as const, rootDir } };
+    const compile = (name: string, source: string) =>
+      transform(path.join(rootDir, name), source, options).metadata.stylex;
+    const keys = compile(
+      'keys.stylex.js',
+      `
+        import * as stylex from '@stylexjs/stylex';
+        export const keys = stylex.defineConsts({ touch: '@media (pointer: coarse)' });
+      `
+    );
+    const overlay = (condition: string) =>
+      compile(
+        'overlay.js',
+        `
+          import * as stylex from '@stylexjs/stylex';
+          import { keys } from 'keys.stylex.js';
+          export const styles = stylex.create({
+            overlay: {
+              backgroundImage: {
+                default: null,
+                ':active': { default: 'linear-gradient(red, red)', ${condition}: 'none' },
+                '[data-press="on"]': 'linear-gradient(blue, blue)',
+              },
+            },
+          });
+        `
+      );
+    const lines = (condition: string, config: ProcessStylexRulesConfig) =>
+      processStylexRules([...keys, ...overlay(condition)], config)
+        .split('\n')
+        .filter(line => line.includes('background-image') || line.startsWith('@layer'))
+        .map(line => line.replace(/\.x[a-z0-9]+/g, '.x'));
+
+    const constantKeyed = overlay('[keys.touch]');
+    expect(constantKeyed.map(([, style, priority]) => [style.ltr, priority])).toContainEqual([
+      expect.stringMatching(
+        /^var\(--[a-z0-9]+\)\{\.x[a-z0-9]+\.x[a-z0-9]+:active\{background-image:none\}\}$/
+      ),
+      6170,
+    ]);
+
+    for (const config of [
+      { useLayers: false, legacyDisableLayers: true },
+      { useLayers: true },
+    ] as const) {
+      expect(lines('[keys.touch]', config)).toEqual(lines("'@media (pointer: coarse)'", config));
+    }
+    expect(lines('[keys.touch]', { useLayers: true })).toEqual([
+      '@layer priority1, priority2;',
+      '@layer priority1{',
+      '.x:active{background-image:linear-gradient(red,red)}',
+      '@media (pointer: coarse){.x.x:active{background-image:none}}',
+      '@layer priority2{',
+      '.x[data-press="on"]{background-image:linear-gradient(blue,blue)}',
+    ]);
+  });
+
   test('reads a bare boolean, a null and an absent config as the reference does', () => {
     const rules: StyleXRule[] = [['x1', { ltr: '.x1{color:red}', rtl: null }, 3000]];
 

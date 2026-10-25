@@ -422,6 +422,16 @@ pub enum ProcessStylexRulesError {
   /// reference decides: it resolves the chain, or its stack overflows.
   #[error("a constant chain is deeper than {MAX_CONSTANT_DEPTH} links")]
   ConstantChainTooDeep,
+  /// A rule is wrapped in a `defineConsts` at-rule outside the priority
+  /// table (`@supports`, `@media`, `@container`) whose text holds a `:`.
+  /// The reference decides what the rule's priority gains for it: its
+  /// `getPriority` reads such a value through the pseudo-class tables as
+  /// well.
+  #[error("{placeholder} holds {at_rule} with a `:`, an at-rule the priority table does not give")]
+  AtRuleConstantOutsideTheTable {
+    placeholder: String,
+    at_rule: String,
+  },
   /// The rules are not an array, so they have no `filter`.
   #[error("the rules are {0}, not a list")]
   RulesNotAList(&'static str),

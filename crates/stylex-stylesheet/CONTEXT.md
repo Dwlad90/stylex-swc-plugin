@@ -7,7 +7,10 @@ function here. The reference is `packages/@stylexjs/babel-plugin/src/index.js`
 at facebook/stylex `1fcb9a51cbecad2c82255e0f4b45cc072fa1a95a`, the commit
 `@stylexjs/babel-plugin` 0.19.1 was published from: upstream changes enter this
 project once they are on npm, so the port follows the published version. The
-output is the string that version writes, byte for byte.
+output is the string that version writes, byte for byte, with one correction
+ahead of it: the priority of a rule keyed by a `defineConsts` at-rule
+(facebook/stylex#1988, fixed upstream by facebook/stylex#1989; the term
+**At-rule constant key** below).
 
 `process::process_stylex_rules` is the assembly; `width_sort_key` holds the order
 it sorts by. [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) exports it
@@ -77,6 +80,25 @@ declaration of the constant (`--key:`) to the variable it names. The
 replacements are `String.prototype.replace`/`replaceAll` with a string
 replacement, dollar patterns included, as the reference calls them.
 _Avoid_: inlining, expansion
+
+**At-rule constant key**:
+A `defineConsts` at-rule used as a condition key, which reaches the compile
+step as its placeholder, `var(--key)`, and wraps the rule's text
+(`var(--key){…}`). The compile step priced the placeholder as it prices any
+unknown key, 3000, the share of an attribute selector, where the at-rule it
+stands for gets 30, 200 or 300 (`@supports`, `@media`, `@container`); so the
+rule sorted, and was layered, after rules it sorts before when the at-rule is
+written inline. After the constants are resolved, the sheet step adds the
+difference for each such wrapper, as facebook/stylex#1989 does in
+`processStylexRules`; a placeholder that is a value, a wrapper whose constant
+is no at-rule, and a constant the sheet does not declare add nothing. An
+at-rule outside the table keeps the placeholder's share (`getPriority`
+falls back to 3000 for it), unless its text holds a `:`, which the
+reference's pseudo-class tables may read: that rule is left to the
+reference. The vendored copy of the published plugin (the fallback) carries
+the correction once `@stylexjs/babel-plugin` publishes it; until then the
+two paths differ on this one input class.
+_Avoid_: placeholder priority, media constant
 
 **Priority group**:
 The sorted rules cut at each change of `floor(priority / 1000)` (a `NaN` level

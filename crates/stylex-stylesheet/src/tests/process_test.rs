@@ -2165,3 +2165,195 @@ fn a_long_chain_of_constants_resolves() {
 
   assert_eq!(sheet(&rules, &without_layers()), ".x1{color:red}");
 }
+
+// ==================== at-rule constants as condition keys (facebook/stylex#1989) ====================
+
+/// The issue's example (facebook/stylex#1988): the coarse-pointer reset keyed
+/// by a constant was compiled at 6170, the placeholder's 3000 in place of the
+/// at-rule's 200, and sorted after the attribute rule at 6000 that the literal
+/// at 3370 sorts before. Once the constant is known, it sorts, and is layered,
+/// as the literal is. Measured on the plugin with facebook/stylex#1989
+/// applied.
+#[test]
+fn an_at_rule_constant_used_as_a_condition_key_sorts_as_the_literal_does() {
+  let rules = [
+    constant("xel3o37", text("@media (pointer: coarse)")),
+    rule(
+      "x1xpbd04",
+      ".x1xpbd04:active{background-image:linear-gradient(red,red)}",
+      None,
+      3170.0,
+    ),
+    rule(
+      "x1v0kr87",
+      "@media (pointer: coarse){.x1v0kr87.x1v0kr87:active{background-image:none}}",
+      None,
+      3370.0,
+    ),
+    rule(
+      "xzjdyr2",
+      "var(--xel3o37){.xzjdyr2.xzjdyr2:active{background-image:none}}",
+      None,
+      6170.0,
+    ),
+    rule(
+      "xgbunv0",
+      ".xgbunv0[data-press=\"on\"]{background-image:linear-gradient(blue,blue)}",
+      None,
+      6000.0,
+    ),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n\
+     .x1xpbd04:active{background-image:linear-gradient(red,red)}\n\
+     @media (pointer: coarse){.x1v0kr87.x1v0kr87:active{background-image:none}}\n\
+     @media (pointer: coarse){.xzjdyr2.xzjdyr2:active{background-image:none}}\n}\n\
+     @layer priority2{\n\
+     .xgbunv0[data-press=\"on\"]{background-image:linear-gradient(blue,blue)}\n}"
+  );
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x1xpbd04:active{background-image:linear-gradient(red,red)}\n\
+     @media (pointer: coarse){.x1v0kr87.x1v0kr87:active{background-image:none}}\n\
+     @media (pointer: coarse){.xzjdyr2.xzjdyr2:active{background-image:none}}\n\
+     .xgbunv0[data-press=\"on\"]{background-image:linear-gradient(blue,blue)}"
+  );
+}
+
+/// Each at-rule of the table gives its own share, 30, 200 or 300, in place of
+/// the placeholder's 3000, and a rule under two constant wrappers gains both
+/// differences: 9000 sorts at 3500, after the container rule at 3300. Measured
+/// on the plugin with facebook/stylex#1989 applied.
+#[test]
+fn each_at_rule_constant_wrapper_gives_the_share_of_its_at_rule() {
+  let rules = [
+    constant("xs", text("@supports (display: grid)")),
+    constant("xc", text("@container (width > 10rem)")),
+    constant("xm", text("@media (min-width: 10rem)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xs){.b.b{color:red}}", None, 6000.0),
+    rule("d", "var(--xc){.d.d{color:red}}", None, 6000.0),
+    rule("e", "var(--xm){.e.e{color:red}}", None, 6000.0),
+    rule("f", "var(--xm){var(--xc){.f.f.f{color:red}}}", None, 9000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@layer priority1{\n.a{color:red}\n\
+     @supports (display: grid){.b.b{color:red}}\n\
+     @media (min-width: 10rem){.e.e{color:red}}\n\
+     @container (width > 10rem){.d.d{color:red}}\n\
+     @media (min-width: 10rem){@container (width > 10rem){.f.f.f{color:red}}}\n}"
+  );
+}
+
+/// A constant that resolves to an at-rule through another constant counts as
+/// that at-rule: the map is read after the constants are resolved. Measured on
+/// the plugin with facebook/stylex#1989 applied.
+#[test]
+fn an_at_rule_constant_reached_through_another_constant_counts_as_the_at_rule() {
+  let rules = [
+    constant("xa", text("@media (min-width: 10rem)")),
+    constant("xb", text("var(--xa)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xb){.b.b{color:red}}", None, 6000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@layer priority1{\n.a{color:red}\n@media (min-width: 10rem){.b.b{color:red}}\n}"
+  );
+}
+
+/// A placeholder that no `{` follows is a value, not a wrapper; a wrapper
+/// whose constant is no at-rule (a value used as one), is not a string, or is
+/// not declared gains nothing, as the reference's pattern and map read them;
+/// none moves. Measured on the plugin, with and without facebook/stylex#1989.
+#[test]
+fn a_placeholder_that_is_a_value_or_wraps_no_at_rule_keeps_its_priority() {
+  let rules = [
+    constant("xm", text("@media (min-width: 10rem)")),
+    constant("xv", text("red")),
+    constant("xn", JsValue::from(1.0)),
+    rule("a", ".a{content:\"var(--xm)\"}", None, 3000.0),
+    rule("b", "var(--xv){.b.b{color:red}}", None, 6000.0),
+    rule("d", ".d{color:var(--xv)}", None, 3000.0),
+    rule("e", ".e:hover{color:red}", None, 3130.0),
+    rule("g", "var(--xn){.g.g{color:red}}", None, 6000.0),
+    rule("h", "var(--zz){.h.h{color:red}}", None, 6000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.d{color:red}\n\
+     .a{content:\"@media (min-width: 10rem)\"}\n.e:hover{color:red}\n}\n\
+     @layer priority2{\n1{.g.g{color:red}}\nred{.b.b{color:red}}\nvar(--zz){.h.h{color:red}}\n}"
+  );
+}
+
+/// A rule whose `ltr` text is not a string has no wrappers to read, whatever
+/// its `rtl` text holds; the sheet is then refused where the reference reads
+/// the text as a string (`selector.startsWith is not a function`).
+#[test]
+fn a_rule_whose_ltr_text_is_not_a_string_gains_nothing() {
+  let rules = [
+    constant("xm", text("@media (min-width: 10rem)")),
+    Rule::new(
+      "k".into(),
+      RuleStyle {
+        ltr: JsValue::from(5.0),
+        rtl: text("var(--xm){.k.k{color:red}}"),
+        ..RuleStyle::default()
+      },
+      6000.0,
+    ),
+  ];
+
+  assert!(matches!(
+    process_stylex_rules(&rules, &without_layers()),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
+      ..
+    })
+  ));
+}
+
+/// An at-rule outside the table gets the fallback 3000 from `getPriority`,
+/// the placeholder's own share, so the rule keeps its priority; one whose text
+/// holds a `:` is left to the reference, whose `getPriority` reads such a text
+/// through the pseudo-class tables. Measured on the plugin with
+/// facebook/stylex#1989 applied.
+#[test]
+fn an_at_rule_constant_outside_the_table_keeps_its_priority_or_is_left_to_the_reference() {
+  let rules = [
+    constant("xu", text("@starting-style")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.a{color:red}\n}\n\
+     @layer priority2{\n@starting-style{.b.b{color:red}}\n}"
+  );
+
+  let rules = [
+    constant("xu", text("@scope (.card:hover)")),
+    rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
+  ];
+
+  let error = ProcessStylexRulesError::AtRuleConstantOutsideTheTable {
+    placeholder: "var(--xu)".to_owned(),
+    at_rule: "@scope".to_owned(),
+  };
+  assert_eq!(
+    process_stylex_rules(&rules, &without_layers()),
+    Err(error.clone())
+  );
+  assert_eq!(
+    error.to_string(),
+    "var(--xu) holds @scope with a `:`, an at-rule the priority table does not give"
+  );
+}

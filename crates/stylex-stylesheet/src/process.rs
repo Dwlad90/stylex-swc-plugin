@@ -30,6 +30,7 @@ use aho_corasick::AhoCorasick;
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
+use stylex_constants::constants::priorities::AT_RULE_PRIORITIES;
 use stylex_js::array_sort::array_tim_sort;
 use stylex_js::string::{js_replace_all, js_substitution};
 use stylex_js::value::{JsValue, MapKey};
@@ -384,53 +385,129 @@ impl<'c> Substitutions<'c> {
   }
 }
 
-/// Every rule with the constants substituted into its texts. A rule whose
-/// texts do not change is handed on as it is rather than copied, and most
-/// rules are such.
+/// `getPriority('var(--x)')`: a constant's placeholder names no at-rule,
+/// pseudo or property, so it gets the fallback, the share an attribute
+/// selector gets.
+const PLACEHOLDER_PRIORITY: f64 = 3000.0;
+
+/// `getPriority(value)` for a constant's value that starts with `@`: the
+/// at-rule table, by prefix. `None` for an at-rule outside the table.
+fn at_rule_priority(value: &str) -> Option<f64> {
+  ["@supports", "@media", "@container"]
+    .into_iter()
+    .find(|at_rule| value.starts_with(at_rule))
+    .and_then(|at_rule| AT_RULE_PRIORITIES.get(at_rule))
+    .map(|priority| **priority)
+}
+
+/// What a rule's priority gains once its constants are known
+/// (facebook/stylex#1989). A `defineConsts` at-rule used as a condition key
+/// reaches the compile step as its placeholder, `var(--x)`, and the rule's
+/// priority took `getPriority` of the placeholder for it, [`PLACEHOLDER_PRIORITY`],
+/// where the literal at-rule gets 30, 200 or 300. For each placeholder the
+/// text uses as a wrapper, `var(--x){` (the reference's
+/// `/var\(--[A-Za-z0-9_-]+\)(?=\{)/g`), whose constant resolves to a text that
+/// starts with `@`, the difference is added, so the rule sorts and is layered
+/// as if the at-rule were written inline. A placeholder of a constant the
+/// sheet does not declare, a constant that is not a string and a text that is
+/// not a string add nothing.
+fn const_at_rule_priority_delta(
+  text: &JsValue,
+  constants: &OrderedConstants,
+) -> Result<f64, ProcessStylexRulesError> {
+  let JsValue::String(text) = text else {
+    return Ok(0.0);
+  };
+
+  let mut delta = 0.0;
+  for placeholder in CONSTANT_REFERENCE.find_iter(text) {
+    if !text[placeholder.end()..].starts_with('{') {
+      continue;
+    }
+    let placeholder = placeholder.as_str();
+    let Some(JsValue::String(value)) = constants.get(placeholder) else {
+      continue;
+    };
+    if !value.starts_with('@') {
+      continue;
+    }
+    let priority = match at_rule_priority(value) {
+      Some(priority) => priority,
+      // Outside the table, `getPriority` reads the value through the
+      // pseudo-class tables, which live in the compile step's crate and
+      // match on `:`, and then falls back as it does for the placeholder.
+      None if value.contains(':') => {
+        return Err(ProcessStylexRulesError::AtRuleConstantOutsideTheTable {
+          placeholder: placeholder.to_owned(),
+          at_rule: value.split_whitespace().next().unwrap_or(value).to_owned(),
+        });
+      },
+      None => PLACEHOLDER_PRIORITY,
+    };
+    delta += priority - PLACEHOLDER_PRIORITY;
+  }
+
+  Ok(delta)
+}
+
+/// Every rule with the constants substituted into its texts and its priority
+/// corrected for the at-rule constants it is wrapped in
+/// ([`const_at_rule_priority_delta`]). A rule that neither changes text nor
+/// priority is handed on as it is rather than copied, and most rules are such.
 fn substitute_constants<'r>(
   rules: Vec<&'r Rule>,
   constants: &OrderedConstants,
-) -> Vec<Cow<'r, Rule>> {
+) -> Result<Vec<Cow<'r, Rule>>, ProcessStylexRulesError> {
   if constants.is_empty() {
-    return rules.into_iter().map(Cow::Borrowed).collect();
+    return Ok(rules.into_iter().map(Cow::Borrowed).collect());
   }
 
   let substitutions = Substitutions::of(constants);
+  let mut out = Vec::with_capacity(rules.len());
 
-  rules
-    .into_iter()
-    .map(|rule| {
-      // Every pattern the substitution searches for, `var(--x)` and `--x:`,
-      // holds `--`.
-      if !rule.style().mentions_a_variable() {
-        return Cow::Borrowed(rule);
-      }
+  for rule in rules {
+    // Every pattern the substitution searches for, `var(--x)` and `--x:`,
+    // holds `--`, and so does every placeholder.
+    if !rule.style().mentions_a_variable() {
+      out.push(Cow::Borrowed(rule));
+      continue;
+    }
 
-      // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
-      // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
-      // other property is read after this, so none is substituted.
-      let substituted = |text: &JsValue| match text {
-        JsValue::String(text) => substitutions.apply(text).map(JsValue::String),
-        _ => None,
-      };
-      let ltr = substituted(&rule.style().ltr);
-      let rtl = substituted(&rule.style().rtl);
+    // The delta reads the text as the compile step wrote it, before the
+    // substitution replaces the placeholders.
+    let delta = const_at_rule_priority_delta(&rule.style().ltr, constants)?;
 
-      if ltr.is_none() && rtl.is_none() {
-        return Cow::Borrowed(rule);
-      }
+    // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
+    // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
+    // other property is read after this, so none is substituted.
+    let substituted = |text: &JsValue| match text {
+      JsValue::String(text) => substitutions.apply(text).map(JsValue::String),
+      _ => None,
+    };
+    let ltr = substituted(&rule.style().ltr);
+    let rtl = substituted(&rule.style().rtl);
 
-      let style = rule.style();
-      let style = RuleStyle {
-        ltr: ltr.unwrap_or_else(|| style.ltr.clone()),
-        rtl: rtl.unwrap_or_else(|| style.rtl.clone()),
-        const_key: style.const_key.clone(),
-        const_val: style.const_val.clone(),
-      };
+    if ltr.is_none() && rtl.is_none() && delta == 0.0 {
+      out.push(Cow::Borrowed(rule));
+      continue;
+    }
 
-      Cow::Owned(Rule::new(rule.class_name().clone(), style, rule.priority()))
-    })
-    .collect()
+    let style = rule.style();
+    let style = RuleStyle {
+      ltr: ltr.unwrap_or_else(|| style.ltr.clone()),
+      rtl: rtl.unwrap_or_else(|| style.rtl.clone()),
+      const_key: style.const_key.clone(),
+      const_val: style.const_val.clone(),
+    };
+
+    out.push(Cow::Owned(Rule::new(
+      rule.class_name().clone(),
+      style,
+      rule.priority() + delta,
+    )));
+  }
+
+  Ok(out)
 }
 
 // ==================== the sort ====================
@@ -937,7 +1014,7 @@ fn assemble(
   let (constants, non_constant_rules) = collect_constants(rules);
   let constants = resolve_constants(constants)?;
   refuse_if_any(late.spread)?;
-  let substituted = substitute_constants(non_constant_rules, &constants);
+  let substituted = substitute_constants(non_constant_rules, &constants)?;
   let sorted_rules = sort_rules(&substituted, config.use_legacy_classnames_sort)?;
   let grouped = group_by_priority_level(&sorted_rules)?;
   refuse_if_any(late.header)?;

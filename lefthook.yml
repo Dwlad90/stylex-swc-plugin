@@ -246,6 +246,11 @@ pre-push:
     # `dist/` is missing, knip fails with "Error loading". Run
     # `pnpm lint:dead-exports` one time: it builds the packages and runs knip.
     # The hook does not build itself, because a cold build compiles Rust.
+    #
+    # knip does not load `apps/nextjs-rspack-example/next.config.ts`
+    # (`"next": { "config": [] }` in knip.json). That config calls
+    # `withRspack`, which stops the process outside the Next.js CLI, and knip
+    # cannot catch an exit. Do not remove that key as a copy of `apps/*`.
     - name: dead-exports
       glob: '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
       skip: *on_shared_branches

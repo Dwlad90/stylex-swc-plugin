@@ -10,8 +10,8 @@ Compile-time helpers for authoring StyleX atomic styles inline. It detects and
 compiles the inline-style syntax used inside `stylex.props(...)`:
 
 ```js
-import * as stylex from '@stylexjs/stylex';
 import x from '@stylexjs/atoms';
+import * as stylex from '@stylexjs/stylex';
 
 <div
   {...stylex.props(

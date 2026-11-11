@@ -20,9 +20,7 @@ const isStyleXLoader = (loader: TurbopackLoaderItem): boolean =>
  * The first two forms are short forms of the third. Expand them, so that the
  * merge below has one shape to work with.
  */
-const toRuleItem = (
-  item: TurbopackLoaderItem | TurbopackRuleConfigItem
-): TurbopackRuleConfigItem =>
+const toRuleItem = (item: TurbopackLoaderItem | TurbopackRuleConfigItem): TurbopackRuleConfigItem =>
   typeof item === 'string' || 'loader' in item ? { loaders: [item] } : item;
 
 /**

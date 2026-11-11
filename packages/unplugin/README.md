@@ -128,8 +128,8 @@ module.exports = {
 
 ```ts
 // esbuild.config.js
-import { build } from 'esbuild';
 import StylexRsPlugin from '@stylexswc/unplugin/esbuild';
+import { build } from 'esbuild';
 
 build({
   plugins: [StylexRsPlugin()],
@@ -219,8 +219,8 @@ type CSSTransformer = (
 ```
 
 ```ts
-import postcss from 'postcss';
 import autoprefixer from 'autoprefixer';
+import postcss from 'postcss';
 
 StylexRsPlugin({
   async transformCss(css) {

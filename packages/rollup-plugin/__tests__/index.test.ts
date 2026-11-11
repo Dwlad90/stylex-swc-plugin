@@ -1,5 +1,6 @@
 'use strict';
 
+import { readFileSync } from 'fs';
 import path from 'path';
 
 import commonjs from '@rollup/plugin-commonjs';
@@ -82,5 +83,16 @@ describe('@stylexswc/rollup-plugin', () => {
     ) as rollup.OutputAsset | undefined;
 
     expect(css?.source).toMatchSnapshot();
+  });
+
+  it('declares browserslist as a runtime dependency', () => {
+    // `src/index.ts` imports `browserslist` at load time. A package manager does
+    // not install a devDependency for a consumer, so
+    // `require('@stylexswc/rollup-plugin')` fails.
+    const { dependencies = {} } = JSON.parse(
+      readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')
+    ) as { dependencies?: Record<string, string> };
+
+    expect(dependencies).toHaveProperty('browserslist');
   });
 });

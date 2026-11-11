@@ -2678,6 +2678,9 @@ importers:
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
+      browserslist:
+        specifier: catalog:runtime
+        version: 4.29.5
       lightningcss:
         specifier: catalog:runtime
         version: 1.33.0
@@ -2691,9 +2694,6 @@ importers:
       '@types/node':
         specifier: catalog:types
         version: 26.6.3
-      browserslist:
-        specifier: catalog:runtime
-        version: 4.29.5
       rollup:
         specifier: catalog:bundlers
         version: 4.63.5

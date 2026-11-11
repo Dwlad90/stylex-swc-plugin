@@ -983,9 +983,7 @@ fn text_length(text: &JsValue) -> usize {
 /// One level of the specificity polyfill.
 const SPECIFICITY_LEVEL: &str = ":not(#\\#)";
 
-/// `addAncestorSelector`: `ancestor_selector` prefixed to the rule's own
-/// selector, inside the innermost at-rule when the rule sits in one. A
-/// `@keyframes` block holds no selector to prefix.
+/// [`write_with_ancestor`] into a new string.
 #[cfg(test)]
 pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> String {
   let mut out = String::new();
@@ -993,7 +991,9 @@ pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> 
   out
 }
 
-/// [`add_ancestor_selector`], written into `out`.
+/// `addAncestorSelector`, written into `out`: `ancestor_selector` prefixed to
+/// the rule's own selector, inside the innermost at-rule when the rule sits in
+/// one. A `@keyframes` block holds no selector to prefix.
 fn write_with_ancestor(out: &mut String, selector: &str, ancestor_selector: &str) {
   if selector.starts_with("@keyframes") {
     out.push_str(selector);
@@ -1018,19 +1018,25 @@ fn write_with_ancestor(out: &mut String, selector: &str, ancestor_selector: &str
   out.push_str(&selector[split..]);
 }
 
-/// `addSpecificityLevel`: `index` copies of `:not(#\#)` on the rule's selector,
-/// the `@layer` polyfill for a sheet written without layers. They go before a
-/// pseudo-element, else before the declaration block, else (a text with no
-/// block) before its last character. `None` where JavaScript would cut that
-/// character in two ([`last_brace_or_last_unit`]).
+/// `addSpecificityLevel`: [`insert_specificity`] with `index` copies of
+/// `:not(#\#)`.
 #[cfg(test)]
 pub(crate) fn add_specificity_level(selector: &str, index: usize) -> Option<String> {
   insert_specificity(selector, &SPECIFICITY_LEVEL.repeat(index)).map(Cow::into_owned)
 }
 
-/// [`add_specificity_level`] with the copies already spelled. With no copy, as
-/// in the first group, the two halves join back into the text as it was, even
-/// where JavaScript cuts a character in two.
+/// Puts `pseudo` on the rule's selector. `pseudo` holds the copies of
+/// `:not(#\#)` as one string. This is the `@layer` polyfill for a sheet written
+/// without layers.
+///
+/// The copies go before a pseudo-element, else before the declaration block.
+/// A text with no block gets them before its last character. The function
+/// returns `None` when JavaScript would cut that character in two
+/// ([`last_brace_or_last_unit`]).
+///
+/// An empty `pseudo`, as for the first [`PriorityGroup`], gives back the text
+/// as it was, even where JavaScript cuts a character in two. A `@keyframes`
+/// block holds no selector, so it also comes back as it was.
 fn insert_specificity<'s>(selector: &'s str, pseudo: &str) -> Option<Cow<'s, str>> {
   if pseudo.is_empty() || selector.starts_with("@keyframes") {
     return Some(Cow::Borrowed(selector));

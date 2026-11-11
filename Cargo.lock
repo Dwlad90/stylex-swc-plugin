@@ -652,7 +652,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1165,7 +1165,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2856,7 +2856,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3292,7 +3292,7 @@ dependencies = [
  "stylex_structures",
  "stylex_utils",
  "swc_core",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "swc_malloc",
 ]
 
@@ -3403,7 +3403,7 @@ dependencies = [
  "stylex_utils",
  "swc_compiler_base",
  "swc_core",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "swc_malloc",
  "swc_sourcemap",
 ]
@@ -3514,7 +3514,7 @@ dependencies = [
  "swc_compiler_base",
  "swc_config",
  "swc_core",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "walkdir",
 ]
 
@@ -3555,7 +3555,7 @@ dependencies = [
  "swc_compiler_base",
  "swc_config",
  "swc_core",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "swc_malloc",
  "swc_sourcemap",
  "testing 28.0.1",
@@ -3587,7 +3587,7 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "swc_core",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "xxhash-rust",
 ]
 
@@ -3673,9 +3673,9 @@ dependencies = [
 
 [[package]]
 name = "swc_compiler_base"
-version = "65.0.0"
+version = "66.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1513da5e8483741dee002668d6cedd07da1cefa6517868888f30a9348c65486"
+checksum = "9f81587c34f0aab273846a7d74cf16c30652769efcffd7caec21f26455269bad"
 dependencies = [
  "anyhow",
  "base64",
@@ -3693,7 +3693,7 @@ dependencies = [
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_minifier",
- "swc_ecma_parser 45.1.6",
+ "swc_ecma_parser",
  "swc_ecma_visit",
  "swc_sourcemap",
 ]
@@ -3742,8 +3742,8 @@ dependencies = [
  "swc_common 26.0.0",
  "swc_ecma_ast",
  "swc_ecma_codegen",
- "swc_ecma_parser 46.1.2",
- "swc_ecma_transforms_base 50.0.0",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
  "swc_ecma_transforms_testing",
  "swc_ecma_transforms_typescript",
  "swc_ecma_utils",
@@ -3824,9 +3824,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "62.0.1"
+version = "63.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b98ecce04823366c5239f9b023a79ca0ef493bcbea5dfdf5be54e5742e75a6f6"
+checksum = "07ef214c747b265a9f1aa4372540f320f837cff779b2c41fe540781464814813"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -3849,31 +3849,11 @@ dependencies = [
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_hooks",
- "swc_ecma_parser 45.1.6",
- "swc_ecma_transforms_base 49.0.1",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
  "swc_ecma_transforms_optimization",
  "swc_ecma_utils",
  "swc_ecma_visit",
- "tracing",
-]
-
-[[package]]
-name = "swc_ecma_parser"
-version = "45.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4af66bb9a4cbd2a600b41c2592e27b7947b7e30aa6918d321f987f9e0ff63f5"
-dependencies = [
- "bitflags",
- "compact_str 0.7.1",
- "either",
- "num-bigint 0.4.6",
- "phf 0.11.3",
- "rustc-hash",
- "seq-macro",
- "serde",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
  "tracing",
 ]
 
@@ -3913,28 +3893,6 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_base"
-version = "49.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c5b5b6a31a512d23854cb6fabc9347596bde4106cd3a65dc4f9072bbb0514b4"
-dependencies = [
- "better_scoped_tls",
- "indexmap",
- "once_cell",
- "par-core",
- "phf 0.11.3",
- "rustc-hash",
- "serde",
- "swc_atoms",
- "swc_common 26.0.0",
- "swc_ecma_ast",
- "swc_ecma_parser 45.1.6",
- "swc_ecma_utils",
- "swc_ecma_visit",
- "tracing",
-]
-
-[[package]]
-name = "swc_ecma_transforms_base"
 version = "50.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1620c8f84093bf63e619a29f8ef83d17fd4720f57d8b89a06d2b5d9ccf4f02e"
@@ -3947,9 +3905,9 @@ dependencies = [
  "rustc-hash",
  "serde",
  "swc_atoms",
- "swc_common",
+ "swc_common 26.0.0",
  "swc_ecma_ast",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
@@ -3957,9 +3915,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_optimization"
-version = "52.0.2"
+version = "53.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81534b978cee37ec7e8055fe04f32c195c82450eac2e3751f9629df7cbe7d69a"
+checksum = "2c0c7e26c5848f1bc6a66e21208340712fb19f32647165b3a710b4587096282f"
 dependencies = [
  "bytes-str",
  "dashmap",
@@ -3973,8 +3931,8 @@ dependencies = [
  "swc_atoms",
  "swc_common 26.0.0",
  "swc_ecma_ast",
- "swc_ecma_parser 45.1.6",
- "swc_ecma_transforms_base 49.0.1",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
@@ -3999,8 +3957,8 @@ dependencies = [
  "swc_config",
  "swc_ecma_ast",
  "swc_ecma_hooks",
- "swc_ecma_parser 46.1.2",
- "swc_ecma_transforms_base 50.0.0",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
  "swc_ecma_utils",
  "swc_ecma_visit",
 ]
@@ -4021,9 +3979,9 @@ dependencies = [
  "swc_common 26.0.0",
  "swc_ecma_ast",
  "swc_ecma_codegen",
- "swc_ecma_parser 46.1.2",
+ "swc_ecma_parser",
  "swc_ecma_testing",
- "swc_ecma_transforms_base 50.0.0",
+ "swc_ecma_transforms_base",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "swc_sourcemap",
@@ -4043,7 +4001,7 @@ dependencies = [
  "swc_atoms",
  "swc_common 26.0.0",
  "swc_ecma_ast",
- "swc_ecma_transforms_base 50.0.0",
+ "swc_ecma_transforms_base",
  "swc_ecma_transforms_react",
  "swc_ecma_utils",
  "swc_ecma_visit",
@@ -4862,7 +4820,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

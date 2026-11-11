@@ -197,8 +197,13 @@ shows a full pipeline with `@rollup/plugin-swc`.
 
 ### How do I post-process the generated CSS?
 
-The plugin already runs Lightning CSS on the extracted stylesheet; tune it with
-`lightningcssOptions` (for example `targets` from a browserslist query).
+The plugin already runs Lightning CSS on the extracted stylesheet. By default,
+its `targets` come from your browserslist config. Browserslist reads the
+`BROWSERSLIST` environment variable first. If it is not set, browserslist finds
+the first `.browserslistrc`, `browserslist` file or `browserslist` key in
+`package.json`, starting at the directory where the build runs. If there is no
+config, browserslist uses its `defaults` query. To change this step, set
+`lightningcssOptions` (for example, set `targets` to override the config).
 
 ### Is this an official StyleX package?
 

@@ -1,9 +1,13 @@
 name: Docs and Config Validation
 
-# Documentation- and config-only pull requests are excluded from the full
-# validation workflow, so until now they had no formatting gate at all. This
-# runs the Node formatter and nothing else: no Rust toolchain, no builds, no
-# visual tests, no benchmarks.
+# This workflow is a fast gate for documentation and config changes. It runs
+# only the Node formatter and the manifest check. It does not install Rust,
+# build, run visual tests or run benchmarks.
+#
+# Use `paths` only. GitHub rejects a workflow that sets `paths` and
+# `paths-ignore` for the same event. GitHub then records a failed run with no
+# jobs on each push. Thus a pull request that changes docs and code runs this
+# gate too. The cost is small.
 
 on:
   pull_request:
@@ -16,13 +20,6 @@ on:
       - '**/*.jsonc'
       - '.oxfmtrc.json'
       - '.oxlintrc.jsonc'
-    paths-ignore:
-      - '**/*.rs'
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.jsx'
-      - '**/Cargo.toml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

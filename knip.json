@@ -40,6 +40,10 @@
       "playwright": false,
       "ignoreDependencies": ["react-refresh", "@swc/jest", "@farmfe/core", "@farmfe/plugin-react"]
     },
+    "apps/nextjs-rspack-example": {
+      "next": { "config": [] },
+      "ignoreDependencies": ["react-refresh", "@swc/jest"]
+    },
     "apps/solid-unplugin-example": {
       "playwright": false,
       "ignoreDependencies": ["react-refresh", "@swc/jest"]

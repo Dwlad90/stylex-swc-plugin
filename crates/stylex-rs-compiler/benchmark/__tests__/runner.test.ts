@@ -56,9 +56,8 @@ function refusingWith(message: string): SubjectRun {
 
 /** A subject that answers `rules` for one named fixture and 1 for the rest. */
 function subjectRefusing(label: string, name: string, rules: SubjectRun) {
-  return createSubject(
-    { label, version: '1.0.0', resolvedFrom: `/${label}` },
-    (fixture, options) => (fixture.name === name ? rules(fixture, options) : 1)
+  return createSubject({ label, version: '1.0.0', resolvedFrom: `/${label}` }, (fixture, options) =>
+    fixture.name === name ? rules(fixture, options) : 1
   );
 }
 

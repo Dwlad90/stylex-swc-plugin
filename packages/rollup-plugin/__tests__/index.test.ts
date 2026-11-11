@@ -5,13 +5,24 @@ import path from 'path';
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import * as rollup from 'rollup';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import packageJson from '../package.json';
 import stylexPlugin from '../src/index';
 import type { PluginOptions } from '../src/index';
 
 describe('@stylexswc/rollup-plugin', () => {
+  // The plugin gets its CSS targets from browserslist, and browserslist reads
+  // the shell environment and config files above the working directory. Set a
+  // fixed query, so that the snapshots are the same on each machine.
+  beforeEach(() => {
+    vi.stubEnv('BROWSERSLIST', 'defaults');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   async function runStylex(options: PluginOptions) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
@@ -83,6 +94,21 @@ describe('@stylexswc/rollup-plugin', () => {
     ) as rollup.OutputAsset | undefined;
 
     expect(css?.source).toMatchSnapshot();
+  });
+
+  it('gets the CSS targets from the browserslist config of the project', async () => {
+    // Browserslist reads a config file only when the caller gives no query.
+    // If the plugin sends a fixed query, this test fails. The fixture selects
+    // Safari 8, and Safari 8 must have a prefix for `display: flex`.
+    vi.stubEnv('BROWSERSLIST', undefined);
+    vi.stubEnv(
+      'BROWSERSLIST_CONFIG',
+      path.resolve(__dirname, '__fixtures__/safari-8.browserslistrc')
+    );
+
+    const { css } = await runStylex({ fileName: 'stylex.css' });
+
+    expect(css).toMatch(/display:\s*-webkit-flex/);
   });
 
   it('declares browserslist as a runtime dependency', () => {

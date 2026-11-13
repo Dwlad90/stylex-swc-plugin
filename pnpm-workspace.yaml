@@ -156,7 +156,7 @@ catalogs:
   frameworks:
     '@chromatic-com/storybook': '^5.6.0'
     '@nuxt/kit': '^4.6.3'
-    '@nuxt/schema': '^4.6.3'
+    '@nuxt/schema': '^4.6.4'
     '@storybook/addon-a11y': '^10.6.5'
     '@storybook/addon-docs': '^10.6.5'
     '@storybook/addon-links': '^10.6.5'
@@ -268,7 +268,7 @@ catalogs:
     '@swc/jest': '^0.2.39'
     '@testing-library/jest-dom': '^7.0.1'
     '@testing-library/react': '^16.3.3'
-    '@vitest/browser': '^5.0.3'
+    '@vitest/browser': '^5.0.5'
     '@vitest/browser-playwright': '^5.0.3'
     '@vitest/coverage-v8': '^5.0.3'
     'jest': '^30.5.2'

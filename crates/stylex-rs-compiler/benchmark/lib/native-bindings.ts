@@ -45,16 +45,21 @@ const PLATFORM_PACKAGE_SCOPE = '@stylexswc';
  * no mimalloc, measured both subjects and left with exit 0, while a base of
  * `0.19.0-rc.1` and one of `0.19.0-rc.2`, which both link it, each stopped the
  * process with SIGSEGV. All three version strings differ from the candidate, so
- * the cause is not a shared version: it is the second mimalloc. What the second
- * copy does to the first is not known -- the addon references no macOS zone
- * call, so it holds the allocator as a plain Rust global one -- and the guard
- * does not need to know. `require`, dynamic `import`, and `process.dlopen` with
- * `RTLD_LOCAL` all fail the same way.
+ * the cause is not a shared version: it is the second mimalloc. On macOS,
+ * mimalloc v3 keeps the heap of a thread in a fixed TLS slot that belongs to the
+ * process, so the second copy reads the heap of the first copy. `require`,
+ * dynamic `import`, and `process.dlopen` with `RTLD_LOCAL` all fail the same
+ * way.
+ *
+ * From the release after `0.20.0`, the binding links mimalloc v2 on macOS. v2
+ * does not use the slot, so a pair that holds one such binding can share a
+ * process. The guard still refuses such a pair. It cannot read which mimalloc
+ * version a binding links, and a pair of two v3 bindings crashes.
  *
  * The name says restricted and not unsafe because the platform alone does not
  * decide. It is one of the two conditions, and `assertBindingCanLoad` reads the
- * allocator for the other, so only the pair that was measured to fail is
- * refused.
+ * allocator for the other. The guard thus refuses each pair where both
+ * bindings link mimalloc. This includes some pairs that can load safely.
  */
 const DUAL_LOAD_RESTRICTED_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(['darwin']);
 

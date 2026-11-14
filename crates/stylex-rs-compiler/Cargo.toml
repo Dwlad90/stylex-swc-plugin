@@ -63,6 +63,30 @@ stylex_utils = { path = "../stylex-utils" }
 [target.'cfg(all(target_os = "linux", target_env = "musl", target_arch = "x86_64"))'.dependencies]
 mimalloc.workspace = true
 
+# mimalloc v2, not v3, on macOS. On macOS, `swc_malloc` sets the global
+# allocator, not this crate. The `v2` feature unifies with the `mimalloc` that
+# `swc_malloc` selects, so the addon still links one mimalloc.
+#
+# On macOS, mimalloc v3 keeps the heap of a thread in the fixed TLS slots 108
+# and 109. These slots belong to the process, not to the image. A build loads
+# this addon and `@swc/core` into one Node process. From 1.16.17, `@swc/core`
+# links its own mimalloc v3. The second copy to load then reads the heap of the
+# first copy. The process stops with SIGSEGV, in each load order.
+#
+# v2 keeps the heap in `__thread` storage, which is private to each image. v2
+# uses a fixed TLS slot (89) only with the `override` feature. Do not set
+# `override`: it causes the same crash again.
+#
+# Paired benchmark on darwin arm64, 66 fixtures, geometric mean of the time
+# against v3: v2 is 1.03x. The v3 pthread-key model (`-DMI_HAS_TLS_SLOT=0`) also
+# isolates the copies, but it is 1.12x. Also, microsoft/mimalloc#1302 reports a
+# crash at process exit for that model.
+#
+# `__test__/sharedProcessAllocator.spec.ts` loads this addon and `@swc/core`
+# into one process. It fails when the two copies share a slot.
+[target.'cfg(target_vendor = "apple")'.dependencies]
+mimalloc = { workspace = true, features = ["v2"] }
+
 [build-dependencies]
 napi-build = "2.3.1"
 

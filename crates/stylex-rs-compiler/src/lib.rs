@@ -13,7 +13,8 @@
 // every musl target, and `.github/workflows/npm.yml` publishes one of them
 // (`x86_64-unknown-linux-musl`), which the declaration below answers for. The
 // other six published targets get mimalloc from here. The workspace manifest
-// records why, and which target takes jemalloc instead.
+// records why, and which target takes jemalloc instead. On macOS, this crate's
+// manifest selects mimalloc v2 and records why.
 //
 // Reached through the `cdylib` alone, which is the whole of this crate's
 // `crate-type`: nothing links this crate as a Rust library, so nothing inherits

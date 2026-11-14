@@ -59,7 +59,7 @@ it into dash on Linux, where its bashisms fail.
   `dist/`, and knip fails when a config does not load. For this reason, the task
   depends on the builds of these packages, and on `@stylexswc/rs-compiler`
   through them. If CI shows `Error loading <config> (Cannot find module
-.../dist/...)`, add the build of that package to the `dependsOn` list in
+  .../dist/...)`, add the build of that package to the `dependsOn` list in
   `turbo.json`. CI runs the script as a `checks` leg. The `pre-push` job runs
   knip directly against the local `dist/`.
 - `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both optional installs,

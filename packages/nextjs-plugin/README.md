@@ -347,6 +347,7 @@ module.exports = stylexPlugin({
 
 ```ts
 import path from 'path';
+
 import withStylexTurbopack from '@stylexswc/nextjs-plugin/turbopack';
 
 const rootDir = __dirname;

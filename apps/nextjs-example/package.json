@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-example",
-  "version": "0.20.0",
+  "version": "0.20.1-rc.1",
   "private": true,
   "scripts": {
     "build": "next build --webpack",
@@ -33,6 +33,7 @@
     "@stylexswc/jest": "catalog:internal",
     "@stylexswc/playwright": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
+    "@stylexswc/webpack-plugin": "catalog:internal",
     "@swc/jest": "catalog:testing",
     "@testing-library/jest-dom": "catalog:testing",
     "@testing-library/react": "catalog:testing",

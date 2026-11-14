@@ -53,7 +53,7 @@ export default function stylexPlugin({
         const collectedCSS = processStylexRules(rules, transformedOptions);
         // Process the CSS using lightningcss
         const { code } = transform({
-          targets: browserslistToTargets(browserslist('>= 1%')),
+          targets: browserslistToTargets(browserslist()),
           ...lightningcssOptions,
           filename: 'stylex.css',
           code: Buffer.from(collectedCSS),

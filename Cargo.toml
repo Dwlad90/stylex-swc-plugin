@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 rust-version = "1.97.0"
-version = "0.20.0"
+version = "0.20.1-rc.1"
 
 
 # Set the options for dependencies (not crates in the workspace), this mostly impacts cold builds
@@ -74,7 +74,7 @@ cssparser = { version = "0.38.0" }
 ctor = "1.0.7"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
-fancy-regex = "0.19.0"
+fancy-regex = "0.20.0"
 # The plain engine, for an expression without a backreference or a look-around.
 # `fancy_regex` answers every search with a `Result`, because its backtracking
 # engine can stop at a limit; an expression without those features never runs
@@ -153,10 +153,10 @@ smallvec = { version = "1.15.1" }
 # reason: a recursive walk over a nested expression must not be bounded by the
 # thread's stack. Named here so the evaluator can depend on it directly.
 stacker = "0.1.24"
-swc_compiler_base = { version = "65.0.0" }
+swc_compiler_base = { version = "66.0.0" }
 swc_config = { version = "6.0.0" }
-swc_core = { version = "81.0.0" }
-swc_ecma_parser = { version = "45.1.1" }
+swc_core = { version = "82.0.1" }
+swc_ecma_parser = { version = "46.1.2" }
 url = "2.5.8"
 # The global allocator for the shipped `.node` on the other six published
 # targets. It selects mimalloc on all of them; it keeps the system allocator on
@@ -166,7 +166,7 @@ url = "2.5.8"
 # here.
 swc_malloc = { version = "1.2.5" }
 swc_sourcemap = { version = "10.0.2" }
-testing = "27.0.0"
+testing = "28.0.1"
 thiserror = "2.0.18"
 # The structural key's hasher. 128-bit output in one pass, where two salted
 # `DefaultHasher` states cost two -- see `stylex-utils/src/hash.rs`.

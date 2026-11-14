@@ -23,6 +23,7 @@
     "@playwright/test": "catalog:testing",
     "@rsbuild/core": "catalog:bundlers",
     "@rsbuild/plugin-react": "catalog:bundlers",
+    "@rspack/core": "catalog:bundlers",
     "@stylexswc/playwright": "catalog:internal",
     "@types/react": "catalog:types",
     "@types/react-dom": "catalog:types",

@@ -34,6 +34,7 @@
     "@stylexswc/jest": "catalog:internal",
     "@stylexswc/playwright": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
+    "@stylexswc/rspack-plugin": "catalog:internal",
     "@swc/jest": "catalog:testing",
     "@testing-library/jest-dom": "catalog:testing",
     "@testing-library/react": "catalog:testing",

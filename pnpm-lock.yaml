@@ -866,6 +866,9 @@ importers:
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
+      '@stylexswc/webpack-plugin':
+        specifier: catalog:internal
+        version: link:../../packages/webpack-plugin
       '@swc/jest':
         specifier: catalog:testing
         version: 0.2.39(@swc/core@1.16.22(@swc/helpers@0.5.23))
@@ -1033,6 +1036,9 @@ importers:
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
+      '@stylexswc/rspack-plugin':
+        specifier: catalog:internal
+        version: link:../../packages/rspack-plugin
       '@swc/jest':
         specifier: catalog:testing
         version: 0.2.39(@swc/core@1.16.22(@swc/helpers@0.5.23))
@@ -1399,6 +1405,9 @@ importers:
       '@rsbuild/plugin-react':
         specifier: catalog:bundlers
         version: 2.1.1(@rsbuild/core@2.3.1(core-js@3.48.0))(@rspack/core@2.3.1(@swc/helpers@0.5.23))
+      '@rspack/core':
+        specifier: catalog:bundlers
+        version: 2.3.1(@swc/helpers@0.5.23)
       '@stylexswc/playwright':
         specifier: catalog:internal
         version: link:../../packages/playwright

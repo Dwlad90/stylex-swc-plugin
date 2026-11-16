@@ -165,6 +165,7 @@ stylex_test!(
         width: 500
       },
       unitless: {
+        fontSizeAdjust: 0.545,
         fontWeight: 500,
         lineHeight: 1.5,
         opacity: 0.5,

@@ -14,6 +14,10 @@ _inject2({
     priority: 4000
 });
 _inject2({
+    ltr: ".x1v6sj9q{font-size-adjust:.545}",
+    priority: 3000
+});
+_inject2({
     ltr: ".xk50ysn{font-weight:500}",
     priority: 3000
 });

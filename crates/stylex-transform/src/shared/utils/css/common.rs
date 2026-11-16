@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use stylex_css::css::common::{get_number_suffix, normalize_css_property_value};
 use stylex_css::values::content::transform_content_value;
 use stylex_state::state_manager::StateManager;
@@ -48,9 +50,10 @@ pub(crate) fn transform_value_cached(
   // Keyed by JS identity, not CSS text: `width: 1` and `width: '1'` read the
   // same but compile to different declarations.
   //
-  // Two allocations, not one: this reserves the property and its colon exactly,
-  // and `write_identity_key` reserves what it appends. Growing exactly once
-  // beats guessing a headroom constant, and this runs once per declaration.
+  // The capacity holds the key, its length (at most 20 digits) and two colons.
+  // A short length leaves spare room, so a short value fits with no second
+  // allocation. `write_identity_key` grows the buffer only for a long value.
+  // This runs once per declaration.
   //
   // The result is returned owned rather than borrowed from the cache because
   // every caller needs an owned value immediately — a `Pair`, or an entry in
@@ -58,7 +61,11 @@ pub(crate) fn transform_value_cached(
   // would move that allocation to the call sites rather than remove it; making
   // it disappear means carrying `Rc<str>` through `Pair` and the hash pipeline,
   // which is a change to the class-name path and not a caching concern.
-  let mut cache_key = String::with_capacity(key.len() + 1);
+  //
+  // The key length goes first. A key and a value can both contain a colon, so
+  // without the length `a` + `x:sy` and `a:sx` + `y` give the same cache key.
+  let mut cache_key = String::with_capacity(key.len() + 22);
+  let _ = write!(cache_key, "{}:", key.len());
   cache_key.push_str(key);
   cache_key.push(':');
   value.write_identity_key(&mut cache_key);

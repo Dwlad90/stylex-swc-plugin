@@ -38,25 +38,53 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, TRawVa
   map
 }
 
-/// Maps each key and converts each raw value to its final CSS text.
+/// Maps each key, then converts each raw value with the mapped key.
 ///
-/// The two steps are fused because their order is observable: the key is
-/// dashified before the value is transformed, so the property name that decides
-/// the unit suffix is the dashed one.
-///
-/// Two keys that map to the same name are one declaration, and the value
-/// written last wins, so the pairs are collected through a map before they are
-/// answered.
+/// The mapped key sets the unit suffix. A dashed key is not in the camelCase
+/// lookup tables, so `font-weight: 700` gets `px`. `stylex.positionTry` uses
+/// this order. Its properties give the same value with each key.
 pub(crate) fn obj_map_keys_and_transform_values(
   entries: &IndexMap<String, TRawValue>,
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
 ) -> Vec<Pair> {
+  map_keys_and_build_declarations(entries, state, mapper, false)
+}
+
+/// Converts each raw value with its original key, then maps each key.
+///
+/// `stylex.create` uses this order. The camelCase key finds the unitless and
+/// time properties, so `fontWeight: 700` stays `700`.
+pub(crate) fn obj_transform_values_and_map_keys(
+  entries: &IndexMap<String, TRawValue>,
+  state: &mut StateManager,
+  mapper: impl Fn(&str) -> String,
+) -> Vec<Pair> {
+  map_keys_and_build_declarations(entries, state, mapper, true)
+}
+
+/// Maps each key and converts each raw value to CSS text. When
+/// `transform_with_original_key` is set, the value is converted with the
+/// original key. When it is not set, the value is converted with the mapped key.
+///
+/// Two keys can map to the same name. They make one declaration: it keeps the
+/// position of the first key and the value of the last key.
+fn map_keys_and_build_declarations(
+  entries: &IndexMap<String, TRawValue>,
+  state: &mut StateManager,
+  mapper: impl Fn(&str) -> String,
+  transform_with_original_key: bool,
+) -> Vec<Pair> {
   let mut map: IndexMap<String, String> = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
     let mapped_key = mapper(key);
-    let value = transform_value_cached(mapped_key.as_str(), value, state);
+    let transform_key = if transform_with_original_key {
+      key.as_str()
+    } else {
+      mapped_key.as_str()
+    };
+    let value = transform_value_cached(transform_key, value, state);
 
     map.insert(mapped_key, value);
   }

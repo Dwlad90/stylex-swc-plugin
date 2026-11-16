@@ -294,16 +294,15 @@ fn format_queries_or_with_and_nested_is_top_level_uses_comma() {
 }
 
 // ---------------------------------------------------------------------------
-// format_queries with keyword parenthesization (should_parenthesize path)
+// format_queries with a media keyword inside an `and`
 // ---------------------------------------------------------------------------
 
 #[test]
-fn format_queries_keyword_without_prefix_not_at_top_level_gets_parens() {
-  // MediaKeyword("screen", not=false, only=false) at non-top-level gets parenthesized
-  // This is exercised when screen appears inside AND: "screen and ..."
+fn format_queries_keyword_without_prefix_not_at_top_level_is_bare() {
+  // A media type inside an `and` is a bare keyword. Browsers do not match
+  // `(screen)`, because they read it as an unknown boolean feature.
   let result = parsed("@media screen and (min-width: 400px)");
-  // The screen keyword should be parenthesized in the output
-  assert!(result.to_string().contains("(screen)"));
+  assert_eq!(result.to_string(), "@media screen and (min-width: 400px)");
 }
 
 // ---------------------------------------------------------------------------
@@ -771,8 +770,8 @@ fn or_combinator_with_or_keyword_succeeds() {
 
 #[test]
 fn or_combinator_three_rules_with_commas() {
-  // @media screen, print, all → three-way OR
-  let q = parsed("@media screen, print, all");
+  // @media screen, print, (color) → three-way OR
+  let q = parsed("@media screen, print, (color)");
   match &q.queries {
     MediaQueryRule::Or(or_rules) => {
       assert_eq!(or_rules.rules.len(), 3);
@@ -1085,15 +1084,15 @@ fn media_query_rule_display_all_variants() {
 
 #[test]
 fn format_queries_not_wrapping_or_gets_parenthesized() {
-  // Not(Or([...])) → "(not (...))"
+  // Not(Or([...])) → "(not (...))". Feature rules keep the shape; media types
+  // would resolve it away.
   let or_rule = MediaQueryRule::Or(MediaOrRules::new(vec![
-    MediaQueryRule::MediaKeyword(MediaKeyword::new("screen", false, false)),
-    MediaQueryRule::MediaKeyword(MediaKeyword::new("print", false, false)),
+    MediaQueryRule::WordRule(MediaWordRule::new("color")),
+    MediaQueryRule::WordRule(MediaWordRule::new("grid")),
   ]));
   let not_rule = MediaQueryRule::Not(MediaNotRule::new(or_rule));
   let mq = MediaQuery::new(not_rule);
-  let s = mq.to_string();
-  assert!(s.contains("not") && s.contains("("));
+  assert_eq!(mq.to_string(), "@media (not ((color) or (grid)))");
 }
 
 // ---------------------------------------------------------------------------
@@ -1780,20 +1779,23 @@ fn normalize_not_of_pair_stays_as_not_pair() {
 
 #[test]
 fn format_queries_or_member_that_is_or_not_top_level() {
-  // Or([Or([screen, print])]) non-top-level → gets parenthesized
+  // Or([Or([color, grid]), monochrome]) non-top-level → gets parenthesized.
+  // Feature rules keep the shape; media types would resolve it away.
   let inner_or = MediaQueryRule::Or(MediaOrRules::new(vec![
-    MediaQueryRule::MediaKeyword(MediaKeyword::new("screen", false, false)),
-    MediaQueryRule::MediaKeyword(MediaKeyword::new("print", false, false)),
+    MediaQueryRule::WordRule(MediaWordRule::new("color")),
+    MediaQueryRule::WordRule(MediaWordRule::new("grid")),
   ]));
   let outer_or = MediaQueryRule::Or(MediaOrRules::new(vec![
     inner_or,
-    MediaQueryRule::MediaKeyword(MediaKeyword::new("all", false, false)),
+    MediaQueryRule::WordRule(MediaWordRule::new("monochrome")),
   ]));
   // Wrap in Not to force non-top-level rendering
   let not_rule = MediaQueryRule::Not(MediaNotRule::new(outer_or));
   let mq = MediaQuery::new(not_rule);
-  let s = mq.to_string();
-  assert!(s.contains("not") && s.contains("("));
+  assert_eq!(
+    mq.to_string(),
+    "@media (not (((color) or (grid)) or (monochrome)))"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -2786,11 +2788,12 @@ fn exceeding_the_bound_is_not_a_parse_failure() {
 /// guards a bare `not` operand must look past the keyword and let it through.
 ///
 /// This is the third condition of that guard: the first two are already true
-/// here, and only the shape of the parsed rule keeps the query alive.
+/// here, and only the shape of the parsed rule keeps the query alive. The
+/// negated media type then becomes its complement, `print`.
 #[test]
 fn a_negated_media_type_after_an_and_is_not_a_bare_negation() {
   let query = parsed("@media (min-width: 1px) and not screen");
-  assert_eq!(query.to_string(), "@media (min-width: 1px) and not screen");
+  assert_eq!(query.to_string(), "@media print and (min-width: 1px)");
 }
 
 /// An overflowed bound is kept rather than dropped, as the reference
@@ -2924,4 +2927,315 @@ fn a_double_inequality_takes_each_key_from_its_own_operator() {
   for (input, expected) in cases {
     assert_eq!(parsed(input).to_string(), expected, "for {input}");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Media type resolution
+// ---------------------------------------------------------------------------
+
+fn keyword(key: &str, not: bool) -> MediaQueryRule {
+  MediaQueryRule::MediaKeyword(MediaKeyword::new(key, not, false))
+}
+
+fn min_width(px: f64) -> MediaQueryRule {
+  MediaQueryRule::Pair(MediaRulePair::new(
+    "min-width",
+    MediaRuleValue::Length(crate::css_types::Length::new(px, "px".to_string())),
+  ))
+}
+
+fn and(rules: Vec<MediaQueryRule>) -> MediaQueryRule {
+  MediaQueryRule::And(MediaAndRules::new(rules))
+}
+
+fn or(rules: Vec<MediaQueryRule>) -> MediaQueryRule {
+  MediaQueryRule::Or(MediaOrRules::new(rules))
+}
+
+/// Each query resolves to one positive media type per branch.
+#[test]
+fn media_types_resolve_to_one_positive_media_type() {
+  let cases = [
+    // An `all` branch matches everything.
+    ("@media screen, print, all", "@media all"),
+    // Every branch never matches.
+    (
+      "@media print and screen, not all and (color)",
+      "@media not all",
+    ),
+    // `all` inside an `and` adds nothing.
+    (
+      "@media all and (max-width: 1067px)",
+      "@media (max-width: 1067px)",
+    ),
+    ("@media all and all", "@media all"),
+    // Two media types that disagree never match.
+    ("@media print and not print", "@media not all"),
+    // The same requirement twice is one requirement.
+    (
+      "@media (min-width: 1px) and not screen and not screen",
+      "@media print and (min-width: 1px)",
+    ),
+    // The positive keyword is the anchor, so `only` stays.
+    ("@media only screen and not print", "@media only screen"),
+    // A negated `and` becomes an `or` of the negations.
+    (
+      "@media not (screen and (min-width: 100px))",
+      "@media not screen, (not (min-width: 100px))",
+    ),
+    (
+      "@media not (screen and (not (min-width: 100px)))",
+      "@media not screen, (min-width: 100px)",
+    ),
+    // A media type inside a nested `and` branch is not compared with the
+    // list, so `screen` and `print` both stay.
+    (
+      "@media screen and ((print and (min-width: 1px)) or (max-width: 2px))",
+      "@media screen and print and (min-width: 1px), screen and (max-width: 2px)",
+    ),
+    // A later `or` is split with its branch first, so the anchor of each
+    // branch decides about `only` and the order.
+    (
+      "@media only screen and ((color) or (grid)) and (print or screen)",
+      "@media screen and (color), screen and (grid)",
+    ),
+    (
+      "@media screen and ((color) or (grid)) and (print or only screen)",
+      "@media only screen and (color), only screen and (grid)",
+    ),
+    (
+      "@media screen and ((color) or (grid)) and (print or (screen and (monochrome)))",
+      "@media screen and screen and (monochrome) and (color), \
+       screen and screen and (monochrome) and (grid)",
+    ),
+    // The only media type (`not all`) leaves its `or`, so the rest of the list
+    // has no media type and keeps its shape.
+    (
+      "@media ((min-width: 500px) and (not ((min-width: 400px) and (max-width: 600px)))) \
+       and ((color) or (monochrome)) and ((hover: hover) or not all)",
+      "@media (min-width: 600.01px) and (color) or (monochrome) and (hover: hover)",
+    ),
+    // A negated `or` becomes an `and` of the negations.
+    (
+      "@media not ((screen and (min-width: 100px)) or (color))",
+      "@media print and (not (color)), (not (min-width: 100px)) and (not (color))",
+    ),
+    // An `and` without a media type that is left keeps its `not`.
+    (
+      "@media not (all and (not (min-width: 100px)))",
+      "@media (not ((not (min-width: 100px))))",
+    ),
+    (
+      "@media screen and (not (all and (not (min-width: 100px))))",
+      "@media screen and (not ((not (min-width: 100px))))",
+    ),
+  ];
+
+  for (input, expected) in cases {
+    assert_eq!(parsed(input).to_string(), expected, "for {input}");
+  }
+}
+
+/// Many `or`s whose branches contradict each other: the split is small in
+/// fact, so it is done, though the number of `or`s is large.
+#[test]
+fn contradicting_or_branches_split_in_full() {
+  let query = format!("@media {}", vec!["(print or screen)"; 15].join(" and "));
+  assert_eq!(parsed(&query).to_string(), "@media print, screen");
+}
+
+/// Shapes the parser does not make, built as rules.
+#[test]
+fn media_types_resolve_in_built_rules() {
+  let same_type_twice = and(vec![
+    keyword("screen", false),
+    keyword("screen", false),
+    min_width(1.0),
+  ]);
+  assert_eq!(
+    MediaQuery::new(same_type_twice).to_string(),
+    "@media screen and (min-width: 1px)"
+  );
+
+  let all_twice = and(vec![keyword("all", false), keyword("all", false)]);
+  assert_eq!(MediaQuery::new(all_twice).to_string(), "@media all");
+
+  let never_twice = or(vec![keyword("all", true), keyword("all", true)]);
+  assert_eq!(MediaQuery::new(never_twice).to_string(), "@media not all");
+
+  // Every branch of the `or` contradicts `screen`, so nothing is left.
+  let contradicted = and(vec![
+    keyword("screen", false),
+    or(vec![
+      keyword("print", false),
+      MediaQueryRule::MediaKeyword(MediaKeyword::new("print", false, true)),
+    ]),
+  ]);
+  assert_eq!(
+    MediaQuery::new(contradicted.clone()).to_string(),
+    "@media not all"
+  );
+  assert_eq!(
+    MediaQuery::new(or(vec![
+      contradicted,
+      MediaQueryRule::WordRule(MediaWordRule::new("color")),
+    ]))
+    .to_string(),
+    "@media (color)"
+  );
+
+  // The same with built rules: after `not all` is removed, no media type is
+  // left to split for.
+  let keyword_removed = and(vec![
+    or(vec![MediaQueryRule::WordRule(MediaWordRule::new("color"))]),
+    or(vec![
+      MediaQueryRule::WordRule(MediaWordRule::new("monochrome")),
+      MediaQueryRule::WordRule(MediaWordRule::new("grid")),
+    ]),
+    or(vec![
+      MediaQueryRule::WordRule(MediaWordRule::new("hover")),
+      keyword("all", true),
+    ]),
+  ]);
+  assert_eq!(
+    MediaQuery::new(keyword_removed).to_string(),
+    "@media (color) and (monochrome) or (grid) and (hover)"
+  );
+
+  let two_ors = and(vec![
+    or(vec![keyword("print", false), min_width(1.0)]),
+    or(vec![keyword("print", false), min_width(2.0)]),
+  ]);
+  assert_eq!(
+    MediaQuery::new(two_ors).to_string(),
+    "@media print, print and (min-width: 2px), print and (min-width: 1px), \
+     (min-width: 2px) and (min-width: 1px)"
+  );
+}
+
+/// Each `or` in an `and` list doubles the split. Past the work budget, the
+/// query keeps its normalized rules, so that the output and the call depth
+/// stay small.
+#[test]
+fn media_type_distribution_stops_at_the_node_budget() {
+  let wide = and(
+    (1..=20)
+      .map(|px| or(vec![keyword("print", false), min_width(f64::from(px))]))
+      .collect(),
+  );
+
+  match MediaQuery::new(wide).queries {
+    MediaQueryRule::And(and_rules) => {
+      assert_eq!(and_rules.rules.len(), 20);
+      assert!(
+        and_rules
+          .rules
+          .iter()
+          .all(|rule| matches!(rule, MediaQueryRule::Or(_)))
+      );
+    },
+    other => panic!("expected the normalized rules, got {other:?}"),
+  }
+}
+
+/// The budget counts nodes, not list items: each branch of a split copies the
+/// rest of the list, and one item of it can be a large tree. Past the budget,
+/// the query keeps its normalized rules.
+#[test]
+fn media_type_distribution_counts_the_nodes_it_copies() {
+  // One item of about 400 nodes, without a media type, so that resolving it
+  // costs nothing. Only the copies of it go past the budget.
+  let large_item = MediaQueryRule::Not(MediaNotRule::new(or(
+    (1..=400).map(|px| min_width(f64::from(px))).collect(),
+  )));
+  let many_branches = or((1..=1024).map(|px| min_width(f64::from(px))).collect());
+  let query = and(vec![many_branches, keyword("screen", false), large_item]);
+
+  match MediaQuery::new(query).queries {
+    MediaQueryRule::And(and_rules) => {
+      assert_eq!(and_rules.rules.len(), 3);
+      assert!(matches!(and_rules.rules[0], MediaQueryRule::Or(_)));
+    },
+    other => panic!("expected the normalized rules, got {other:?}"),
+  }
+}
+
+/// Each pass over a ladder resolves the whole list again, so the passes are
+/// charged too. A ladder far longer than real ones keeps its normalized rules.
+#[test]
+fn a_ladder_past_the_budget_keeps_its_normalized_rules() {
+  match MediaQuery::new(screen_ladder(800)).queries {
+    MediaQueryRule::And(and_rules) => assert!(
+      and_rules
+        .rules
+        .iter()
+        .any(|rule| matches!(rule, MediaQueryRule::Or(_)))
+    ),
+    other => panic!("expected the normalized rules, got {other:?}"),
+  }
+}
+
+/// The `and` list that a `screen` breakpoint ladder resolves to: the key, then
+/// one negated rung for each later key.
+fn screen_ladder(rungs: u32) -> MediaQueryRule {
+  let mut rules = vec![keyword("screen", false), min_width(1.0)];
+  rules.extend((2..rungs + 2).map(|px| {
+    or(vec![
+      keyword("screen", true),
+      MediaQueryRule::Not(MediaNotRule::new(min_width(f64::from(px)))),
+    ])
+  }));
+  and(rules)
+}
+
+/// The expected ladder text: the media type, the negated rungs from the last
+/// to the first, then the bound of the key.
+fn screen_ladder_text(rungs: u32) -> String {
+  let negated: Vec<String> = (2..rungs + 2)
+    .rev()
+    .map(|px| format!("(not (min-width: {px}px))"))
+    .collect();
+  format!(
+    "@media screen and {} and (min-width: 1px)",
+    negated.join(" and ")
+  )
+}
+
+/// In a `screen` ladder, each `not screen` branch contradicts the key. Those
+/// branches are removed before the split, so that the cost is linear and a
+/// long ladder does not stop at the node budget.
+#[test]
+fn a_screen_ladder_drops_the_branches_that_contradict_its_media_type() {
+  assert_eq!(
+    MediaQuery::new(screen_ladder(6)).to_string(),
+    "@media screen and (not (min-width: 7px)) and (not (min-width: 6px)) and \
+     (not (min-width: 5px)) and (not (min-width: 4px)) and (not (min-width: 3px)) and \
+     (not (min-width: 2px)) and (min-width: 1px)"
+  );
+  assert_eq!(
+    screen_ladder_text(6),
+    MediaQuery::new(screen_ladder(6)).to_string()
+  );
+  assert_eq!(
+    MediaQuery::new(screen_ladder(40)).to_string(),
+    screen_ladder_text(40)
+  );
+}
+
+/// After the removal, each rung keeps one branch. A one-branch `or` does not
+/// add a call level, so a very long ladder cannot overflow the stack.
+#[test]
+fn a_long_screen_ladder_does_not_deepen_the_stack() {
+  // A call level for each rung needs more than 32 KiB of stack at this length.
+  let rungs = 400;
+  let ladder = screen_ladder(rungs);
+  let result = std::thread::Builder::new()
+    .stack_size(32 * 1024)
+    .spawn(move || MediaQuery::new(ladder).to_string());
+  let text = match result.map(std::thread::JoinHandle::join) {
+    Ok(Ok(text)) => text,
+    Ok(Err(_)) => panic!("the ladder panicked"),
+    Err(error) => panic!("cannot start the thread: {error}"),
+  };
+  assert_eq!(text, screen_ladder_text(rungs));
 }

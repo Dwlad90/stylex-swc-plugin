@@ -188,7 +188,18 @@ fn a_media_type_beside_the_bound_constrains_no_width() {
 #[test]
 fn a_negated_query_has_no_bound() {
   assert_eq!(bound_of("@media (not (min-width: 1000px))"), None);
-  assert_eq!(bound_of("@media not screen and (min-width: 1000px)"), None);
+}
+
+/// A negated media type beside a bound becomes its complement: `not screen
+/// and (min-width: 1000px)` is `print and (min-width: 1000px)`. The bound is
+/// not negated, so it stays the sort key. A negated media type alone has none.
+#[test]
+fn a_negated_media_type_keeps_the_bound_beside_it() {
+  assert_eq!(
+    bound_of("@media not screen and (min-width: 1000px)"),
+    min(1000.0)
+  );
+  assert_eq!(bound_of("@media not screen"), None);
 }
 
 /// `does not sort a min-width paired with a negated max-width`: the

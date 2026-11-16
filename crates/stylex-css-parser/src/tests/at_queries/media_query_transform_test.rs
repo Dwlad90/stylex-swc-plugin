@@ -564,7 +564,7 @@ mod media_query_transformer {
     let expected_styles = json!({
       "width": {
         "default": "100%",
-        "@media (screen) and (not (max-width: 500px)), (min-width: 500.01px) and (max-width: 800px)": "80%",
+        "@media screen and (not (max-width: 500px)), (min-width: 500.01px) and (max-width: 800px)": "80%",
         "@media (max-width: 500px)": "60%"
       }
     });
@@ -585,6 +585,54 @@ mod media_query_transformer {
       serde_json::to_string(&result_json).unwrap(),
       serde_json::to_string(&expected_styles).unwrap(),
       "Comma-separated media queries should handle OR logic with negations"
+    );
+  }
+
+  /// Test: mixed responsive and print values anchor to a screen media type
+  ///
+  /// A `print` media type must not become a `(not (print))` feature, because
+  /// browsers never match it. The responsive branch gets the complementary
+  /// `screen` media type instead.
+  #[test]
+  fn mixed_responsive_and_print_values_anchor_to_a_screen_media_type() {
+    let original_styles = json!({
+      "marginLeft": {
+        "default": "224",
+        "@media (max-width: 900px)": {
+          "default": "168",
+          "@media (max-width: 620px)": "132"
+        },
+        "@media print": "0"
+      }
+    });
+
+    let expected_styles = json!({
+      "marginLeft": {
+        "default": "224",
+        "@media screen and (max-width: 900px)": {
+          "default": "168",
+          "@media (max-width: 620px)": "132"
+        },
+        "@media print": "0"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "The responsive branch should anchor to the screen media type"
     );
   }
 
@@ -1058,8 +1106,8 @@ mod media_query_transformer {
     let expected_styles = json!({
       "width": {
         "default": "100%",
-        "@media ((screen) and (min-width: 900px) and (not (print))) or ((screen) and (min-width: 900px) and (not (max-width: 500px)))": "80%",
-        "@media (print) and (max-width: 500px)": "50%"
+        "@media screen and (min-width: 900px), screen and (min-width: 900px) and (not (max-width: 500px))": "80%",
+        "@media print and (max-width: 500px)": "50%"
       }
     });
 
@@ -1993,8 +2041,8 @@ mod unusual_but_valid_queries {
   }
 
   /// A comma-separated query is a disjunction, so each disjunct takes the
-  /// negation separately — and one of the two collapses here while the other
-  /// merges into a bound.
+  /// negation separately. One of the two never matches and is removed, and the
+  /// other merges into a bound.
   #[test]
   fn each_disjunct_of_a_comma_query_is_negated_on_its_own() {
     assert_eq!(
@@ -2007,16 +2055,16 @@ mod unusual_but_valid_queries {
       })),
       vec![
         "default",
-        "@media not all, (max-width: 99.98px)",
+        "@media (max-width: 99.98px)",
         "@media (min-width: 100px)",
       ]
     );
   }
 
-  /// A media type in the list is parenthesized on the way out and, like any
+  /// A media type in the list is a bare keyword on the way out and, like any
   /// rule the merge cannot read, keeps the widths beside it from merging.
   #[test]
-  fn a_media_type_is_parenthesized_and_blocks_the_merge() {
+  fn a_media_type_blocks_the_merge() {
     assert_eq!(
       transformed_keys(json!({
         "color": {
@@ -2025,7 +2073,7 @@ mod unusual_but_valid_queries {
           "@media (min-width: 100px)": "blue"
         }
       }))[1],
-      "@media (screen) and (min-width: 200px) and (not (min-width: 100px))"
+      "@media screen and (min-width: 200px) and (not (min-width: 100px))"
     );
   }
 
@@ -2184,14 +2232,13 @@ mod a_comma_binds_more_loosely_than_or {
   }
 
   /// A media type as its own segment, beside one holding an `or`. The media
-  /// type blocks the merge on its side, which leaves both segments visible in
-  /// the output at once.
+  /// type blocks the merge on its side. Because of the media type, the `or`
+  /// segment is split into its branches, and each branch merges into a bound.
   #[test]
   fn a_media_type_segment_sits_beside_an_or_segment() {
     assert_eq!(
       rewritten_first_key("@media screen, (min-width: 1px) or (min-width: 2px)"),
-      "@media (screen) and (not (max-width: 50px)), \
-       (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px))"
+      "@media screen and (not (max-width: 50px)), (min-width: 50.01px), (min-width: 50.01px)"
     );
   }
 }

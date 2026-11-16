@@ -94,6 +94,21 @@ stylex_test!(
   "#
 );
 
+// Runtime injection puts the CSS in the snapshot, so it shows that the count
+// has no unit. Without it, only the class name shows the CSS.
+stylex_test!(
+  unitless_numbers,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const cls = stylex.viewTransitionClass({
+      group: {
+        animationIterationCount: 2,
+      },
+    });
+  "#
+);
+
 stylex_test_transform!(
   #[ignore],
   using_contextual_styles,

@@ -72,6 +72,25 @@ stylex_test!(
 );
 
 stylex_test!(
+  unitless_numbers_in_keyframes_object,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const name = stylex.keyframes({
+      from: {
+        fontWeight: 400,
+        lineHeight: 1.2,
+        zIndex: 1,
+      },
+      to: {
+        fontWeight: 700,
+        lineHeight: 1.5,
+        zIndex: 2,
+      }
+    });
+  "#
+);
+
+stylex_test!(
   keyframes_object_rtl_polyfills_legacy,
   r#"
     import * as stylex from '@stylexjs/stylex';

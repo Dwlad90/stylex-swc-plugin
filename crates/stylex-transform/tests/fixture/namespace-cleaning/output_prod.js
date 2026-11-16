@@ -4,11 +4,11 @@ import { useMediaQuery } from '@hooks/useMediaQuery';
 const MULTIPLIER = 5;
 const c = {
     "1": {
-        kGuDYH: "xeuu8e4",
+        kGuDYH: "x14m1xnv",
         $$css: true
     },
     "2": {
-        kGuDYH: "x1jbhjkf",
+        kGuDYH: "x116hk2i",
         $$css: true
     },
     wrapper: {
@@ -16,35 +16,35 @@ const c = {
         $$css: true
     },
     "p-2": {
-        kGuDYH: "x1f3yvym",
+        kGuDYH: "x1xq5fe2",
         $$css: true
     },
     "p-1": {
-        kGuDYH: "x17vjwcc",
+        kGuDYH: "xqtq8vs",
         $$css: true
     },
     p: {
-        kGuDYH: "x19ppoyo",
+        kGuDYH: "xzhuj4x",
         $$css: true
     },
     "p+1": {
-        kGuDYH: "x3gzoht",
+        kGuDYH: "x1b7weo0",
         $$css: true
     },
     "p+2": {
-        kGuDYH: "xd310an",
+        kGuDYH: "x165g4x1",
         $$css: true
     },
     "p+3": {
-        kGuDYH: "x14h6vv3",
+        kGuDYH: "xfzzw43",
         $$css: true
     },
     "p+4": {
-        kGuDYH: "x1eh3tls",
+        kGuDYH: "x1fh0699",
         $$css: true
     },
     "p+5": {
-        kGuDYH: "x8rl4l3",
+        kGuDYH: "xxkvdpn",
         $$css: true
     },
     unused: {

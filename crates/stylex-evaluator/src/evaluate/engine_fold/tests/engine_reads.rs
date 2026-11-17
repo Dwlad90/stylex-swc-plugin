@@ -47,7 +47,7 @@ pub(super) fn fold_key(numbered: u128) -> FoldKey {
     other => panic!("`[].map(f)` parsed as {:?}", other),
   };
 
-  FoldKey::new(&call, numbered)
+  FoldKey::new(&call, numbered, &[])
 }
 
 /// What `source` comes to when `arguments` are passed to it, under the method

@@ -712,20 +712,9 @@ pub(in super::super) fn evaluate(
               FunctionConfigType::Regular(config) => {
                 return Some(EvaluateResultValue::FunctionConfig(config.clone()));
               },
+              // An unset option is an empty object, so each of its keys reads
+              // as `undefined`.
               FunctionConfigType::EnvObject(env_map) => {
-                // The name is a key of the namespace however the compiler is
-                // configured, so an unset option is reported as the option
-                // being unset rather than as a property nobody can find --
-                // which would send an author looking in their source.
-                if env_map.is_empty() {
-                  deopt_unsupported!(
-                    deopt,
-                    path,
-                    state,
-                    "The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration."
-                  );
-                }
-
                 return Some(EvaluateResultValue::EnvObject(env_map.clone()));
               },
               FunctionConfigType::Map(nested) => {
@@ -801,20 +790,12 @@ pub(in super::super) fn evaluate(
             deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
           };
 
-          let Some(entry) = env_map.get(key) else {
-            deopt_unsupported!(
-              deopt,
-              path,
-              state,
-              format!(
-                "The property '{}' was not found in the stylex.env configuration.",
-                key
-              )
-              .as_str()
-            );
-          };
-
-          Some(resolve_env_entry_to_result(entry, &env_map))
+          // A key the option does not carry is `undefined`, as on any object,
+          // so a fallback such as `stylex.env.size ?? '4px'` can apply.
+          Some(match env_map.get(key) {
+            Some(entry) => resolve_env_entry_to_result(entry, &env_map),
+            None => js_undefined(),
+          })
         },
         // An evaluated value the member path reads no properties from: a
         // callback, an entries map, a raw function configuration.

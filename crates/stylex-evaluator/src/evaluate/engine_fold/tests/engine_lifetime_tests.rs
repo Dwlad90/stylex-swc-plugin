@@ -36,7 +36,7 @@ fn key_numbered(parameters: u128) -> FoldKey {
     other => panic!("`''.concat('a')` parsed as {:?}", other),
   };
 
-  FoldKey::new(&call, parameters)
+  FoldKey::new(&call, parameters, &[])
 }
 
 /// An engine built the way a fold builds one.

@@ -396,17 +396,16 @@ fn the_function_read_as_a_value_refuses() {
   );
 }
 
-/// A StyleX function that writes into the build is not one the engine may call.
-/// `keyframes` hashes a rule, injects it and answers the name it chose, so
-/// running it once per element would inject once per element from inside a
-/// speculative evaluation. Refused here, where the reference compiler folds it —
-/// recorded as a gap rather than as a boundary anyone wants.
+/// A StyleX function that writes into the build runs in the engine with the
+/// live build state, so a `keyframes` call in a callback folds and declares its
+/// rule: `@keyframes xw2c1lr-B{from{opacity:0;}}` and
+/// `.x15ouc33{content:"xw2c1lr-B"}`.
 #[test]
-fn a_function_that_writes_into_the_build_refuses() {
-  assert_refuses(
+fn a_function_that_writes_into_the_build_folds() {
+  assert_folds(
     "import { keyframes } from '@stylexjs/stylex'; const a = ['a'];",
     "content: a.map(x => keyframes({ from: { opacity: 0 } })).join(''),",
-    "Its receiver or one of its arguments is not in a form the compiler can evaluate.",
+    ".x15ouc33{content:\"xw2c1lr-B\"}",
   );
 }
 

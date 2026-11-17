@@ -287,14 +287,10 @@ stylex_test_panic!(
   "#
 );
 
-// A name the configuration has not got stands for no value, and the call says
-// so. The reference implementation reads it as `undefined` and writes the step
-// with the declaration left out, which is a rule nobody asked for under a name
-// the module goes on using; refusing names the mistake while it can still be
-// fixed.
-stylex_test_panic!(
-  an_env_name_the_configuration_has_not_got_refuses_inside_a_keyframes_call,
-  "Only static values are allowed inside of a keyframes() call.",
+// A name the configuration has not got reads as `undefined`, and the step is
+// written with that declaration left out: `@keyframes x1r1tjop-B{from{}}`.
+stylex_test!(
+  an_env_name_the_configuration_has_not_got_is_left_out_of_a_keyframes_step,
   |tr| stylex_transform(tr.comments.clone(), brand_env()),
   r#"
     import * as stylex from '@stylexjs/stylex';

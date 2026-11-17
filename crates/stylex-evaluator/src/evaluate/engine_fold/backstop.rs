@@ -70,6 +70,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 
 use super::Decline;
+use super::losing_operand::EITHER;
 use super::math::EXPONENTIATE;
 use super::{BLOCKED_PROPERTIES, ESCAPING_PROPERTIES};
 
@@ -100,10 +101,11 @@ pub(super) fn reserved_names() -> impl Iterator<Item = &'static str> {
   CHECKS.into_iter().map(|(name, _)| name)
 }
 
-/// Whether `name` is one the printed source reserves: a check of its own, or
-/// the global native that computes `**` (see [`math`](super::math)).
+/// Whether `name` is one the printed source reserves: a check of its own, the
+/// global native that computes `**` (see [`math`](super::math)), or the global
+/// that runs a losing operand (see [`losing_operand`](super::losing_operand)).
 pub(super) fn is_a_reserved_name(name: &str) -> bool {
-  name == EXPONENTIATE || reserved_names().any(|reserved| reserved == name)
+  name == EXPONENTIATE || name == EITHER || reserved_names().any(|reserved| reserved == name)
 }
 
 /// The property names the reader refuses: the guard's two tables and nothing

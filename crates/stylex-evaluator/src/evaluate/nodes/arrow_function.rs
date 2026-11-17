@@ -22,93 +22,102 @@ pub(in super::super) fn evaluate(
   match body.as_ref() {
     ArrowFunctionBody::Expr(body_expr) => {
       if ident_params.len() == params.len() {
-        let arrow_closure_fabric =
-          |identifiers: FunctionMapIdentifiers, ident_params: Vec<Atom>, body_expr: Box<Expr>| {
-            move |cb_args: Vec<EvaluateResultValue>, traversal_state: &mut StateManager| {
-              let mut identifiers = identifiers.clone();
+        // The member entries are kept beside the names, so a body that calls
+        // `stylex.keyframes(…)` reaches the function the module reaches.
+        let arrow_closure_fabric = |identifiers: FunctionMapIdentifiers,
+                                    member_expressions: FunctionMapMemberExpression,
+                                    ident_params: Vec<Atom>,
+                                    body_expr: Box<Expr>| {
+          move |cb_args: Vec<EvaluateResultValue>, traversal_state: &mut StateManager| {
+            let mut identifiers = identifiers.clone();
 
-              let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+            let mut member_expressions = member_expressions.clone();
 
-              ident_params.iter().enumerate().for_each(|(index, ident)| {
-                // An argument with no form to bind binds nothing, leaving the
-                // parameter unresolved so the body answers on its own terms —
-                // which is what the language does with a missing argument too.
-                // The callback has no deopt to record and must not abort; see the
-                // fallback at the end of this closure. A body that never reads
-                // the parameter therefore folds, and a body that does reads an
-                // unresolved name and refuses for that.
-                //
-                // A theme reference has no expression to write down and binds
-                // through the factory the module's own token imports bind
-                // through, so a parameter holding one resolves a member exactly
-                // as the imported name does.
-                let bound = match cb_args.get(index) {
-                  Some(EvaluateResultValue::ThemeRef(theme)) => {
-                    let theme = theme.clone();
+            ident_params.iter().enumerate().for_each(|(index, ident)| {
+              // An argument with no form to bind binds nothing, leaving the
+              // parameter unresolved so the body answers on its own terms —
+              // which is what the language does with a missing argument too.
+              // The callback has no deopt to record and must not abort; see the
+              // fallback at the end of this closure. A body that never reads
+              // the parameter therefore folds, and a body that does reads an
+              // unresolved name and refuses for that.
+              //
+              // A theme reference has no expression to write down and binds
+              // through the factory the module's own token imports bind
+              // through, so a parameter holding one resolves a member exactly
+              // as the imported name does.
+              let bound = match cb_args.get(index) {
+                Some(EvaluateResultValue::ThemeRef(theme)) => {
+                  let theme = theme.clone();
 
-                    Some(FunctionType::ThemeRefMapper(Rc::new(move || theme.clone())))
-                  },
-                  Some(arg) => evaluate_result_as_expr(arg).map(|expr| {
-                    let cl = |arg: Expr| move || arg.clone();
+                  Some(FunctionType::ThemeRefMapper(Rc::new(move || theme.clone())))
+                },
+                Some(arg) => evaluate_result_as_expr(arg).map(|expr| {
+                  let cl = |arg: Expr| move || arg.clone();
 
-                    FunctionType::Mapper(Rc::new((cl)(expr)))
-                  }),
-                  None => None,
-                };
-
-                if let Some(fn_ptr) = bound {
-                  let function = FunctionConfig {
-                    fn_ptr,
-                    takes_path: false,
-                  };
-                  identifiers.insert(
-                    ident.clone(),
-                    Box::new(FunctionConfigType::Regular(function)),
-                  );
-
-                  member_expressions.insert(
-                    ImportSources::Regular("entry".to_string()),
-                    Box::new(identifiers.clone()),
-                  );
-                }
-              });
-
-              // Once per invocation of the callback, not once per callback, so
-              // what this copies is worth keeping small. The parsed module and
-              // its key-span index are behind an `Rc` for that reason -- both are
-              // read-only once memoized, and copying them here is what made a
-              // dynamic style's cost scale with the size of the file it sits in.
-              let mut local_state = traversal_state.clone();
-
-              let result = evaluate_with_functions(
-                &body_expr,
-                &mut local_state,
-                Rc::new(FunctionMap {
-                  identifiers,
-                  member_expressions,
-                  disable_imports: false,
+                  FunctionType::Mapper(Rc::new((cl)(expr)))
                 }),
-              );
+                None => None,
+              };
 
-              let value = result.value;
+              if let Some(fn_ptr) = bound {
+                let function = FunctionConfig {
+                  fn_ptr,
+                  takes_path: false,
+                };
+                identifiers.insert(
+                  ident.clone(),
+                  Box::new(FunctionConfigType::Regular(function)),
+                );
 
-              // A body that did not fold answers nothing, which is how a
-              // callback declines: it has no deopt to record, and the caller
-              // that applied it is what can name the call in a sentence.
-              // Aborting here would fail a build over a callback that was only
-              // ever going to run at runtime.
-              match value {
-                Some(EvaluateResultValue::Expr(expr)) => Some(expr),
-                Some(EvaluateResultValue::Vec(items)) => evaluate_result_vec_to_array_expr(&items),
-                _ => None,
+                member_expressions.insert(
+                  ImportSources::Regular("entry".to_string()),
+                  Box::new(identifiers.clone()),
+                );
               }
+            });
+
+            // Once per invocation of the callback, not once per callback, so
+            // what this copies is worth keeping small. The parsed module and
+            // its key-span index are behind an `Rc` for that reason -- both are
+            // read-only once memoized, and copying them here is what made a
+            // dynamic style's cost scale with the size of the file it sits in.
+            let mut local_state = traversal_state.clone();
+
+            let result = evaluate_with_functions(
+              &body_expr,
+              &mut local_state,
+              Rc::new(FunctionMap {
+                identifiers,
+                member_expressions,
+                disable_imports: false,
+              }),
+            );
+
+            // A compiler function in the body filed its rule on the copy.
+            traversal_state.keep_rules_filed_on(&local_state);
+
+            let value = result.value;
+
+            // A body that did not fold answers nothing, which is how a
+            // callback declines: it has no deopt to record, and the caller
+            // that applied it is what can name the call in a sentence.
+            // Aborting here would fail a build over a callback that was only
+            // ever going to run at runtime.
+            match value {
+              Some(EvaluateResultValue::Expr(expr)) => Some(expr),
+              Some(EvaluateResultValue::Vec(items)) => evaluate_result_vec_to_array_expr(&items),
+              _ => None,
             }
-          };
+          }
+        };
 
         let identifiers = state.functions.identifiers.clone();
+        let member_expressions = state.functions.member_expressions.clone();
 
         let arrow_closure = Rc::new(arrow_closure_fabric(
           identifiers,
+          member_expressions,
           ident_params,
           Box::new(*body_expr.clone()),
         ));

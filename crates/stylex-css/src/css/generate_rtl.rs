@@ -1,10 +1,10 @@
+use postcss_value_parser::{NodeKind, parse, stringify, unit};
 use std::borrow::Cow;
 use stylex_constants::constants::{
   cursor_flip::CURSOR_FLIP,
   logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL, LOGICAL_VALUE_TO_RTL},
 };
 use stylex_enums::style_resolution::StyleResolution;
-use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
 use stylex_structures::{
   pair::{Pair, PairCow},
   stylex_state_options::StyleXStateOptions,
@@ -116,39 +116,45 @@ fn shadows_flip<'a>(key: &'a str, val: &str, options: &StyleXStateOptions) -> Op
   }
 }
 
+/// The shadows a value lists, each spelled as it was written.
+///
+/// Only a divider outside a function ends a shadow, so the commas inside
+/// `rgba()` or `var()` stay inside theirs. A divider holds the spaces around it,
+/// so they are not part of either shadow.
+fn split_by_divisor(value: &str) -> Vec<String> {
+  parse(value)
+    .split(|node| node.kind == NodeKind::Div)
+    .filter(|group| !group.is_empty())
+    .map(stringify)
+    .collect()
+}
+
+/// The right-to-left spelling of a shadow list, or `None` when it reads the
+/// same both ways.
+///
+/// The horizontal offset is the first part of each shadow when that part
+/// starts with a number, and the second part when it does not, as after
+/// `inset` or a colour.
 fn flip_shadow(value: &str) -> Option<String> {
-  let rtl = value
-    .split(',')
+  let rtl = split_by_divisor(value)
+    .iter()
     .map(|def| {
-      let parts: Vec<&str> = def.split_whitespace().collect();
-      // NOTE: temporary solution, need to implement unit parser
-      let flip_index = match parts.first() {
-        Some(first) if is_unit(first) => 0,
+      let mut parts = def.split(' ').map(Cow::Borrowed).collect::<Vec<_>>();
+      let index = match parts.first() {
+        Some(first) if unit(first).is_some() => 0,
         _ => 1,
       };
 
-      let mut out = String::with_capacity(def.len() + 1);
-      for (i, part) in parts.iter().enumerate() {
-        if i > 0 {
-          out.push(' ');
-        }
-        if i == flip_index {
-          out.push_str(&flip_sign(part));
-        } else {
-          out.push_str(part);
-        }
+      if let Some(part) = parts.get_mut(index) {
+        *part = Cow::Owned(flip_sign(part));
       }
-      out
+
+      parts.join(" ")
     })
     .collect::<Vec<_>>()
     .join(",");
 
   if rtl != value { Some(rtl) } else { None }
-}
-
-fn is_unit(input: &str) -> bool {
-  // Regex match failure is practically unreachable; default to false.
-  LENGTH_UNIT_TESTER_REGEX.is_match(input).unwrap_or(false)
 }
 
 fn flip_sign(value: &str) -> String {

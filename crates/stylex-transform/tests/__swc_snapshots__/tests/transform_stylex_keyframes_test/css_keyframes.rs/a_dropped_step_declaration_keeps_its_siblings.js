@@ -6,4 +6,8 @@ _inject2({
     priority: 0
 });
 export const dropped = "x11nzq9p-B";
+_inject2({
+    ltr: "@keyframes x11nzq9p-B{from{opacity:.5;}to{color:blue;}}",
+    priority: 0
+});
 export const sibling = "x11nzq9p-B";

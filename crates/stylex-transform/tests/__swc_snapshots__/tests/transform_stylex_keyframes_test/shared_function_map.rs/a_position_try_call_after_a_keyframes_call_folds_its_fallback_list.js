@@ -7,8 +7,7 @@ _inject2({
 });
 export const fadeIn = "x18duhyb-B";
 _inject2({
-    ltr: "@position-try --xg5t6hz {position-anchor:position-anchor;position-anchor:--anchor;top:top;top:var(--top,10px);}",
-    priority: 0,
-    rtl: "@position-try --xg5t6hz {position-anchor:--anchor;top:var(--top,10px);}"
+    ltr: "@position-try --xcgrxj9 {position-anchor:--anchor;top:var(--top,10px);}",
+    priority: 0
 });
-export const anchor = "--xg5t6hz";
+export const anchor = "--xcgrxj9";

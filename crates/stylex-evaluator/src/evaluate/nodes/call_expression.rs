@@ -1,5 +1,6 @@
 use super::super::engine_fold::refusal_for_a_property_read;
 use super::super::*;
+use super::compiler_calls::with_compiler_calls_folded;
 use super::global_conversion::Conversion;
 use stylex_macros::deopt_unsupported;
 use stylex_state::types::EvaluationCallback;
@@ -26,6 +27,22 @@ pub(in super::super) fn evaluate(
     Some(Ok(value)) => return Some(value),
     Some(Err(reason)) => return deopt(&Expr::Call(call.clone()), state, &reason),
     None => {},
+  }
+
+  // A StyleX call in the receiver or the arguments is what the engine cannot
+  // run. Each part that holds one is evaluated here and written in as its
+  // value, and the call is offered to the engine again. A part that refused is
+  // the refusal.
+  if let Some(folded) = with_compiler_calls_folded(call, state, traversal_state, fns) {
+    match super::super::engine_fold::try_fold(&folded, state, traversal_state, fns) {
+      Some(Ok(value)) => return Some(value),
+      Some(Err(reason)) => return deopt(&Expr::Call(call.clone()), state, &reason),
+      None => {},
+    }
+  }
+
+  if !state.confident {
+    return None;
   }
 
   let path = Expr::Call(call.clone());

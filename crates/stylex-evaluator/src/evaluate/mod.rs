@@ -378,6 +378,18 @@ mod amplified_call_tests;
 mod declined_call_dispatch_tests;
 
 #[cfg(test)]
+#[path = "tests/nested_compiler_call_tests.rs"]
+mod nested_compiler_call_tests;
+
+#[cfg(test)]
+#[path = "tests/compiler_function_in_the_engine_tests.rs"]
+mod compiler_function_in_the_engine_tests;
+
+#[cfg(test)]
+#[path = "tests/folded_sequence_tests.rs"]
+mod folded_sequence_tests;
+
+#[cfg(test)]
 #[path = "tests/concatenation_chain_tests.rs"]
 mod concatenation_chain_tests;
 
@@ -436,6 +448,18 @@ mod fall_through_tests;
 #[cfg(test)]
 #[path = "tests/short_circuited_walk_tests.rs"]
 mod short_circuited_walk_tests;
+
+#[cfg(test)]
+#[path = "tests/losing_operand_tests.rs"]
+mod losing_operand_tests;
+
+#[cfg(test)]
+#[path = "tests/env_in_the_engine_tests.rs"]
+mod env_in_the_engine_tests;
+
+#[cfg(test)]
+#[path = "tests/arrow_compiler_call_tests.rs"]
+mod arrow_compiler_call_tests;
 
 #[cfg(test)]
 #[path = "tests/thread_isolation_tests.rs"]

@@ -19,6 +19,7 @@ use swc_core::{
     ExprOrSpread, ExprStmt, Ident, IdentName, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
   },
+  ecma::visit::{Visit, VisitWith},
 };
 
 use stylex_ast::ast::convertors::normalize_expr;
@@ -36,6 +37,7 @@ use stylex_utils::swc::get_stmt_node_kind;
 use super::amplification::EntryAmplifier;
 use super::backstop::is_a_reserved_name;
 use super::engine::read;
+use super::losing_operand;
 use super::transport::{Crossing, Transport};
 use super::{
   Ceilings, Decline, Depth, lists, refusal_for_a_property_name, refusal_for_a_property_read,
@@ -43,11 +45,15 @@ use super::{
 use crate::growable_stack::{grown_per_level, nesting_of};
 use crate::state::EvaluationState;
 use stylex_state::{
-  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
+  evaluate_result_value::EvaluateResultValue,
+  functions::{FunctionConfigType, FunctionMap},
+  state_manager::StateManager,
 };
 
 use super::super::{
-  engine_stylex_functions::{EngineCallable, Reached, engine_callable},
+  engine_stylex_functions::{
+    Carried, EngineCallable, NamespaceMembers, an_env_read, engine_callable,
+  },
   evaluate_cached,
   helpers::evaluate_result_to_js_boolean,
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
@@ -381,6 +387,10 @@ pub(super) struct Reader<'a> {
   /// claim has to cover is the deepest text anywhere in the call, and a step
   /// that kept its own answer could only report the branch it happened to be on.
   unentered_nesting: usize,
+  /// The logical operators whose right operand the engine runs even where the
+  /// left one decides, by their address in the source tree. See
+  /// [`losing_operand`](super::losing_operand).
+  losing_operands: FxHashSet<*const BinExpr>,
 }
 
 impl<'a> Reader<'a> {
@@ -404,6 +414,7 @@ impl<'a> Reader<'a> {
       transport: Transport::new(ceilings),
       dotted_prefixes: FxHashMap::default(),
       unentered_nesting: 0,
+      losing_operands: FxHashSet::default(),
     }
   }
 
@@ -724,13 +735,39 @@ impl<'a, 'r> Walk<'a, 'r> {
   /// [`growable_stack`](crate::growable_stack) is for, and it is more
   /// than twice what a level costs: the fold nested to the largest configurable
   /// ceiling is pinned in the evaluator's own suite.
+  ///
+  /// A logical operator that runs its losing operand is printed as a call
+  /// with the operand in an arrow, which is two levels more. Each such
+  /// operator adds two, which is more than the text needs when they are not
+  /// nested in each other.
   pub(super) fn printed_nesting(&self) -> usize {
-    self.guard.depth.ceiling.max(self.reader.unentered_nesting)
+    let losing_operands = 2 * self.reader.losing_operands.len();
+
+    self.guard.depth.ceiling.max(self.reader.unentered_nesting) + losing_operands
+  }
+
+  /// The positions of the logical operators that run their losing operand,
+  /// among the logical operators of `call` and of the parameter defaults. See
+  /// [`losing_operand::ordinals`].
+  pub(super) fn losing_operands(&self, call: &CallExpr) -> Vec<usize> {
+    let defaults = self
+      .reader
+      .transport
+      .printed_parameters()
+      .filter_map(|(_, default)| default);
+
+    losing_operand::ordinals(call, defaults, &self.reader.losing_operands)
   }
 
   /// The names the walk resolved, as the parameters of the printed arrow.
   pub(super) fn parameters(&self) -> Vec<Pat> {
     self.reader.transport.parameters()
+  }
+
+  /// The build state of the evaluation, for the scope a compiler function reads
+  /// it through while the engine runs.
+  pub(super) fn traversal_state(&mut self) -> &mut StateManager {
+    self.reader.traversal_state
   }
 
   /// The same parameters as the hash the fold memo is keyed on, answered
@@ -851,6 +888,14 @@ impl<'r> Walk<'_, 'r> {
           Some(value) if is_a_carryable_receiver(&value) => {
             self.reader.transport.bind(&ident.sym, value, depth)
           },
+          // The `env` object through a named import, which crosses as an object
+          // of its entries.
+          Some(EvaluateResultValue::EnvObject(env)) => {
+            self
+              .reader
+              .transport
+              .carry(&ident.sym, Crossing::Env(env), depth)
+          },
           // Everything left is a function, or is nothing this module answers for.
           resolved => {
             // A name holding a function, which is what the evaluator answers a
@@ -897,17 +942,45 @@ impl<'r> Walk<'_, 'r> {
       Expr::Lit(Lit::Regex(_) | Lit::BigInt(_)) => Err(Decline::NotACandidate),
       Expr::Lit(_) => Ok(()),
       Expr::Paren(paren) => self.under(inner).admit_value(&paren.expr),
+      // A sequence is worth its last operand, and the source the engine reads
+      // holds that operand alone. See [`sequence`](super::sequence).
+      Expr::Seq(sequence) => sequence
+        .exprs
+        .last()
+        .map_or(Ok(()), |last| self.under(inner).admit_value(last)),
       Expr::Unary(unary) => self.under(inner).admit_value(&unary.arg),
       // Both operands of an arithmetic or a comparison operator are evaluated, so
       // both are walked. A short-circuiting one evaluates its right operand only
       // where the left one lets it, and the walk stops exactly where the language
       // does — see [`Walk::deciding_value_of`] for when it may tell.
+      //
+      // A logical operator whose right operand calls a compiler function is the
+      // exception: the evaluator runs that operand even where it loses, so the
+      // engine has to run it too. Where the walk admits it, the printed source
+      // runs it always — see [`losing_operand`](super::losing_operand). Where the
+      // walk refuses it and the left operand decides, the refusal is ignored, as
+      // the evaluator ignores it, and the operand stays unentered.
       Expr::Bin(bin) => {
         self.under(inner).admit_value(&bin.left)?;
 
-        match self.right_operand_runs(bin) {
-          true => self.under(inner).admit_value(&bin.right),
-          false => {
+        let runs = self.right_operand_runs(bin);
+        let runs_when_it_loses =
+          LogicalOp::of(bin.op).is_some() && self.calls_a_compiler_function(&bin.right);
+
+        match (runs, runs_when_it_loses) {
+          (true, false) => self.under(inner).admit_value(&bin.right),
+          (true, true) => {
+            self.under(inner).admit_value(&bin.right)?;
+            self.reader.losing_operands.insert(std::ptr::from_ref(bin));
+
+            Ok(())
+          },
+          (false, true) if self.under(inner).admit_value(&bin.right).is_ok() => {
+            self.reader.losing_operands.insert(std::ptr::from_ref(bin));
+
+            Ok(())
+          },
+          (false, _) => {
             self.under(inner).never_entered(&bin.right);
 
             Ok(())
@@ -966,6 +1039,18 @@ impl<'r> Walk<'_, 'r> {
         // checked caller — see [`backstop`](super::backstop) and ADR 0010.
         if let MemberProp::Computed(key) = prop {
           self.under(inner).admit_value(&key.expr)?;
+        }
+
+        // `stylex.env` reads the `env` object off the namespace, which is not
+        // a value the module resolves. The namespace crosses as the object
+        // that holds it, so a key the option does not carry reads as
+        // `undefined` in the engine.
+        if let Some((namespace, members)) = self.an_env_read(member) {
+          return self.reader.transport.carry(
+            &namespace,
+            Crossing::Namespace(members),
+            self.guard.depth,
+          );
         }
 
         // A chain of two or more names read off a theme group is one token
@@ -1039,7 +1124,7 @@ impl<'r> Walk<'_, 'r> {
         let callable = self.under(inner).a_stylex_function(call);
 
         match callable {
-          Some(callable) => self.under(inner).admit_a_stylex_function(&callable, call),
+          Some(callable) => self.under(inner).admit_a_stylex_function(callable, call),
           None => self
             .under(inner)
             .admit_call(call, Position::Inside)
@@ -1113,13 +1198,16 @@ impl<'r> Walk<'_, 'r> {
     }
   }
 
-  /// Whether `bin`'s right operand is evaluated at all.
+  /// Whether the language evaluates `bin`'s right operand.
   ///
   /// True for every operator that is not short-circuiting, and for one that is
   /// where its left operand does not settle the answer on its own. Which
-  /// operands a short circuit reaches is the operator's own rule, read from
+  /// operand a short circuit keeps is the operator's own rule, read from
   /// [`evaluates_its_right_operand`] rather than restated here, so the walk and
-  /// the fold cannot come to disagree about which side a build reaches.
+  /// the evaluator agree about which side is the answer. They do not agree
+  /// about which side runs: the evaluator runs both. The caller closes that gap
+  /// for a right operand that calls a compiler function, which is the only
+  /// operand whose running the build can see.
   fn right_operand_runs(&mut self, bin: &BinExpr) -> bool {
     let Some(op) = LogicalOp::of(bin.op) else {
       return true;
@@ -1161,6 +1249,10 @@ impl<'r> Walk<'_, 'r> {
   /// scope rather than of the expression, because a name bound one arrow further
   /// out is as much the engine's as the parameter beside it.
   ///
+  /// An operand that calls a compiler function is not read either. Reading it
+  /// runs the function, and the engine runs it again, so the build would get
+  /// the rule twice. Both sides are walked instead, and the engine decides.
+  ///
   /// The operand this reads has already been walked by the caller, so it is read
   /// twice. Both readings go through the evaluator's memo, so the second is a
   /// hash of the subtree and a lookup rather than an evaluation, and it is paid
@@ -1168,10 +1260,40 @@ impl<'r> Walk<'_, 'r> {
   ///
   /// [dead operand]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn deciding_value_of(&mut self, expr: &Expr) -> Option<EvaluateResultValue> {
-    match self.guard.scope.inside_a_callback() {
+    match self.guard.scope.inside_a_callback() || self.calls_a_compiler_function(expr) {
       true => None,
       false => self.reader.resolve(expr),
     }
+  }
+
+  /// The namespace name and what its object holds, where `member` reads the
+  /// `env` object off a namespace the callback does not bind.
+  fn an_env_read(&self, member: &MemberExpr) -> Option<(Atom, NamespaceMembers)> {
+    let (namespace, members) = an_env_read(member, &self.reader.state.functions)?;
+
+    match self.guard.scope.binds(&namespace) {
+      true => None,
+      false => Some((namespace, members)),
+    }
+  }
+
+  /// Whether `expr` calls a compiler function anywhere in it, a callback body
+  /// included.
+  ///
+  /// A name a callback binds is not told apart here. Such a call makes the
+  /// walk enter an operand it could leave, which costs a walk and changes no
+  /// answer, because the operand is printed and run only where the walk admits
+  /// it.
+  fn calls_a_compiler_function(&self, expr: &Expr) -> bool {
+    let mut search = CompilerCalls {
+      traversal_state: self.reader.traversal_state,
+      functions: &self.reader.state.functions,
+      found: false,
+    };
+
+    expr.visit_with(&mut search);
+
+    search.found
   }
 
   /// Admits a name the module declared a function under, by crossing the
@@ -1203,12 +1325,12 @@ impl<'r> Walk<'_, 'r> {
 
     // Recorded after the walk, so every name the declaration reads is already a
     // parameter ahead of the parameter whose default reads it.
+    let depth = self.guard.depth;
+
     self
       .reader
       .transport
-      .carry(&ident.sym, Crossing::Source(Box::new(declaration)));
-
-    Ok(())
+      .carry(&ident.sym, Crossing::Source(Box::new(declaration)), depth)
   }
 
   /// The [StyleX function the engine may
@@ -1223,7 +1345,11 @@ impl<'r> Walk<'_, 'r> {
       return None;
     };
 
-    let callable = engine_callable(callee, self.reader.traversal_state)?;
+    let callable = engine_callable(
+      callee,
+      self.reader.traversal_state,
+      &self.reader.state.functions,
+    )?;
 
     match self.guard.scope.binds(&callable.name) {
       true => None,
@@ -1251,32 +1377,39 @@ impl<'r> Walk<'_, 'r> {
   /// [applied global]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn admit_a_stylex_function(
     &mut self,
-    callable: &EngineCallable,
+    callable: EngineCallable,
     call: &CallExpr,
   ) -> Result<(), Decline> {
     let inside_a_callback = self.guard.scope.inside_a_callback();
 
-    self
-      .admit_arguments(&call.args)
-      .map_err(|declined| match declined {
-        Decline::NotACandidate if inside_a_callback => {
-          Decline::rule(uncoercible_value(callable.function_name()))
-        },
-        declined => declined,
-      })?;
+    // A compiler function with no argument has nothing to read. Outside a
+    // callback the dispatch below owns the call and names that. Inside one, it
+    // is refused like an argument the bridge cannot carry.
+    let arguments = match callable.needs_an_argument && call.args.is_empty() {
+      true => Err(Decline::NotACandidate),
+      false => self.admit_arguments(&call.args),
+    };
+
+    arguments.map_err(|declined| match declined {
+      Decline::NotACandidate if inside_a_callback => {
+        Decline::rule(uncoercible_value(callable.function_name()))
+      },
+      declined => declined,
+    })?;
 
     // A name reached directly holds the function; a namespace holds an object of
     // the properties the engine may call. Both come from the callable itself, so
     // the value under a name is a function of the name and the transport's
     // one-value-per-name rule cannot drop a second naming.
-    let crossing = match callable.reached {
-      Reached::Directly => Crossing::Function(callable.call()),
-      Reached::AsAProperty => Crossing::Namespace,
+    let crossing = match callable.carried {
+      Carried::Native(call) => Crossing::Function(call),
+      Carried::Compiler(call) => Crossing::Compiler(call),
+      Carried::Namespace(members) => Crossing::Namespace(members),
     };
 
-    self.reader.transport.carry(&callable.name, crossing);
+    let depth = self.guard.depth;
 
-    Ok(())
+    self.reader.transport.carry(&callable.name, crossing, depth)
   }
 
   /// Whether a call is one this module can hand to the engine whole.
@@ -1337,7 +1470,33 @@ impl<'r> Walk<'_, 'r> {
       return Err(Decline::NotACandidate);
     };
 
+    // A function entry of the `env` option, called as the outermost call. The
+    // dispatch below owns it, as it owns a call through a bare name, and names
+    // a key the option does not carry. Inside a fold the engine calls it.
+    if position == Position::Outermost && self.is_the_env_object(obj) {
+      return Err(Decline::NotACandidate);
+    }
+
     self.under(guard).admit_a_method_call(obj, method, call)
+  }
+
+  /// Whether `obj` is the `env` object: a name a named import gave it, or a read
+  /// of it off a namespace.
+  fn is_the_env_object(&self, obj: &Expr) -> bool {
+    match normalize_expr(obj) {
+      Expr::Ident(ident) => matches!(
+        self
+          .reader
+          .state
+          .functions
+          .identifiers
+          .get(&ident.sym)
+          .map(Box::as_ref),
+        Some(FunctionConfigType::EnvObject(_))
+      ),
+      Expr::Member(member) => self.an_env_read(member).is_some(),
+      _ => false,
+    }
   }
 
   /// Whether a method call is one the engine can answer.
@@ -1960,6 +2119,26 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
     Expr::Paren(paren) => receiver_is_a_written_number(&paren.expr),
     Expr::Lit(lit) => matches!(lit, Lit::Num(_)),
     _ => false,
+  }
+}
+
+/// The walk of [`Walk::calls_a_compiler_function`].
+struct CompilerCalls<'s> {
+  traversal_state: &'s StateManager,
+  functions: &'s FunctionMap,
+  found: bool,
+}
+
+impl Visit for CompilerCalls<'_> {
+  fn visit_call_expr(&mut self, call: &CallExpr) {
+    self.found |= call.callee.as_expr().is_some_and(|callee| {
+      engine_callable(callee, self.traversal_state, self.functions)
+        .is_some_and(|callable| callable.needs_an_argument)
+    });
+
+    if !self.found {
+      call.visit_children_with(self);
+    }
   }
 }
 

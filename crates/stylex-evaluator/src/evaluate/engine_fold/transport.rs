@@ -42,11 +42,15 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_utils::hash::{stable_hash_unspanned, stable_hash_wide};
 use stylex_utils::number::to_js_string;
 
-use super::super::engine_stylex_functions::EngineCallable;
+use super::super::engine_stylex_functions::{EngineCallable, EnvMap, NamespaceMembers};
+use super::compiler::{compiler_native, env_native};
 use super::engine::read;
 use super::theme::var_group;
 use super::{Ceilings, Decline, Depth, Totals};
-use stylex_state::{evaluate_result_value::EvaluateResultValue, theme_ref::ThemeRef};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, functions::StylexExprFn, theme_ref::ThemeRef,
+};
+use stylex_structures::stylex_env::EnvEntry;
 /// The one property name that is not a property when it is written as one.
 ///
 /// `{ __proto__: x }` sets the object's prototype, so the object the source
@@ -134,28 +138,55 @@ impl Transport {
 
     cross(&mut measure, &value, depth.restart())?;
 
-    self.carry(name, Crossing::Value(value));
-
-    Ok(())
+    self.carry(name, Crossing::Value(value), depth)
   }
 
   /// Records something the bridge already holds in its own shapes, under the
   /// name the printed source reads it through.
   ///
-  /// Nothing here can refuse, which is the whole difference from [`bind`]: what
-  /// it takes was not copied out of the module, so there is no text and no entry
-  /// count to compare a ceiling to. A [StyleX function the engine may
+  /// What it takes was not copied out of the module, so there is no text and no
+  /// entry count to compare a ceiling to. A [StyleX function the engine may
   /// call](super::super::engine_stylex_functions) and a resolved arrow are what
-  /// arrive this way.
+  /// arrive this way. The `env` object is the exception: its values come from
+  /// the option, so each one is measured as [`bind`] measures a value, and
+  /// this refuses where one is too large.
   ///
   /// [`bind`]: Transport::bind
-  pub(super) fn carry(&mut self, name: &Atom, crossing: Crossing) {
+  pub(super) fn carry(
+    &mut self,
+    name: &Atom,
+    crossing: Crossing,
+    depth: Depth,
+  ) -> Result<(), Decline> {
     if self.holds(name) {
-      return;
+      return Ok(());
+    }
+
+    let env = match &crossing {
+      Crossing::Env(env)
+      | Crossing::Namespace(NamespaceMembers {
+        env: Some((_, env)),
+        ..
+      }) => Some(env),
+      _ => None,
+    };
+
+    let mut measure = Measure {
+      name,
+      totals: &mut self.totals,
+      read_a_theme_reference: &mut self.read_a_theme_reference,
+    };
+
+    for value in env.into_iter().flat_map(|env| env.values()) {
+      if let EnvEntry::Expr(expr) = value {
+        cross_expr(&mut measure, expr, depth.restart())?;
+      }
     }
 
     self.params.push(name.clone());
     self.values.push(crossing);
+
+    Ok(())
   }
 
   /// The names as the parameters of the printed arrow.
@@ -199,14 +230,18 @@ impl Transport {
   /// which has no argument form to arrive as. Everything else arrives as an
   /// argument, so its name is the whole of its parameter. Named rather than left
   /// to a wildcard, so the next crossing added has to say which of the two it is.
-  fn printed_parameters(&self) -> impl Iterator<Item = (&Atom, Option<&Expr>)> {
+  pub(super) fn printed_parameters(&self) -> impl Iterator<Item = (&Atom, Option<&Expr>)> {
     self
       .params
       .iter()
       .zip(&self.values)
       .map(|(name, crossing)| match crossing {
         Crossing::Source(source) => (name, Some(&**source)),
-        Crossing::Value(_) | Crossing::Function(_) | Crossing::Namespace => (name, None),
+        Crossing::Value(_)
+        | Crossing::Function(_)
+        | Crossing::Compiler(_)
+        | Crossing::Namespace(_)
+        | Crossing::Env(_) => (name, None),
       })
   }
 
@@ -268,7 +303,20 @@ impl Transport {
         // would tie a value's lifetime to the engine's, which is the arrangement
         // the memo beside it already had to be written around.
         Crossing::Function(call) => native_function(*call, engine),
-        Crossing::Namespace => namespace(engine),
+        Crossing::Compiler(call) => {
+          compiler_native(*call, name, self.totals.ceilings, depth, var_group, engine)
+        },
+        Crossing::Namespace(members) => namespace(
+          members,
+          method,
+          self.totals.ceilings,
+          depth,
+          var_group,
+          engine,
+        ),
+        Crossing::Env(env) => {
+          env_object(env, method, self.totals.ceilings, depth, var_group, engine)
+        },
         // A function travels in the printed source as the parameter's default,
         // so passing nothing for it is what makes the default the value.
         Crossing::Source(_) => JsValue::undefined(),
@@ -300,17 +348,33 @@ pub(super) enum Crossing {
   /// A value the evaluator answered, measured on the way in and built once.
   ///
   /// Refused in both directions, as stated rules rather than omissions: function
-  /// configurations, callbacks, the environment object, an unresolved theme
+  /// configurations, callbacks, an unresolved theme
   /// reference, and the AST-keyed map variants. A *resolved* theme reference
   /// crosses as the stand-in the engine reads members off — see
   /// [`theme`](super::theme) — because resolving it is what mutates compiler
   /// state and that happens before the bridge.
   Value(EvaluateResultValue),
-  /// One of this compiler's own functions, reached by its own name.
+  /// One of this compiler's own functions that needs no build state, reached
+  /// by its own name.
   Function(NativeFunctionPointer),
+  /// A compiler function, reached by its own name. It runs with the build state
+  /// of the fold — see [`compiler`](super::compiler).
+  ///
+  /// The function goes to the engine as an argument and is not in the printed
+  /// source. So two folds that print the same source share one compiled script
+  /// even when the name holds a different function in each, and each gets its
+  /// own function.
+  Compiler(StylexExprFn),
   /// The whole callable surface of the StyleX namespace, reached as a property
-  /// of it — see [`Reached`](super::super::engine_stylex_functions::Reached).
-  Namespace,
+  /// of it, with the compiler functions and the `env` object the namespace
+  /// holds — see
+  /// [`Carried::Namespace`](super::super::engine_stylex_functions::Carried).
+  Namespace(NamespaceMembers),
+  /// The `env` object, reached through a name a named import gave it. It
+  /// crosses as an object of its entries. A value entry is carried as a value,
+  /// and a function entry as a native function that calls it — see
+  /// [`compiler`](super::compiler).
+  Env(EnvMap),
   /// A function the module declared, printed back as the parameter's default.
   Source(Box<Expr>),
 }
@@ -673,14 +737,35 @@ fn native_function(call: NativeFunctionPointer, engine: &mut Context) -> JsValue
   JsValue::from(NativeFunction::from_fn_ptr(call).to_js_function(engine.realm()))
 }
 
-/// The StyleX namespace as the object a printed `stylex.firstThatWorks(…)` reads
-/// its function off.
+/// The StyleX namespace as the object a printed `stylex.firstThatWorks(…)` or
+/// `stylex.keyframes(…)` reads its function off.
 ///
 /// Every callable function of the namespace rather than the one this call named,
 /// so a fold naming two of them carries one object holding both — see
-/// [`Reached::AsAProperty`](super::super::engine_stylex_functions::Reached).
-fn namespace(engine: &mut Context) -> JsValue {
+/// [`Carried::Namespace`](super::super::engine_stylex_functions::Carried). The
+/// functions that need no build state are written last, so they keep their
+/// property.
+fn namespace(
+  members: &NamespaceMembers,
+  method: &Atom,
+  ceilings: Ceilings,
+  depth: Depth,
+  var_group: &JsFunction,
+  engine: &mut Context,
+) -> JsValue {
   let object = JsObject::with_object_proto(engine.intrinsics());
+
+  for (property, call) in &members.functions {
+    let value = compiler_native(*call, property, ceilings, depth, var_group, engine);
+
+    define(&object, JsString::from(property.as_str()), value);
+  }
+
+  if let Some((property, env)) = &members.env {
+    let value = env_object(env, method, ceilings, depth, var_group, engine);
+
+    define(&object, JsString::from(property.as_str()), value);
+  }
 
   for (property, call) in EngineCallable::namespace_properties() {
     let value = native_function(call, engine);
@@ -689,6 +774,65 @@ fn namespace(engine: &mut Context) -> JsValue {
   }
 
   JsValue::from(object)
+}
+
+/// The `env` object as an engine object of its entries, in the order of the
+/// option.
+///
+/// A value entry is built as a carried value. It was measured when the name
+/// was carried, and the measure refuses every shape the build cannot make, so
+/// the build has no refusal of its own here. A function entry is a native
+/// function that calls the option's function — see [`env_native`].
+fn env_object(
+  env: &EnvMap,
+  method: &Atom,
+  ceilings: Ceilings,
+  depth: Depth,
+  var_group: &JsFunction,
+  engine: &mut Context,
+) -> JsValue {
+  let object = JsObject::with_object_proto(engine.intrinsics());
+
+  for (key, entry) in env.iter() {
+    let value = match entry {
+      EnvEntry::Expr(expr) => {
+        let mut build = Build {
+          engine,
+          method,
+          var_group,
+          dotted_prefixes: None,
+        };
+
+        cross_expr(&mut build, expr, depth.restart()).unwrap_or_default()
+      },
+      EnvEntry::Function(_) => env_native(key, ceilings, depth, var_group, engine),
+    };
+
+    define(&object, JsString::from(key.as_str()), value);
+  }
+
+  JsValue::from(object)
+}
+
+/// The answer of a compiler function, built into the engine.
+///
+/// The same walk that builds a carried value. It is not measured: the outward
+/// conversion of the fold counts what the whole fold answers.
+pub(super) fn answer_into_engine(
+  answer: &Expr,
+  engine: &mut Context,
+  method: &Atom,
+  depth: Depth,
+  var_group: &JsFunction,
+) -> Result<JsValue, Decline> {
+  let mut build = Build {
+    engine,
+    method,
+    var_group,
+    dotted_prefixes: None,
+  };
+
+  cross_expr(&mut build, answer, depth.restart())
 }
 
 /// One own property on an object this module just made.

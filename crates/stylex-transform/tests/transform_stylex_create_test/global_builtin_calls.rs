@@ -168,11 +168,11 @@ stylex_test!(
   "#
 );
 
-// Without the option there is no environment object to convert, and the refusal
-// is about the missing configuration rather than about the conversion.
-stylex_test_panic!(
-  string_of_an_unconfigured_environment_object_is_rejected,
-  "The stylex.env object is not configured.",
+// Without the option the environment object is empty, and it converts as any
+// object does: `.x19y1wga{color:[object Object]}`.
+stylex_test!(
+  string_of_an_unconfigured_environment_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

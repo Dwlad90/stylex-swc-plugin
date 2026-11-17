@@ -76,6 +76,9 @@ it does not list is the next bug report; evaluating covers `String.prototype`,
 statics, and a whole chain at once. An expression qualifies when every leaf
 resolves to a value the bridge can carry, which is what the
 [guard](#fold-guard) decides.
+A call to a [compiler function](#engine-callable-stylex-function) is a leaf
+too: the engine calls it with the live build state, so `keyframes` in a
+callback body declares its rule each time the callback runs.
 
 The engine is handed the expression alone and knows nothing of the module, so a
 resolved name crosses beside the source as a [transport](#transport) argument.
@@ -309,19 +312,31 @@ nothing bounded, and it is refused rather than allocated.
 _Avoid_: fallback coercion, the Rust conversion, the second bridge
 
 **Engine-callable StyleX function**:
-A function of the [folded function map](#folded-function-map) whose answer is a
-function of its arguments alone, so the engine may run it. `firstThatWorks` is
-the whole of that set: it reorders the fallbacks it was handed and folds the CSS
-variables among them into one `var()` chain, touching no state. Every other
-function of the map answers by writing into the build, and running one once per
-element inside a [speculative read](#speculative-read) would inject what the
-source describes once as many times as the receiver is long — which is also why
-the map itself cannot cross.
-
-Reached only in the _callee_ position, and only through the name the module
-bound. It travels as an ordinary transport parameter. The ordering is shared
+A function of the [folded function map](#folded-function-map) that the engine
+may run. There are two kinds. `firstThatWorks` answers from its arguments
+alone: it reorders the fallbacks it was handed and folds the CSS variables
+among them into one `var()` chain, touching no state. Its ordering is shared
 Rust rather than written twice, so the engine's answer and the evaluator's
 cannot drift apart.
+
+A **compiler function** takes one evaluated argument and the build state, and
+writes a rule into the build: `keyframes` and `positionTry` are the ones that
+matter. It crosses as a native function. When the engine calls it, its argument
+crosses back to the evaluator's own value, the Rust function runs with the
+**live build state**, and the answer crosses into the engine again. The state
+is reachable only while the fold runs the engine, through a scope the fold
+opens and drops (`LiveState`). So a callback that runs twice declares its rule
+twice, and one that never runs declares nothing, as the reference
+implementation does. A function that takes its argument as written, or takes
+arguments of another shape, is not one. Why and how is [ADR
+0011](./docs/adr/0011-a-compiler-function-runs-in-the-engine-with-the-live-build-state.md).
+
+Reached only in the _callee_ position, through a bare name or as a member of a
+namespace. A namespace crosses as one object that holds every function of both
+kinds that it has, and its `env` object, so two calls through one name cannot
+drop each other. The
+function travels as an argument, so the compiled script does not depend on
+which function a name holds.
 _Avoid_: pure StyleX function, builtin, injected function
 
 **Named callback**:
@@ -496,15 +511,25 @@ where every other binary operator answers with a coercion of both.
 _Avoid_: result, chosen branch, short-circuit value
 
 **Dead operand**:
-The side of `||`, `&&`, `??` or `?:` the language never evaluates. Neither the
-evaluator nor the guard enters one, and for the guard that is correctness rather
-than a saving: reading a leaf queues a theme reference's compensating import and
-can refuse the whole call, while a speculative read puts back the evaluation's
-state but not the module's. So a token read behind a compile-time-false guard
-would leave an import behind for a value no stylesheet holds. Which operand is
-dead is the operator's own rule, read from the one place that states it — and
-read from the module only outside a callback body, since inside one the engine
-binds the names and both sides have to carry.
+The side of `||`, `&&`, `??` or `?:` the language never evaluates. The guard
+does not enter one: reading a leaf can refuse the whole call, and a speculative
+read puts back the evaluation's state but not the module's. The evaluator's own
+logical node does evaluate the losing side of `||`, `&&` and `??` before it picks
+one, so a `keyframes` call there still declares its rule and a theme read there
+still queues its compensating import. It does not enter the arm a `?:` does not
+take.
+
+The engine fold does the same for a losing side that calls a compiler
+function. The guard walks that side, and where the walk admits it, the printed
+source changes the operator into a call of the global `__sxEither`, which runs
+the right side first and then picks. A throw from the side that loses has no
+effect. Where the walk refuses the side, the side stays dead, as the evaluator
+ignores a refusal on the side it does not use. A deciding side that calls a
+compiler function is not read before the engine runs, because reading it would
+run the function twice. Which operand is dead is the
+operator's own rule, read from the one place that states it — and read from the
+module only outside a callback body, since inside one the engine binds the names
+and both sides have to carry.
 
 Not entered is not the same as not printed: the engine decides the short circuit
 itself, so a dead operand crosses whole and the printer and parser both descend
@@ -558,6 +583,18 @@ static value belongs refuses rather than materializing and dropping the
 declaration. `stylex.env.<name>` folds in those calls all the same: the
 two-level read is answered off the namespace's member entries rather than off
 the namespace as a value.
+
+The map does not cross into the engine as a value. Its functions that the
+engine may run cross one by one, each as a function the engine calls — see
+[engine-callable StyleX function](#engine-callable-stylex-function).
+
+The `env` object does cross, as an object of its entries: through the
+namespace object for `stylex.env`, and under its own name for a named import.
+A value entry is measured and carried as a value, and a key the option does
+not carry reads as `undefined` in the engine. A function entry crosses as a
+native function that reads the option's function from the build state in
+scope and calls it. A call of a function entry as the _outermost_ call stays
+with the dispatch below, which names a key the option does not carry.
 
 The fold carries no expression form, so every position needing one
 **materializes** it as the object it stands for — its keys, each carrying a

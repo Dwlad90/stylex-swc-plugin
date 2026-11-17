@@ -38,7 +38,7 @@ fn printed(expression: &str, params: &[&str]) -> (String, bool) {
     .collect();
 
   let printed = GLOBALS.set(&Globals::new(), || match parse_expr(expression) {
-    Expr::Call(call) => print_fold(&call, params),
+    Expr::Call(call) => print_fold(&call, params, &[]),
     other => panic!("`{}` parsed as {:?}", expression, other),
   });
 

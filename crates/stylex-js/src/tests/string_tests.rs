@@ -1,6 +1,10 @@
 //! The string operations, against what Node answers for the same call.
 
-use super::{js_replace_all, js_replace_first, js_substitution, split_at_utf16_lengths};
+use std::cmp::Ordering;
+
+use super::{
+  js_replace_all, js_replace_first, js_string_cmp, js_substitution, split_at_utf16_lengths,
+};
 
 #[test]
 fn an_ascii_text_splits_at_its_byte_lengths() {
@@ -174,4 +178,15 @@ fn replace_all_handles_a_large_text_with_many_occurrences() {
 
   let letters = "x".repeat(10_000);
   assert_eq!(js_replace_all(&letters, "", "-").len(), 20_001);
+}
+
+/// Node answers `'\u{1F600}' < '\u{FF01}'` with `true`: the emoji's first code
+/// unit is 0xD83D. Its UTF-8 bytes start with 0xF0, after the 0xEF of U+FF01.
+#[test]
+fn strings_order_by_utf16_code_unit_and_not_by_byte() {
+  assert_eq!(js_string_cmp("\u{1F600}", "\u{FF01}"), Ordering::Less);
+  assert_eq!("\u{1F600}".cmp("\u{FF01}"), Ordering::Greater);
+  assert_eq!(js_string_cmp("a", "ab"), Ordering::Less);
+  assert_eq!(js_string_cmp("b", "a"), Ordering::Greater);
+  assert_eq!(js_string_cmp("", ""), Ordering::Equal);
 }

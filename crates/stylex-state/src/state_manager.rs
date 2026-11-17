@@ -1,5 +1,6 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
+use std::collections::VecDeque;
 use std::{borrow::Cow, env, option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
@@ -123,10 +124,12 @@ pub enum InsertionSlot {
   /// `hoisted_module_items` placement.
   AfterImports,
   /// Per-statement style metadata (the `_inject2(...)` calls) keyed by the
-  /// stable hash of the object the call was replaced by. Emitted immediately
-  /// before the first statement that holds that object, wherever in the
-  /// statement it stands. Replaces the legacy `styles_to_inject` map.
-  BeforeDecl(u128),
+  /// stable hash of the object the call was replaced by, and by the
+  /// registration that queued it. Each statement that holds that object takes
+  /// the items of one registration, in the order they were registered, so two
+  /// calls that leave the same object each inject in front of their own
+  /// statement. Replaces the legacy `styles_to_inject` map.
+  BeforeDecl(u128, u64),
 }
 
 #[derive(Debug, Clone)]
@@ -659,7 +662,12 @@ impl DeclarationState {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct StyleInjectionState {
   inject_import_inserted: Option<InjectImportIdents>,
-  metadata: IndexMap<String, IndexSet<MetaData>>,
+  /// Every rule each call registered, in the order the calls registered them.
+  /// Two calls that produce one rule each record it.
+  metadata: IndexMap<String, Vec<MetaData>>,
+  /// How many calls registered their styles so far, which numbers the next
+  /// registration.
+  registrations: u64,
   /// Transient dedup map for theme side-effect imports queued
   /// under `InsertionSlot::ThemeImports`. Tracks the imports that
   /// have already been queued so duplicates can be skipped. Lookups
@@ -672,9 +680,9 @@ pub(crate) struct StyleInjectionState {
   /// `pending_module_items`.
   queued_theme_imports: Vec<ModuleItem>,
   /// Which rules are already queued under which
-  /// `InsertionSlot::BeforeDecl(key)`, so a rule registered twice against one
-  /// statement is injected once. Replaces the legacy `styles_to_inject`
-  /// field's dual role.
+  /// `InsertionSlot::BeforeDecl(key, registration)`, so a rule one call
+  /// registered twice against one statement is injected once. Replaces the
+  /// legacy `styles_to_inject` field's dual role.
   ///
   /// A pair of hashes rather than the statements themselves: the injecting
   /// call is built from the rule and from the injection identifier, which is
@@ -682,12 +690,18 @@ pub(crate) struct StyleInjectionState {
   /// Holding the pair is one probe per rule, where holding the statements was
   /// a copy of every one of them and a scan over the copies -- 153,437
   /// statements on the largest module in the benchmark corpus.
-  queued_decl_rules: FxHashSet<(u128, u128)>,
+  queued_decl_rules: FxHashSet<(u128, u128, u64)>,
 }
 
 impl StyleInjectionState {
-  fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
+  fn metadata(&self) -> &IndexMap<String, Vec<MetaData>> {
     &self.metadata
+  }
+
+  /// The number of the next registration.
+  fn next_registration(&mut self) -> u64 {
+    self.registrations = self.registrations.wrapping_add(1);
+    self.registrations
   }
 }
 
@@ -1146,7 +1160,7 @@ impl StateManager {
     self.plugin_pass = plugin_pass;
   }
 
-  pub fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
+  pub fn metadata(&self) -> &IndexMap<String, Vec<MetaData>> {
     self.injection.metadata()
   }
 
@@ -1833,10 +1847,8 @@ impl StateManager {
   /// the pair travelled through eight signatures before it was named by the
   /// type it already is.
   pub fn apply_stylex_env(&self, function_map: &mut FunctionMap) {
-    if self.options.env.is_empty() {
-      return;
-    }
-
+    // Registered whether or not the option is set: an unset option is an empty
+    // object, whose keys read as `undefined`.
     let env = Rc::clone(&self.options.env);
 
     // A namespace import reads `stylex.env.x`, so `env` is a member of the
@@ -2451,6 +2463,31 @@ impl StateManager {
     self.nested_rules_filed
   }
 
+  /// Keeps the nested rules filed on `copy`, a clone of this state that an
+  /// evaluation ran on and then dropped.
+  ///
+  /// An author's arrow runs its body on a clone, so that the memo entries of
+  /// one call cannot answer the next call with other arguments. A `keyframes`
+  /// call in the body files its rule on that clone, and the rule must reach the
+  /// build all the same. The filing count is kept too, so the memo does not
+  /// answer the next identical call without filing the rule again.
+  ///
+  /// A rule is keyed by its name, so a rule this state already holds stays
+  /// where it is.
+  pub fn keep_rules_filed_on(&mut self, copy: &StateManager) {
+    if copy.nested_rules_filed == self.nested_rules_filed {
+      return;
+    }
+
+    for (key, rule) in &copy.other_injected_css_rules {
+      self
+        .other_injected_css_rules
+        .insert(key.clone(), Rc::clone(rule));
+    }
+
+    self.nested_rules_filed = copy.nested_rules_filed;
+  }
+
   /// Puts the rules the calls inside the argument declared in front of `own`,
   /// and answers the map the producer registers.
   ///
@@ -2508,10 +2545,11 @@ impl StateManager {
     // The keys are the same for every rule of one call, so they are read once
     // here rather than once per metadata in the loop.
     let keys = placement_keys(ast, fallback_ast_hash);
+    let registration = self.injection.next_registration();
 
     for metadata in metadatas {
       self.add_style(&metadata);
-      self.add_style_to_inject(&metadata, &inject_var_ident, &keys);
+      self.add_style_to_inject(&metadata, &inject_var_ident, &keys, registration);
     }
 
     // Update all references to this call expression with the new AST
@@ -2632,24 +2670,26 @@ impl StateManager {
   }
 
   fn add_style(&mut self, metadata: &MetaData) {
-    let var_name = "stylex";
-    let value = self
+    self
       .injection
       .metadata
-      .entry(var_name.to_string())
-      .or_default();
-
-    if !value.contains(metadata) {
-      value.insert(metadata.clone());
-    }
+      .entry("stylex".to_string())
+      .or_default()
+      .push(metadata.clone());
   }
 
   /// Queues the injection call for one rule before each statement it belongs
-  /// to, once per statement.
+  /// to, once per statement for each registration.
   ///
   /// `keys` are what [`placement_keys`] read off the call, and every one of
   /// them names a shape the placement walk can find.
-  fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, keys: &[u128]) {
+  fn add_style_to_inject(
+    &mut self,
+    metadata: &MetaData,
+    inject_var_ident: &Ident,
+    keys: &[u128],
+    registration: u64,
+  ) {
     let priority = metadata.get_priority();
     let css_ltr = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
@@ -2707,8 +2747,12 @@ impl StateManager {
     }));
 
     for key in keys {
-      if self.injection.queued_decl_rules.insert((*key, rule_key)) {
-        self.queue_insertion(InsertionSlot::BeforeDecl(*key), item.clone());
+      if self
+        .injection
+        .queued_decl_rules
+        .insert((*key, rule_key, registration))
+      {
+        self.queue_insertion(InsertionSlot::BeforeDecl(*key, registration), item.clone());
       }
     }
   }
@@ -2807,7 +2851,7 @@ pub fn flush_pending_insertions(
   let mut before_imports: Vec<ModuleItem> = Vec::new();
   let mut theme_imports: Vec<ModuleItem> = Vec::new();
   let mut after_imports: Vec<ModuleItem> = Vec::new();
-  let mut before_decl: FxHashMap<u128, Vec<ModuleItem>> = FxHashMap::default();
+  let mut before_decl: FxHashMap<u128, VecDeque<RegisteredItems>> = FxHashMap::default();
 
   for PendingInsertion { slot, item } in pending {
     match slot {
@@ -2823,9 +2867,19 @@ pub fn flush_pending_insertions(
         }
       },
       InsertionSlot::AfterImports => after_imports.push(item),
-      InsertionSlot::BeforeDecl(hash) => {
+      InsertionSlot::BeforeDecl(hash, registration) => {
         if runtime_injection {
-          before_decl.entry(hash).or_default().push(item);
+          let groups = before_decl.entry(hash).or_default();
+
+          // The items of one registration are queued together, so a new group
+          // starts where the registration changes.
+          match groups.back_mut() {
+            Some(group) if group.registration == registration => group.items.push(item),
+            _ => groups.push_back(RegisteredItems {
+              registration,
+              items: vec![item],
+            }),
+          }
         }
       },
     }
@@ -2963,6 +3017,13 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
   keys
 }
 
+/// The injection calls one registration queued for one object.
+#[derive(Debug)]
+struct RegisteredItems {
+  registration: u64,
+  items: Vec<ModuleItem>,
+}
+
 /// The walk that finds the objects a module item holds and places the metadata
 /// queued for each of them in front of the item.
 ///
@@ -2987,9 +3048,9 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
 ///   folded into rather than to the name left in it -- `create({ a: {
 ///   animationName: keyframes({ … }) } })` injects both rules at the one key.
 ///   So a declarator bound to one compiled object costs the one hash it always
-///   cost, however large the object is. A *second* statement holding the same
-///   object is read to the bottom, because the first took the metadata: that
-///   is the price of the rule that the first holder is the one that takes it.
+///   cost, however large the object is. Each statement that holds the object
+///   takes the next registration group. A statement that holds it after the
+///   last group is taken finds nothing, and is read to the bottom.
 /// - It does not enter a function body. Nothing a body holds is registered: a
 ///   `create` written in one is hoisted to a declaration of its own, and every
 ///   other producer refuses a call the module top level does not bind. So a
@@ -3005,9 +3066,9 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
 /// is nothing there to step over.
 struct RegisteredObjects<'a> {
   /// The metadata still to place, keyed by the hash of the object it belongs
-  /// to. Taking a bucket out leaves the first item that holds the object as
-  /// the one that takes it.
-  queued: &'a mut FxHashMap<u128, Vec<ModuleItem>>,
+  /// to, one group per registration. Each item that holds the object takes the
+  /// next group, so the first registration goes in front of the first item.
+  queued: &'a mut FxHashMap<u128, VecDeque<RegisteredItems>>,
   /// The module body being written, which the metadata is appended to directly
   /// in front of the item the walk is reading.
   placed: &'a mut Vec<ModuleItem>,
@@ -3016,13 +3077,19 @@ struct RegisteredObjects<'a> {
 impl RegisteredObjects<'_> {
   /// Places the metadata queued for `expr`, and says whether there was any.
   fn place_metadata_of(&mut self, expr: &Expr) -> bool {
-    match self.queued.remove(&stable_hash_unspanned(expr)) {
-      Some(metadata) => {
-        self.placed.extend(metadata);
-        true
-      },
-      None => false,
+    let hash = stable_hash_unspanned(expr);
+
+    let Some(group) = self.queued.get_mut(&hash).and_then(VecDeque::pop_front) else {
+      return false;
+    };
+
+    self.placed.extend(group.items);
+
+    if self.queued.get(&hash).is_some_and(VecDeque::is_empty) {
+      self.queued.remove(&hash);
     }
+
+    true
   }
 }
 

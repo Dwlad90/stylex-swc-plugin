@@ -2,6 +2,7 @@
 Border radius property tests.
 */
 
+use crate::css_types::{Length, LengthPercentage};
 use crate::properties::border_radius::{BorderRadiusIndividual, BorderRadiusShorthand};
 
 #[cfg(test)]
@@ -545,5 +546,54 @@ mod test_css_property_border_radius_shorthand {
     assert_eq!(result.vertical_top_left.to_string(), "0.5rem");
     assert_eq!(result.vertical_top_right.to_string(), "0.6rem");
     assert_eq!(result.vertical_bottom_right.to_string(), "0.7rem");
+  }
+
+  #[test]
+  fn to_string_distinct_vertical_radii_are_not_overwritten_by_horizontal() {
+    // All horizontal radii are equal, but all vertical radii differ, so the
+    // vertical radii must stay after the slash.
+    let px = |value: f64| LengthPercentage::Length(Length::new(value, "px".to_string()));
+    let radius = BorderRadiusShorthand::new(
+      px(5.0),
+      Some(px(5.0)),
+      Some(px(5.0)),
+      Some(px(5.0)),
+      Some(px(1.0)),
+      Some(px(2.0)),
+      Some(px(3.0)),
+      Some(px(4.0)),
+    );
+    assert_eq!(radius.to_string(), "5px / 1px 2px 3px 4px");
+  }
+
+  mod serialization_border_radius_shorthand_to_string {
+    use super::*;
+
+    fn round_trip(input: &str) -> String {
+      match BorderRadiusShorthand::parser().parse_to_end(input) {
+        Ok(value) => value.to_string(),
+        Err(error) => panic!("Cannot parse '{input}': {error}"),
+      }
+    }
+
+    #[test]
+    fn symmetric_radii_serialize_without_a_slash() {
+      assert_eq!(round_trip("10px"), "10px");
+      assert_eq!(round_trip("10px 20px"), "10px 20px");
+      assert_eq!(round_trip("10px 20px 30px"), "10px 20px 30px");
+      assert_eq!(round_trip("10px 20px 30px 40px"), "10px 20px 30px 40px");
+    }
+
+    #[test]
+    fn asymmetric_radii_keep_the_vertical_values_after_the_slash() {
+      // When all four vertical radii differ, they must still follow the slash
+      // and must not collapse into the horizontal radii.
+      assert_eq!(
+        round_trip("10px 20px 30px 40px / 40px 30px 20px 10px"),
+        "10px 20px 30px 40px / 40px 30px 20px 10px"
+      );
+      assert_eq!(round_trip("10px / 20px"), "10px / 20px");
+      assert_eq!(round_trip("10px 20px / 30px 40px"), "10px 20px / 30px 40px");
+    }
   }
 }

@@ -78,37 +78,6 @@ fn parser_clamps_more_than_four_values_to_first_four() {
   assert_eq!(result.horizontal_bottom_left.to_string(), "4px");
 }
 
-// ── to_shortest_string horizontal branches ────────────────────────────────
-
-// three-value horizontal — requires result.to_string()
-// For "10px 20px 30px": after expansion h_tl=10px h_tr=20px h_br=30px h_bl=20px
-// h_tr==h_bl (20px==20px) → horizontal_str = "10px 20px 30px"
-// Vertical defaults to h_top_left only → vertical_str = "10px"
-// horizontal != vertical → output "10px 20px 30px / 10px"
-#[test]
-fn to_string_three_value_horizontal_shorthand() {
-  let result = BorderRadiusShorthand::parser()
-    .parse_to_end("10px 20px 30px")
-    .unwrap();
-  // h_tr == h_bl (20px == 20px) exercises the three-value branch.
-  // Vertical defaults to h_top_left ("10px"), so the "/" separator is added.
-  assert_eq!(result.to_string(), "10px 20px 30px / 10px");
-}
-
-// four-distinct-value horizontal — all four values different.
-// For "10px 20px 30px 40px": h_tl=10px h_tr=20px h_br=30px h_bl=40px,
-// none of the shorthand conditions match → horizontal_str = "10px 20px 30px 40px"
-// Vertical defaults to h_top_left → vertical_str = "10px"
-// horizontal != vertical → output "10px 20px 30px 40px / 10px"
-#[test]
-fn to_string_four_distinct_value_horizontal_shorthand() {
-  let result = BorderRadiusShorthand::parser()
-    .parse_to_end("10px 20px 30px 40px")
-    .unwrap();
-  // All four horizontal values are distinct.
-  assert_eq!(result.to_string(), "10px 20px 30px 40px / 10px");
-}
-
 // ── to_shortest_string vertical branches ─────────────────────────────────
 
 // The vertical branches require a "/" separator so that
@@ -146,20 +115,6 @@ fn to_string_four_distinct_value_vertical_shorthand() {
     .parse_to_end("10px / 20px 30px 40px 50px")
     .unwrap();
   assert_eq!(result.to_string(), "10px / 20px 30px 40px 50px");
-}
-
-// ── Confirm two-value horizontal branch is also exercised ──
-
-#[test]
-fn to_string_two_value_horizontal_shorthand() {
-  // "10px 20px": h_tl=10px h_tr=20px h_br=10px h_bl=20px
-  // h_tl==h_br && h_tr==h_bl → horizontal_str = "10px 20px"
-  // Vertical defaults to h_top_left → vertical_str = "10px"
-  // horizontal != vertical → "10px 20px / 10px"
-  let result = BorderRadiusShorthand::parser()
-    .parse_to_end("10px 20px")
-    .unwrap();
-  assert_eq!(result.to_string(), "10px 20px / 10px");
 }
 
 // ── BorderRadiusShorthand::new with all vertical radii specified ──────────

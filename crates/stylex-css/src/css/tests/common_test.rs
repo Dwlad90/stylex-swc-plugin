@@ -90,24 +90,33 @@ mod inline_style_to_css_string_tests {
     );
   }
 
-  /// A custom property takes the same spelling rule as any other name here,
-  /// which is where an attribute and a stylesheet part company: a stylesheet
-  /// hands `--myColor` back untouched.
-  ///
-  /// Both answers were measured against @stylexjs/babel-plugin@0.19.0 through
-  /// `stylex.attrs({ … })`, which is the one call that reaches this text.
+  /// A custom property keeps the name the author wrote, so the attribute sets
+  /// the same property that the stylesheet reads with `var(--myColor)`.
   #[test]
-  fn kebab_cases_a_custom_property_written_in_camel_case() {
+  fn keeps_a_custom_property_written_in_camel_case() {
     assert_eq!(
       inline_style_to_css_string(&declarations(&[("--myColor", "red")])),
-      "--my-color:red"
+      "--myColor:red"
     );
 
-    // Every capital takes its own hyphen, so a run of them is not the single
-    // hyphen a stylesheet would write.
     assert_eq!(
       inline_style_to_css_string(&declarations(&[("--ABCDef", "x")])),
-      "---a-b-c-def:x"
+      "--ABCDef:x"
+    );
+  }
+
+  /// Only a name that starts with two hyphens is a custom property. A name
+  /// with one hyphen is still converted, and so is every other name in the
+  /// same style.
+  #[test]
+  fn converts_the_other_names_beside_a_custom_property() {
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[
+        ("-webkitX", "1"),
+        ("--fooBar", "3"),
+        ("MsTransition", "none"),
+      ])),
+      "-webkit-x:1;--fooBar:3;-ms-transition:none"
     );
   }
 

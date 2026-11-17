@@ -365,9 +365,9 @@ stylex_test!(
   "#
 );
 
-// A custom property keeps the author's spelling where a style object is
-// written and takes the attribute spelling where a style attribute is. The
-// runtime dashes every capital of an attribute name and leaves nothing alone.
+// A custom property keeps the author's spelling in a style attribute too, so
+// it matches the name the generated CSS reads. Every other name in the
+// attribute takes a hyphen before each capital.
 stylex_test!(
   a_custom_property_read_as_an_attribute,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

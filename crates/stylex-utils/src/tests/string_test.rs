@@ -26,10 +26,8 @@ mod kebab_case_tests {
     assert!(matches!(kebab_case(""), Cow::Borrowed("")));
   }
 
-  /// A custom property is converted here. A stylesheet hands one back
-  /// untouched instead, and it does that with a guard of its own around
-  /// `dashify` rather than with a rule inside it, so the contrast cannot be
-  /// drawn against `dashify` here.
+  /// A custom property is converted here. A caller that must keep one
+  /// untouched does the check itself.
   #[test]
   fn converts_a_custom_property() {
     assert_eq!(kebab_case("--myColor"), "--my-color");

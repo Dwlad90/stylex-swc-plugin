@@ -153,19 +153,12 @@ fn a_later_declaration_of_another_kind_wins() {
   );
 }
 
-/// A custom property keeps the author's spelling in a `style` property and
-/// takes the attribute spelling in a `style` attribute, and those are two
-/// names: the runtime dashes every capital where it writes the attribute, and
-/// it leaves a custom property alone nowhere.
-///
-/// Both results are read here, because this is the name that shows the two
-/// spellings are not one, and nothing else pins the attribute half of it.
-///
-/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
-/// parity:probe`: `stylex.attrs({ '--myColor': 'red' })` answers
-/// `{ style: "--my-color:red" }` there.
+/// A custom property keeps the author's spelling in a `style` property and in
+/// a `style` attribute. The attribute converts every other name. A custom
+/// property name is case-sensitive. A converted name does not match the name
+/// that the generated CSS reads.
 #[test]
-fn spells_a_custom_property_the_way_each_result_spells_it() {
+fn keeps_a_custom_property_in_both_props_and_attrs() {
   let declaration = [styles(inline(&[("--myColor", "red")]))];
 
   assert_eq!(
@@ -174,7 +167,7 @@ fn spells_a_custom_property_the_way_each_result_spells_it() {
   );
   assert_eq!(
     text_of(&values_of(attrs(&declaration)), "style"),
-    "--my-color:red"
+    "--myColor:red"
   );
 }
 

@@ -58,11 +58,11 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
 ///
 /// It is not [`dashify`], and the difference is deliberate. A stylesheet takes
 /// a hyphen only where a capital opens the name or follows a lowercase letter,
-/// so `ABCDef` is `-abcdef` there and `-a-b-c-def` here. A stylesheet also
-/// hands a custom property back untouched, which is a guard its caller holds
-/// rather than a rule inside `dashify`; an attribute has no such guard, so
-/// `--myColor` becomes `--my-color`. The two rules are kept apart because the
-/// runtime keeps them apart.
+/// so `ABCDef` is `-abcdef` there and `-a-b-c-def` here. The two rules are
+/// kept apart because the runtime keeps them apart.
+///
+/// A custom property is converted like any other name. A caller that must keep
+/// one untouched does the check before it calls this function.
 pub fn kebab_case(s: &str) -> Cow<'_, str> {
   if s.is_ascii() && !s.bytes().any(|byte| byte.is_ascii_uppercase()) {
     return Cow::Borrowed(s);

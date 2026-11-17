@@ -43,10 +43,10 @@ and the whole name is lowercased, so `marginTop` is `margin-top` in both and
 `ABCDef` is `-abcdef` in a stylesheet and `-a-b-c-def` here.
 
 `dashify` is the stylesheet half. The two are kept apart because the StyleX
-runtime keeps them apart, and a **custom property** is where they differ most: a
-stylesheet hands `--myColor` back untouched, and an attribute writes
-`--my-color`. Both answers are the runtime's, so both are **observable** — the
-attribute text reaches the page.
+runtime keeps them apart. A **custom property** is not converted by either
+caller: a stylesheet and an attribute both keep `--myColor` as written. The name
+is case-sensitive, so the attribute must set the property that the stylesheet
+reads.
 _Avoid_: hyphenate, snake case, dasherize
 
 **JS float read**:

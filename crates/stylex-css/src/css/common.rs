@@ -780,10 +780,9 @@ pub fn get_number_suffix(key: &str) -> &'static str {
 /// Each pair is formatted as `property:value` and joined with `;`.
 ///
 /// Every name takes the spelling a `style` attribute gives it, which is
-/// [`kebab_case`] and not the stylesheet spelling. The runtime writes this
-/// attribute with a rule of its own, and a custom property is the name where
-/// the two part company: `--myColor` stays as it is in a stylesheet and
-/// becomes `--my-color` here.
+/// [`kebab_case`] and not the stylesheet spelling. A custom property is the
+/// exception: it keeps the name the author wrote, so `--myColor` here is the
+/// same `--myColor` that the generated CSS reads with `var(--myColor)`.
 ///
 /// Taken by borrowed halves, because a caller that already holds the name and
 /// the text writes them straight in, and one that had to spell a value -- a
@@ -797,11 +796,14 @@ pub fn inline_style_to_css_string(pairs: &[PairCow<'_>]) -> String {
   let mut out = String::with_capacity(capacity);
 
   for pair in pairs {
-    push_css_decl(
-      &mut out,
-      kebab_case(&pair.key).as_ref(),
-      pair.value.as_ref(),
-    );
+    // A custom property name is case-sensitive, so a converted name would not
+    // match the property that the stylesheet reads.
+    let key = match pair.key.starts_with("--") {
+      true => Cow::Borrowed(pair.key.as_ref()),
+      false => kebab_case(&pair.key),
+    };
+
+    push_css_decl(&mut out, key.as_ref(), pair.value.as_ref());
   }
 
   out

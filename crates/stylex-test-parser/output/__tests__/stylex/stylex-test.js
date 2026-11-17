@@ -282,6 +282,7 @@ describe('stylex', ()=>{
                     marginTop: '10px',
                     opacity: 0.5,
                     '--foo': 2,
+                    '--fooBar': 3,
                     MsTransition: 'none',
                     WebkitTapHighlightColor: 'transparent'
                 }
@@ -289,7 +290,7 @@ describe('stylex', ()=>{
         {
           "class": "backgroundColor-red",
           "data-style-src": "components/Foo.react.js:1",
-          "style": "color:red;margin-top:10px;opacity:0.5;--foo:2;-ms-transition:none;-webkit-tap-highlight-color:transparent",
+          "style": "color:red;margin-top:10px;opacity:0.5;--foo:2;--fooBar:3;-ms-transition:none;-webkit-tap-highlight-color:transparent",
         }
       `);
         });

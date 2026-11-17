@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 962 values: the differential harness's whole corpus, plus
+/// 963 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -3248,6 +3248,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"max\" 0..17 before=\"\" after=\"\" nodes=3\n  word \"100px\" 4..9\n  div \",\" 9..11 before=\"\" after=\" \"\n  word \"200px\" 11..16",
   },
   ParserCase {
+    input: "max(1px, 2px) calc(0px + 1%)",
+    output: "max(1px, 2px) calc(0px + 1%)",
+    ast: "function \"max\" 0..13 before=\"\" after=\"\" nodes=3\n  word \"1px\" 4..7\n  div \",\" 7..9 before=\"\" after=\" \"\n  word \"2px\" 9..12\nspace \" \" 13..14\nfunction \"calc\" 14..28 before=\"\" after=\"\" nodes=5\n  word \"0px\" 19..22\n  space \" \" 22..23\n  word \"+\" 23..24\n  space \" \" 24..25\n  word \"1%\" 25..27",
+  },
+  ParserCase {
     input: "min(100%, 500px)",
     output: "min(100%, 500px)",
     ast: "function \"min\" 0..16 before=\"\" after=\"\" nodes=3\n  word \"100%\" 4..8\n  div \",\" 8..10 before=\"\" after=\" \"\n  word \"500px\" 10..15",
@@ -4944,7 +4949,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 672 words paired with their number/unit split, `None` standing for a
+/// 673 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5435,6 +5440,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   (";height", None),
   ("1px-.5px", Some(("1", "px-.5px"))),
   ("42", Some(("42", ""))),
+  ("1%", Some(("1", "%"))),
   ("500px", Some(("500", "px"))),
   ("%", None),
   ("ABC", None),

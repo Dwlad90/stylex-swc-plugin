@@ -1,6 +1,5 @@
-//! Ported normalizer 5 of 9 in upstream's sequence, which is what that count
-//! names. See `normalize_value.rs` for the order the passes run in here — a
-//! tenth pass that upstream has no equivalent for runs among them.
+//! Removes or canonicalizes the unit on a zero value. See `normalize_value.rs`
+//! for where this pass runs among the others.
 
 use postcss_value_parser::{NodeKind, ValueParser, unit};
 
@@ -15,11 +14,10 @@ const PERCENTAGE: &str = "%";
 /// what the function computes.
 ///
 /// Whether a token is inside a function is decided by comparing source offsets
-/// against the end of the first function seen, not by tracking where the walk
-/// currently is. The two answer differently, and the offsets are what the
-/// reference implementation asks: the window closes at the *first* function's
-/// end, so a second function later in the value is not covered by it, and a
-/// zero inside that one does lose its unit.
+/// against the furthest function end seen so far. The walk visits a function
+/// before its children, so each function widens the window before its own
+/// zeros are read. The window closes once the walk moves past the last
+/// function end, so a bare zero after every function still loses its unit.
 ///
 /// A custom property is exempt outright. Its value has no grammar the compiler
 /// can reason about, so `0px` there may well be read back as text by something
@@ -33,8 +31,8 @@ pub fn normalize_zero_dimensions(ast: &mut ValueParser, key: &str) {
 
   ast.walk(
     |node, _| {
-      if node.kind == NodeKind::Function && end_function == 0 {
-        end_function = node.source_end_index;
+      if node.kind == NodeKind::Function {
+        end_function = end_function.max(node.source_end_index);
       }
 
       if end_function > 0 && node.source_index > end_function {

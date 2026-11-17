@@ -64,6 +64,15 @@ stylex_test!(
 );
 
 stylex_test!(
+  preserves_zero_units_inside_a_non_first_function,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { width: 'max(1px, 2px) calc(0px + 1%)' } });
+  "#
+);
+
+stylex_test!(
   zero_timings_are_all_zero_s,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"

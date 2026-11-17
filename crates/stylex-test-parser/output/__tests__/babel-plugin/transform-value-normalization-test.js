@@ -68,6 +68,14 @@ describe('@stylexjs/babel-plugin', ()=>{
         });"
       `);
         });
+        test('preserves zero units inside a non-first function', ()=>{
+            const code = transform(`
+        import stylex from 'stylex';
+        const styles = stylex.create({ x: { width: 'max(1px, 2px) calc(0px + 1%)' } });
+      `);
+            expect(code).toContain('calc(0px + 1%)');
+            expect(code).not.toContain('calc(0 + 1%)');
+        });
         test('0 timings are all "0s"', ()=>{
             expect(transform(`
           import stylex from 'stylex';

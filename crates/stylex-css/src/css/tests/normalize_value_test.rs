@@ -385,13 +385,11 @@ fn reads_the_zero_off_the_spelling_not_the_quantity() {
 }
 
 /// Inside a function the unit stays, because dropping it would change what the
-/// function computes. The test is a comparison of source offsets against the
-/// end of the *first* function seen, so a second function later in the value is
-/// outside that window and its zero does lose its unit.
-///
-/// The asymmetry between the two `translate` calls below is the whole of it.
+/// function computes. This is true for every function in the value, not only
+/// the first: `calc(0 + 1%)` is not valid CSS. A bare zero after the last
+/// function still loses its unit.
 #[test]
-fn keeps_a_unit_on_a_zero_inside_the_first_function_only() {
+fn keeps_a_unit_on_a_zero_inside_any_function() {
   check(&[
     ("translate(0px, 0em)", "transform", "translate(0px,0em)"),
     ("calc(0px + 1px)", "width", "calc(0px + 1px)"),
@@ -403,7 +401,18 @@ fn keeps_a_unit_on_a_zero_inside_the_first_function_only() {
     (
       "translate(0px) translate(0em)",
       "transform",
-      "translate(0px) translate(0)",
+      "translate(0px) translate(0em)",
+    ),
+    (
+      "max(1px,2px) calc(0px + 1%)",
+      "width",
+      "max(1px,2px) calc(0px + 1%)",
+    ),
+    ("calc(5px) 0px", "margin", "calc(5px) 0"),
+    (
+      "translate(0px) 0px translate(0em)",
+      "transform",
+      "translate(0px) 0 translate(0em)",
     ),
     ("var(--a) 0px", "margin", "var(--a) 0"),
     ("0px var(--a)", "margin", "0 var(--a)"),
@@ -1047,7 +1056,7 @@ const ACCEPTED_SAMPLE: &[Case] = &[
   (
     "translate(0px) translate(0em)",
     "transform",
-    "translate(0px) translate(0)",
+    "translate(0px) translate(0em)",
   ),
   (
     "\"\\2014 A\", sans-serif",

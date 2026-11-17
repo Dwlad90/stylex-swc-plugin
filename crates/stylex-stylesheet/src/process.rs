@@ -497,11 +497,7 @@ fn substitute_constants<'r>(
       const_val: style.const_val.clone(),
     };
 
-    out.push(Cow::Owned(Rule::new(
-      rule.class_name().clone(),
-      style,
-      rule.priority() + delta,
-    )));
+    out.push(Cow::Owned(rule.rebuilt(style, rule.priority() + delta)));
   }
 
   Ok(out)
@@ -677,13 +673,6 @@ fn sort_rules<'a>(
 
 // ==================== the groups ====================
 
-/// One priority group: its rules in sorted order, and `group[0][2]`, the
-/// priority of its first rule, which decides whether it goes in a layer.
-struct PriorityGroup<'a> {
-  priority: f64,
-  rules: Vec<&'a Rule>,
-}
-
 /// The sorted rules grouped by thousand of priority (`Math.floor(priority /
 /// 1000)`), each group in the order the sort gave its rules. A `NaN` level
 /// equals no level, so each such rule is a group of its own.
@@ -693,9 +682,9 @@ struct PriorityGroup<'a> {
 /// at level -1, there is no last group, and the reference throws.
 fn group_by_priority_level<'a>(
   sorted_rules: &[&'a Rule],
-) -> Result<Vec<PriorityGroup<'a>>, ProcessStylexRulesError> {
+) -> Result<Vec<Vec<&'a Rule>>, ProcessStylexRulesError> {
   let mut last_k_pri = -1.0;
-  let mut grouped: Vec<PriorityGroup<'a>> = Vec::new();
+  let mut grouped: Vec<Vec<&'a Rule>> = Vec::new();
 
   for &rule in sorted_rules {
     let priority_level = (rule.priority() / 1000.0).floor();
@@ -706,13 +695,10 @@ fn group_by_priority_level<'a>(
           class_name: rule.class_name().spelling().into_owned(),
         });
       };
-      group.rules.push(rule);
+      group.push(rule);
     } else {
       last_k_pri = priority_level;
-      grouped.push(PriorityGroup {
-        priority: rule.priority(),
-        rules: vec![rule],
-      });
+      grouped.push(vec![rule]);
     }
   }
 
@@ -893,45 +879,73 @@ fn write_style(
   Ok(())
 }
 
-/// Writes one priority group: its styles' lines, inside a `@layer` block when
-/// layers are on and the group holds styles (a group of priority 0,
-/// `@property`, `@keyframes`, `@position-try`, goes in no layer).
+/// Writes the lines of `rules`, one style per class name, a line break
+/// between styles.
+fn collect_rules(
+  out: &mut Output,
+  rules: &[&Rule],
+  specificity: Option<&str>,
+  enable_ltr_rtl_comments: bool,
+) -> Result<(), ProcessStylexRulesError> {
+  for (position, rule) in deduplicate_by_class_name(rules).into_iter().enumerate() {
+    if position > 0 {
+      out.text.push('\n');
+    }
+    write_style(out, rule, specificity, enable_ltr_rtl_comments)?;
+  }
+
+  Ok(())
+}
+
+/// Writes one priority group. With layers off, all its styles are written as
+/// they are. With layers on, the group is split: rules of priority 0
+/// (`@property`, `@keyframes`, `@position-try`) are written first and stay
+/// out of any layer, then rules of positive priority go in the group's
+/// `@layer` block.
 fn write_group(
   out: &mut Output,
-  group: &PriorityGroup<'_>,
+  group: &[&Rule],
   index: usize,
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
 ) -> Result<(), ProcessStylexRulesError> {
-  // Don't put @property, @keyframe, @position-try in layers
-  let in_layer = layers.on && group.priority > 0.0;
-  // The polyfill: `index` copies of `:not(#\#)`, the same for every style of
-  // the group.
-  let specificity =
-    (!layers.on && !config.legacy_disable_layers).then(|| SPECIFICITY_LEVEL.repeat(index));
+  if !layers.on {
+    // The polyfill: `index` copies of `:not(#\#)`, the same for every style
+    // of the group.
+    let specificity = (!config.legacy_disable_layers).then(|| SPECIFICITY_LEVEL.repeat(index));
+    return collect_rules(
+      out,
+      group,
+      specificity.as_deref(),
+      config.enable_ltr_rtl_comments,
+    );
+  }
 
-  if in_layer {
+  // Each rule goes by its own priority. Don't put @property, @keyframe,
+  // @position-try in layers. A rule whose priority is negative, `NaN`, or
+  // only reads as 0 (`null`, `"0"`) is in neither part and is not written.
+  let mut unlayered: Vec<&Rule> = Vec::new();
+  let mut layerable: Vec<&Rule> = Vec::new();
+  for &rule in group {
+    if rule.priority_is_zero() {
+      unlayered.push(rule);
+    } else if rule.priority() > 0.0 {
+      layerable.push(rule);
+    }
+  }
+
+  if !unlayered.is_empty() {
+    collect_rules(out, &unlayered, None, config.enable_ltr_rtl_comments)?;
+  }
+
+  if !layerable.is_empty() {
+    if !unlayered.is_empty() {
+      out.text.push('\n');
+    }
     out.text.push_str("@layer ");
     out.text.push_str(&layers.name(index));
     out.text.push_str("{\n");
-  }
-
-  for (position, rule) in deduplicate_by_class_name(&group.rules)
-    .into_iter()
-    .enumerate()
-  {
-    if position > 0 {
-      out.text.push('\n');
-    }
-    write_style(
-      out,
-      rule,
-      specificity.as_deref(),
-      config.enable_ltr_rtl_comments,
-    )?;
-  }
-
-  if in_layer {
+    collect_rules(out, &layerable, None, config.enable_ltr_rtl_comments)?;
     out.text.push_str("\n}");
   }
 
@@ -1115,7 +1129,7 @@ pub(crate) fn add_specificity_level(selector: &str, index: usize) -> Option<Stri
 /// returns `None` when JavaScript would cut that character in two
 /// ([`last_brace_or_last_unit`]).
 ///
-/// An empty `pseudo`, as for the first [`PriorityGroup`], gives back the text
+/// An empty `pseudo`, as for the first priority group, gives back the text
 /// as it was, even where JavaScript cuts a character in two. A block with no
 /// selector ([`holds_no_selector`]) also comes back as it was.
 fn insert_specificity<'s>(selector: &'s str, pseudo: &str) -> Option<Cow<'s, str>> {

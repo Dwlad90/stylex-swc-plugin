@@ -161,7 +161,7 @@ const chain = (names: readonly string[]) =>
 
 describe('processStylexRules', () => {
   test('the fixture is the whole reference file', () => {
-    expect(fixture.cases).toHaveLength(39);
+    expect(fixture.cases).toHaveLength(43);
   });
 
   for (const recorded of fixture.cases) {
@@ -1087,8 +1087,8 @@ describe('processStylexRules in a child process', () => {
       const reference = require(${JSON.stringify(path.join(distDir, 'process-stylex-rules/reference.js'))});
       const create = reference.createReferenceProcessStylexRules;
       let calls = 0;
-      reference.createReferenceProcessStylexRules = hook => {
-        const run = create(hook);
+      reference.createReferenceProcessStylexRules = (...hooks) => {
+        const run = create(...hooks);
         return (...args) => { calls++; return run(...args); };
       };
       const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});

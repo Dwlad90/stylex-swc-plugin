@@ -33,9 +33,10 @@ export interface ProcessStylexRulesConfig {
   readonly useLegacyClassnamesSort?: boolean;
 }
 
-/** Upstream's `processStylexRules`, with the addon's media query parser. */
+/** Upstream's `processStylexRules`, with the addon's media query parser and priorities. */
 const referenceProcessStylexRules = createReferenceProcessStylexRules(
-  nativeBinding.mediaQueryWidthBound
+  nativeBinding.mediaQueryWidthBound,
+  nativeBinding.getPriority
 );
 
 /** Read on the first call: the default locale and ICU of a process are fixed. */

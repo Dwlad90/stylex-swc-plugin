@@ -12,7 +12,9 @@
  * `mediaQueryWidthSortKey` parses a media query with a parser that the
  * plugin bundles and does not publish, so the copy calls the addon's own
  * parser through a hook instead. The replaced source is kept in the copy as a
- * comment, so that a change to it upstream changes the copy too.
+ * comment, so that a change to it upstream changes the copy too. The bundled
+ * `@stylexjs/shared` module is not copied either: the copy reads its
+ * `getPriority` from the addon through a second hook.
  *
  * `vendoredReference.spec.ts` renders the copy again from the installed plugin
  * and fails when the two differ, so that a new plugin version cannot go
@@ -57,6 +59,26 @@ const REPLACED_DECLARATIONS = new Set(['collectWidthBounds', 'mediaQueryWidthSor
 const WIDTH_SORT_KEY_HOOK = `function mediaQueryWidthSortKey(prelude) {
   return mediaQueryWidthBound(prelude);
 }`;
+
+/**
+ * The bundle's name for the `@stylexjs/shared` module, which the copied
+ * functions read `getPriority` from. The bundler numbers its module names,
+ * so the name can change from one release to the next. A copy that reads
+ * `getPriority` from two names is refused: the hook stands in for one module.
+ */
+function sharedModuleOf(code: string): string | undefined {
+  const names = new Set(Array.from(code.matchAll(/([A-Za-z_$][\w$]*)\.getPriority\b/g), m => m[1]));
+  if (names.size > 1) {
+    throw new Error(
+      `the copied functions read getPriority from ${[...names].join(', ')}. ` +
+        'The getPriority hook can stand in for one module only.'
+    );
+  }
+  return names.values().next().value;
+}
+
+/** The hooks the copy reads, which `createReferenceProcessStylexRules` takes. */
+const HOOKS = new Set(['mediaQueryWidthBound', 'getPriority']);
 
 /**
  * The globals the copy can read. `src/process-stylex-rules/built-ins.ts`
@@ -198,9 +220,15 @@ export function renderVendoredReference(): string {
     throw new Error(`the bundle of ${version} has no top-level ${missing.join(', ')}`);
   }
 
-  const body = copied.join('\n');
+  // The copy declares the shared module with the addon's `getPriority` in
+  // place of the bundled one.
+  const sharedModule = sharedModuleOf(copied.join('\n'));
+  const body = [
+    ...(sharedModule === undefined ? [] : [`const ${sharedModule} = { getPriority };`]),
+    ...copied,
+  ].join('\n');
   const unknown = globalsOf(body).filter(
-    name => name !== 'mediaQueryWidthBound' && !REFERENCE_GLOBALS.includes(name)
+    name => !HOOKS.has(name) && !REFERENCE_GLOBALS.includes(name)
   );
   if (unknown.length > 0) {
     throw new Error(
@@ -208,6 +236,11 @@ export function renderVendoredReference(): string {
         'Copy the declaration too, or add the global to REFERENCE_GLOBALS and guard it.'
     );
   }
+
+  const sharedModuleNote =
+    sharedModule === undefined
+      ? ''
+      : `\n// \`${sharedModule}\`, the bundled \`@stylexjs/shared\` module, holds only the\n// addon's \`getPriority\`.`;
 
   const replacedComment = replaced
     .join('\n')
@@ -222,16 +255,17 @@ ${MIT_NOTICE}
 // (lib/index.js). Do not edit by hand.
 //
 // The functions below are upstream's, as the published bundle holds them. The
-// one change: \`mediaQueryWidthSortKey\` calls the addon's media query parser
+// changes: \`mediaQueryWidthSortKey\` calls the addon's media query parser
 // through \`mediaQueryWidthBound\`, because the bundle's parser is not
-// published. The two upstream declarations it replaces follow, so that a change
-// to them upstream changes this file:
+// published.${sharedModuleNote} The two upstream declarations that the parser
+// hook replaces follow, so that a change to them upstream changes this file:
 //
 ${replacedComment}
 
-/** The reference \`processStylexRules\`, with the addon's media query parser. */
+/** The reference \`processStylexRules\`, with the addon's media query parser and priorities. */
 export function createReferenceProcessStylexRules(
-  mediaQueryWidthBound: (prelude: string) => { kind: string; value: number } | null
+  mediaQueryWidthBound: (prelude: string) => { kind: string; value: number } | null,
+  getPriority: (key: string) => number
 ): (rules: unknown, config?: unknown) => string {
 ${body}
 return processStylexRules;

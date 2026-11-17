@@ -3390,6 +3390,7 @@ dependencies = [
  "serde_json",
  "serde_plain",
  "stylex_ast",
+ "stylex_css",
  "stylex_enums",
  "stylex_js",
  "stylex_logs",

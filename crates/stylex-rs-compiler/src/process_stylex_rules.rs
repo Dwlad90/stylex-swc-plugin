@@ -188,6 +188,14 @@ pub fn media_query_width_bound(prelude: String) -> napi::Result<Option<MediaQuer
   }))
 }
 
+/// `getPriority(key)`: the priority of a property, pseudo-class,
+/// pseudo-element or at-rule key. The vendored reference calls it to price a
+/// `defineConsts` at-rule that wraps a rule.
+#[napi]
+pub fn get_priority(key: String) -> f64 {
+  stylex_css::css::common::get_priority(&key)
+}
+
 /// The ICU data the native sort was built with.
 #[napi(object)]
 pub struct CollationDataVersion {

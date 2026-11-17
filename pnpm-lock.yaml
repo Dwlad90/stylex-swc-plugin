@@ -2211,6 +2211,9 @@ importers:
       '@stylexswc/ast':
         specifier: catalog:internal
         version: link:../stylex-ast
+      '@stylexswc/css':
+        specifier: catalog:internal
+        version: link:../stylex-css
       '@stylexswc/enums':
         specifier: catalog:internal
         version: link:../stylex-enums

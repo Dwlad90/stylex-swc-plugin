@@ -195,7 +195,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             });
             expect(css).not.toContain("html[dir='rtl'] height");
             expect(css).not.toContain("html[dir='rtl'] width");
-            expect(css).toContain('@position-try --xhs37kq {height:');
+            expect(css).toContain('@position-try --x1v351di {height:');
         });
         test('processStylexRules does not inject specificity into @position-try', ()=>{
             const { metadata } = transform(`
@@ -212,8 +212,8 @@ describe('@stylexjs/babel-plugin', ()=>{
                 useLayers: false,
                 legacyDisableLayers: false
             });
-            expect(css).not.toContain('@position-try --xhs37kq :not(#\\#)');
-            expect(css).toContain('@position-try --xhs37kq {height:');
+            expect(css).not.toContain('@position-try --x1v351di :not(#\\#)');
+            expect(css).toContain('@position-try --x1v351di {height:');
         });
     });
 });

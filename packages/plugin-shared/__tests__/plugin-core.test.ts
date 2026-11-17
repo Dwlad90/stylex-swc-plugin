@@ -283,6 +283,32 @@ describe('StyleXPluginCore carrier patterns', () => {
   });
 });
 
+describe('StyleXPluginCore.loaderOption', () => {
+  // The loader hands these options to both the module scan and the compiler,
+  // so the import sources must be resolved in them, not beside them.
+  test('folds stylexImports into the compiler options', () => {
+    const core = createCore({ stylexImports: ['design-system'] });
+
+    expect(core.loaderOption.rsOptions.importSources).toEqual(['design-system']);
+  });
+
+  test('lets rsOptions.importSources win over stylexImports', () => {
+    const core = createCore({
+      stylexImports: ['design-system'],
+      rsOptions: { importSources: ['custom-stylex'] },
+    });
+
+    expect(core.loaderOption.rsOptions.importSources).toEqual(['custom-stylex']);
+  });
+
+  test('uses the default stylexImports when neither option is set', () => {
+    expect(createCore().loaderOption.rsOptions.importSources).toEqual([
+      'stylex',
+      '@stylexjs/stylex',
+    ]);
+  });
+});
+
 // The stylesheet is assembled by `processStylexRules`, which this package calls
 // rather than reimplements. What this package owns is the options it hands that
 // step, so each one is asserted where it is assembled, and each name is proved

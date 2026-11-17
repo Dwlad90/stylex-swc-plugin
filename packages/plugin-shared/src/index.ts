@@ -27,7 +27,7 @@ export { toTransformedOptions } from './transformed-options';
 
 // Also available as `@stylexswc/plugin-shared/module-selection`, for plugins
 // that want it without pulling in the plugin core.
-export { shouldProcessSource } from './module-selection';
+export { shouldProcessSource, withStylexImports } from './module-selection';
 export type {
   ModuleImportSource,
   ModuleSelectionOptions,

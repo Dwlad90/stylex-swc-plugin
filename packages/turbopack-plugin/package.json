@@ -31,7 +31,7 @@
     "clean": "del-cli dist \"*.tsbuildinfo\"",
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"Error: no test specified\" && exit 0",
+    "test": "vitest run",
     "typecheck": "scripty --ts"
   },
   "config": {
@@ -48,6 +48,7 @@
     "@stylexswc/typescript-config": "catalog:internal",
     "@types/loader-utils": "catalog:types",
     "@types/node": "catalog:types",
+    "vitest": "catalog:testing",
     "webpack": "catalog:bundlers"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",

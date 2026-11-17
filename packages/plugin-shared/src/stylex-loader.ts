@@ -24,7 +24,7 @@ export default async function stylexLoader(
 ) {
   const callback = this.async();
 
-  const { stylexImports, rsOptions, extractCSS = true } = this.getOptions();
+  const { rsOptions, extractCSS = true } = this.getOptions();
 
   const logger = this._compiler?.getInfrastructureLogger?.(PLUGIN_NAME);
 
@@ -46,13 +46,8 @@ export default async function stylexLoader(
   }
 
   // bail out early when the module mentions neither a StyleX import nor the
-  // sx prop
-  if (
-    !shouldProcessSource(stringifiedInputCode, {
-      importSources: stylexImports,
-      sxPropName: rsOptions?.sxPropName,
-    })
-  ) {
+  // sx prop. The scan reads the options the compiler gets, so the two agree.
+  if (!shouldProcessSource(stringifiedInputCode, rsOptions)) {
     return callback(null, stringifiedInputCode, inputSourceMap);
   }
 

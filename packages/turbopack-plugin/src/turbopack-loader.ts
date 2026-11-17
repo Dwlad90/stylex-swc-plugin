@@ -1,4 +1,4 @@
-import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
+import { shouldProcessSource, withStylexImports } from '@stylexswc/plugin-shared/module-selection';
 import { LoaderInterpolateOption } from 'loader-utils';
 import type { LoaderContext } from 'webpack';
 
@@ -31,14 +31,13 @@ export default async function stylexTurbopackLoader(
 
   const stringifiedInputCode = typeof inputCode === 'string' ? inputCode : inputCode.toString();
 
+  // The scan and the compiler read this one object, so they agree on which
+  // import sources a module can use.
+  const compilerOptions = withStylexImports(rsOptions ?? {}, stylexImports);
+
   // bail out early when the module mentions neither a StyleX import nor the
   // sx prop
-  if (
-    !shouldProcessSource(stringifiedInputCode, {
-      importSources: stylexImports,
-      sxPropName: rsOptions?.sxPropName,
-    })
-  ) {
+  if (!shouldProcessSource(stringifiedInputCode, compilerOptions)) {
     return callback(null, stringifiedInputCode, inputSourceMap);
   }
 
@@ -46,7 +45,7 @@ export default async function stylexTurbopackLoader(
     const { code, map, metadata } = generateStyleXOutput(
       this.resourcePath,
       stringifiedInputCode,
-      rsOptions,
+      compilerOptions,
       inputSourceMap,
       this.sourceMap
     );

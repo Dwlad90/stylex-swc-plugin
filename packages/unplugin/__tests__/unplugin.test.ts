@@ -219,6 +219,12 @@ describe('@stylexswc/unplugin', () => {
       await expect(runTransform({}, 'const noop = 1;')).resolves.toBeNull();
     });
 
+    test('still transforms built-in imports when a custom importSource is set', async () => {
+      await expect(
+        runTransform({ rsOptions: { importSources: ['custom-stylex'] } }, stylexSource)
+      ).resolves.not.toBeNull();
+    });
+
     test('transforms a file that uses the sx prop without importing', async () => {
       const result = await runTransform({}, FORWARDS_THE_SX_PROP);
 

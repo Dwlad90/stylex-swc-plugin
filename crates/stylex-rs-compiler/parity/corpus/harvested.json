@@ -141,6 +141,18 @@
       "origin": "crates/stylex-transform/tests/legacy/transform_logical_values_test/css_logical_values.rs:137"
     },
     {
+      "id": "1b0d2e86",
+      "property": "animationName",
+      "value": "x",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/short_circuited_operands.rs:269"
+    },
+    {
+      "id": "1c0d3019",
+      "property": "animationName",
+      "value": "y",
+      "origin": "crates/stylex-transform/tests/transform_stylex_keyframes_test/losing_operands.rs:75"
+    },
+    {
       "id": "81bd6d97",
       "property": "background",
       "value": "radial-gradient(circle, red, blue)",
@@ -3012,7 +3024,7 @@
       "id": "a77ed32a",
       "property": "insetInlineStart",
       "value": "10px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:91"
+      "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:90"
     },
     {
       "id": "8c979c63",
@@ -3678,7 +3690,7 @@
       "id": "ff56a10c",
       "property": "top",
       "value": "0",
-      "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:64"
+      "origin": "crates/stylex-transform/tests/transform_stylex_keyframes_test/rule_names_in_a_method_call.rs:98"
     },
     {
       "id": "5ecb393c",

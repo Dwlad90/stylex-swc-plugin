@@ -277,15 +277,10 @@ stylex_test!(
   "#
 );
 
-// Two statements can hold the same compiled object. The rules are injected in
-// front of the first of them and once only.
-//
-// Upstream injects them in front of both, because it places the rules of each
-// call against that call rather than against the shape it left. The stylesheet
-// is the same either way -- one rule -- so the divergence is recorded here
-// rather than followed.
+// Two statements can hold the same compiled object. Each call injects its
+// rules in front of its own statement, so the rule is injected twice.
 stylex_test!(
-  two_statements_holding_the_same_styles_inject_them_once,
+  two_statements_holding_the_same_styles_inject_them_in_front_of_each,
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';

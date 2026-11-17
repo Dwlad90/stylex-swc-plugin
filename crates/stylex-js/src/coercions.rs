@@ -8,6 +8,8 @@
 
 use std::convert::Infallible;
 
+use crate::string::js_string_cmp;
+
 use stylex_utils::number::{self, is_js_whitespace};
 use swc_core::atoms::Wtf8Atom;
 use swc_core::common::DUMMY_SP;
@@ -763,7 +765,7 @@ pub fn js_less_than(left: &Primitive, right: &Primitive) -> Option<Option<bool>>
   if let (Primitive::String(left), Primitive::String(right)) = (left, right) {
     let (left, right) = (left.as_str()?, right.as_str()?);
 
-    return Some(Some(left.encode_utf16().lt(right.encode_utf16())));
+    return Some(Some(js_string_cmp(left, right).is_lt()));
   }
 
   let left = number_of_a_primitive(left);

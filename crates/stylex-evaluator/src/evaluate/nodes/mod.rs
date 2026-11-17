@@ -3,6 +3,7 @@ pub(super) mod arrow_function;
 pub(super) mod await_expression;
 pub(super) mod binary_expression;
 pub(super) mod call_expression;
+pub(super) mod compiler_calls;
 pub(super) mod conditional_expression;
 pub(super) mod global_conversion;
 pub(super) mod identifier;

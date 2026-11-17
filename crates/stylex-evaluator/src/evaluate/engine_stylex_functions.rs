@@ -1,31 +1,41 @@
 //! The StyleX functions the compile-time engine is allowed to call.
 //!
 //! The [folded function map] is not JavaScript: its values are this compiler's
-//! own Rust functions, and most of them answer by writing into the build —
-//! `keyframes` injects a rule and hands back the name it hashed. Carrying the
-//! map into the engine as a value was measured and rejected for exactly that
-//! reason.
+//! own Rust functions. Two kinds of them can run in the engine.
 //!
-//! One of them answers from its arguments and nothing else. `firstThatWorks`
-//! reorders the fallbacks it was handed and folds the CSS variables among them
-//! into one `var()` chain, touching no state on the way, so there is nothing to
-//! stop the engine running it — and nothing an author could reach through it
-//! that they could not reach by calling it directly. It travels as a function of
-//! the engine's own, built over the same [shared
+//! `firstThatWorks` answers from its arguments and nothing else. It reorders
+//! the fallbacks it was handed and folds the CSS variables among them into one
+//! `var()` chain, and it touches no state. It travels as a function of the
+//! engine's own, built over the same [shared
 //! core](crate::stylex_first_that_works) the evaluator's own path calls, so the
 //! two cannot come to answer differently.
 //!
-//! What that buys is a callback: `a.map(x => firstThatWorks(x, 'serif'))` is
-//! one JavaScript call per element, which is the engine's job and not this
-//! compiler's. Every other StyleX function stays where it was — the fold hands
-//! its call back, and the dispatch behind the fold calls it as it always has.
+//! A **compiler function** is a map entry that takes one evaluated argument and
+//! the build state: `keyframes`, `positionTry` and the functions like them. It
+//! writes a rule into the build and answers the name it hashed. It crosses as a
+//! native function that converts its argument back to the evaluator's own
+//! value, calls the Rust function with the live state, and converts the answer
+//! into the engine. The live state reaches it through a scope that the fold
+//! opens only while the engine runs. See ADR 0011 for the decision and for why
+//! the scope is sound.
+//!
+//! What that buys is a callback: `a.map(x => firstThatWorks(x, 'serif'))` and
+//! `a.map(() => keyframes({ … }))` are one JavaScript call per element, which is
+//! the engine's job and not this compiler's. A rule is filed each time the
+//! callback calls `keyframes`, and a callback that never runs files nothing.
+//!
+//! The namespace object also holds the `env` object, so `stylex.env` reads in
+//! the engine as it does outside it.
 //!
 //! [folded function map]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
+
+use std::rc::Rc;
 
 use boa_engine::{
   Context, JsResult, JsString, JsValue, native_function::NativeFunctionPointer,
   object::builtins::JsArray,
 };
+use indexmap::IndexMap;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, MemberExpr, MemberProp},
@@ -33,14 +43,19 @@ use swc_core::{
 
 use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::api_names::STYLEX_FIRST_THAT_WORKS;
+use stylex_structures::named_import_source::ImportSources;
+use stylex_structures::stylex_env::EnvEntry;
 
 use crate::stylex_first_that_works::{
   Fallbacks, cut_to_css_variable_name, fold_fallback_chain, plan_fallbacks,
 };
-use stylex_state::state_manager::{ImportKind, StateManager};
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexExprFn},
+  state_manager::{ImportKind, StateManager},
+};
 
-/// One StyleX function the engine may call: how the module can name it, and what
-/// the engine runs in the compiler's place.
+/// One StyleX function the engine may call without the build state: how the
+/// module can name it, and what the engine runs in the compiler's place.
 struct Callable {
   /// The import this function is, which is how a bare name is recognised — the
   /// module's import record says which StyleX function a name is, where a
@@ -53,14 +68,12 @@ struct Callable {
   call: NativeFunctionPointer,
 }
 
-/// Every StyleX function the engine may call.
+/// Every StyleX function the engine may call without the build state.
 ///
 /// A set rather than a table standing in for the language: what it holds is the
 /// answer to one question — does this function answer from its arguments alone —
 /// and that question has no source to read it off. Adding a name to it is a
-/// claim about that function, and the [namespace
-/// object](Reached::AsAProperty) is built from the whole of it so that what a
-/// namespace name carries stays a function of the name.
+/// claim about that function.
 const CALLABLE: [Callable; 1] = [Callable {
   kind: ImportKind::FirstThatWorks,
   property: STYLEX_FIRST_THAT_WORKS,
@@ -73,46 +86,57 @@ pub(super) struct EngineCallable {
   /// The name that becomes a parameter of the printed arrow — the local name of
   /// an imported function, or the namespace it is read off.
   pub(super) name: Atom,
-  /// Which of those two the name is, since the value behind it differs.
-  pub(super) reached: Reached,
-  /// The function the call itself names, which is what runs and what a refusal
-  /// is reported under.
-  called: &'static Callable,
+  /// What crosses under that name.
+  pub(super) carried: Carried,
+  /// The function the call itself names, which is what a refusal names: the
+  /// namespace in front of it is not the half an author has to change.
+  function_name: Atom,
+  /// Whether the function is a compiler function, which reads its first
+  /// argument and so needs one.
+  pub(super) needs_an_argument: bool,
 }
 
-/// How the source names the function.
-pub(super) enum Reached {
-  /// `firstThatWorks(…)` — the name is the function's own, and it carries the
-  /// function.
-  Directly,
-  /// `stylex.firstThatWorks(…)` — the name is the namespace's, so it carries an
-  /// object and the printed call reads exactly as it was written.
+/// What crosses under the name of an [`EngineCallable`].
+pub(super) enum Carried {
+  /// `firstThatWorks(…)` through its own name: the function itself.
+  Native(NativeFunctionPointer),
+  /// `keyframes(…)` through its own name: a compiler function, which needs the
+  /// live build state when it runs.
+  Compiler(StylexExprFn),
+  /// `stylex.firstThatWorks(…)` or `stylex.keyframes(…)`: the namespace, as an
+  /// object the printed call reads its function off.
   ///
-  /// The object holds every function of [`CALLABLE`] rather than the one this
-  /// call named, so a fold naming two of them carries one object holding both:
-  /// the transport keeps one value per name, and a per-call-site object would
-  /// have let the second naming be dropped. Every other property of the real
-  /// namespace is a function the engine may not call, and a call naming one is
-  /// declined before anything is printed.
-  AsAProperty,
+  /// The object holds every function of [`CALLABLE`], every compiler function
+  /// of the namespace and its `env` object, not only the one this call named.
+  /// So a fold that names two of them carries one object that holds both: the
+  /// transport keeps one value per name, and a per-call object would let the
+  /// second naming be dropped. Every other property of the real namespace is a
+  /// function the engine may not call, and a call naming one is declined before
+  /// anything is printed.
+  Namespace(NamespaceMembers),
 }
+
+/// What the object a namespace crosses as holds, apart from the functions of
+/// [`CALLABLE`].
+pub(super) struct NamespaceMembers {
+  /// The compiler functions, under the property each is read as.
+  pub(super) functions: Vec<(Atom, StylexExprFn)>,
+  /// The `env` object, under the property it is read as, where the namespace
+  /// has one.
+  pub(super) env: Option<(Atom, EnvMap)>,
+}
+
+/// The entries of the `env` option.
+pub(super) type EnvMap = Rc<IndexMap<String, EnvEntry>>;
 
 impl EngineCallable {
-  /// The function's own spelling, which is what a refusal names: the namespace
-  /// in front of it is not the half an author has to change.
-  pub(super) fn function_name(&self) -> &'static str {
-    self.called.property
+  /// The function's own spelling, which is what a refusal names.
+  pub(super) fn function_name(&self) -> &str {
+    &self.function_name
   }
 
-  /// What the engine runs in the compiler's place, for a name that holds the
-  /// function itself.
-  pub(super) fn call(&self) -> NativeFunctionPointer {
-    self.called.call
-  }
-
-  /// The whole callable surface a namespace name has to hold, which is every
-  /// function of [`CALLABLE`] rather than the one this call named — see
-  /// [`Reached::AsAProperty`].
+  /// Every function of [`CALLABLE`], under the property a namespace holds it
+  /// as — see [`Carried::Namespace`].
   pub(super) fn namespace_properties() -> impl Iterator<Item = (&'static str, NativeFunctionPointer)>
   {
     CALLABLE
@@ -122,22 +146,46 @@ impl EngineCallable {
 }
 
 /// The StyleX function `callee` names, or `None` where it names none.
+///
+/// `functions` is the function map of the evaluation, which is where a
+/// compiler function is found. It is keyed by name, as the dispatch below the
+/// fold reads it.
 pub(super) fn engine_callable(
   callee: &Expr,
   traversal_state: &StateManager,
+  functions: &FunctionMap,
 ) -> Option<EngineCallable> {
   // A parenthesis is not a different callee, at either level: `(stylex.types)`
   // and `(stylex).types` name what `stylex.types` names. Only names are read
   // here, so nothing is printed back and unwrapping costs no spelling.
   match normalize_expr(callee) {
-    Expr::Ident(ident) => CALLABLE
-      .iter()
-      .find(|callable| traversal_state.any_stylex_api_import_contains(&[callable.kind], &ident.sym))
-      .map(|called| EngineCallable {
+    Expr::Ident(ident) => {
+      let native = CALLABLE
+        .iter()
+        .find(|callable| {
+          traversal_state.any_stylex_api_import_contains(&[callable.kind], &ident.sym)
+        })
+        .map(|callable| {
+          (
+            Carried::Native(callable.call),
+            callable.property.into(),
+            false,
+          )
+        });
+
+      let (carried, function_name, needs_an_argument) = native.or_else(|| {
+        let call = compiler_function(functions.identifiers.get(&ident.sym)?)?;
+
+        Some((Carried::Compiler(call), ident.sym.clone(), true))
+      })?;
+
+      Some(EngineCallable {
         name: ident.sym.clone(),
-        reached: Reached::Directly,
-        called,
-      }),
+        carried,
+        function_name,
+        needs_an_argument,
+      })
+    },
     Expr::Member(MemberExpr {
       obj,
       prop: MemberProp::Ident(prop),
@@ -145,19 +193,117 @@ pub(super) fn engine_callable(
     }) => {
       let namespace = normalize_expr(obj).as_ident()?;
 
-      if !traversal_state.is_regular_stylex_import(&namespace.sym) {
-        return None;
-      }
+      let native = traversal_state.is_regular_stylex_import(&namespace.sym)
+        && CALLABLE
+          .iter()
+          .any(|callable| prop.sym == callable.property);
+      let compiler = || {
+        namespace_entries(functions, &namespace.sym)
+          .any(|(name, entry)| *name == prop.sym && compiler_function(entry).is_some())
+      };
 
-      CALLABLE
-        .iter()
-        .find(|callable| prop.sym == callable.property)
-        .map(|called| EngineCallable {
-          name: namespace.sym.clone(),
-          reached: Reached::AsAProperty,
-          called,
-        })
+      (native || compiler()).then(|| EngineCallable {
+        name: namespace.sym.clone(),
+        carried: Carried::Namespace(namespace_members(functions, &namespace.sym)),
+        function_name: prop.sym.clone(),
+        needs_an_argument: !native,
+      })
     },
+    _ => None,
+  }
+}
+
+/// The compiler functions and the `env` object a namespace holds, under the
+/// property each is read as.
+fn namespace_members(functions: &FunctionMap, namespace: &Atom) -> NamespaceMembers {
+  let mut members = NamespaceMembers {
+    functions: Vec::new(),
+    env: None,
+  };
+
+  for (name, entry) in namespace_entries(functions, namespace) {
+    match entry {
+      FunctionConfigType::EnvObject(env) => members.env = Some((name.clone(), Rc::clone(env))),
+      entry => members
+        .functions
+        .extend(compiler_function(entry).map(|call| (name.clone(), call))),
+    }
+  }
+
+  members
+}
+
+/// The namespace name and what its object holds, where `member` reads the
+/// `env` object off a namespace, as `stylex.env` does.
+///
+/// The engine reads the entries off the object, so a key the option does not
+/// carry is `undefined`, as on any object.
+///
+/// Asked of every member read the guard walks, so the namespace is searched
+/// for the one entry before anything is collected.
+pub(super) fn an_env_read(
+  member: &MemberExpr,
+  functions: &FunctionMap,
+) -> Option<(Atom, NamespaceMembers)> {
+  let namespace = normalize_expr(&member.obj).as_ident()?;
+  let MemberProp::Ident(property) = &member.prop else {
+    return None;
+  };
+
+  namespace_entries(functions, &namespace.sym)
+    .any(|(name, entry)| *name == property.sym && matches!(entry, FunctionConfigType::EnvObject(_)))
+    .then(|| {
+      (
+        namespace.sym.clone(),
+        namespace_members(functions, &namespace.sym),
+      )
+    })
+}
+
+/// Every entry a namespace holds, from both places the function map keeps
+/// them: a namespace map registered as a name, and the member entries of an
+/// import.
+///
+/// The member entries come last. Where both hold a property, the object the
+/// engine gets keeps the last one, and the dispatch below the fold also reads
+/// the member entry first. The import is found by a scan rather than by a key,
+/// because a key would need an owned copy of the name for each call the guard
+/// reads, and a module imports StyleX under one or two names.
+fn namespace_entries<'f>(
+  functions: &'f FunctionMap,
+  namespace: &'f Atom,
+) -> impl Iterator<Item = (&'f Atom, &'f FunctionConfigType)> {
+  let folded = match functions.identifiers.get(namespace).map(Box::as_ref) {
+    Some(FunctionConfigType::Map(map)) => Some(map),
+    _ => None,
+  };
+
+  let members = functions
+    .member_expressions
+    .iter()
+    .find(
+      |(source, _)| matches!(source, ImportSources::Regular(name) if name == namespace.as_str()),
+    )
+    .map(|(_, members)| members);
+
+  folded.into_iter().flat_map(|map| map.iter()).chain(
+    members
+      .into_iter()
+      .flat_map(|map| map.iter().map(|(name, entry)| (name, entry.as_ref()))),
+  )
+}
+
+/// The Rust function behind `entry`, where it is a compiler function.
+///
+/// Only a function that takes one evaluated argument qualifies. A function that
+/// takes the argument as written has no value form the engine can hand it, and
+/// the other kinds take arguments of their own shapes.
+fn compiler_function(entry: &FunctionConfigType) -> Option<StylexExprFn> {
+  match entry {
+    FunctionConfigType::Regular(FunctionConfig {
+      fn_ptr: FunctionType::StylexExprFn(call),
+      takes_path: false,
+    }) => Some(*call),
     _ => None,
   }
 }

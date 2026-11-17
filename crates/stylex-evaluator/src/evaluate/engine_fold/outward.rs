@@ -80,6 +80,19 @@ impl<'a> Outward<'a> {
     Ok(self.built(value, engine, depth)?.into_value())
   }
 
+  /// The same conversion, as one expression.
+  ///
+  /// For the argument of a compiler function, which takes an expression. An
+  /// array is written as an array literal here.
+  pub(super) fn expr(
+    &mut self,
+    value: &JsValue,
+    engine: &mut Context,
+    depth: Depth,
+  ) -> Result<Expr, Decline> {
+    Ok(self.built(value, engine, depth)?.into_expr())
+  }
+
   /// The same conversion, as the two shapes this side writes an expression for.
   ///
   /// The walk answers [`Built`] rather than the evaluator's value because an

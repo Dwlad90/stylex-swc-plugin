@@ -298,7 +298,11 @@ fn queued_state(fixture: &Fixture) -> StateManager {
   let mut state = StateManager::default();
 
   for (index, key) in fixture.keys.iter().enumerate() {
-    state.queue_insertion(InsertionSlot::BeforeDecl(*key), injected_item(index));
+    // Each item is its own registration, as each call registers its own.
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(*key, index as u64),
+      injected_item(index),
+    );
   }
 
   state

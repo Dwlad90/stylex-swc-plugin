@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 961 values: the differential harness's whole corpus, plus
+/// 962 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -781,6 +781,16 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "ignore",
     output: "ignore",
     ast: "word \"ignore\" 0..6",
+  },
+  ParserCase {
+    input: "x",
+    output: "x",
+    ast: "word \"x\" 0..1",
+  },
+  ParserCase {
+    input: "y",
+    output: "y",
+    ast: "word \"y\" 0..1",
   },
   ParserCase {
     input: "radial-gradient(circle, red, blue)",
@@ -1921,11 +1931,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "open-quote \"hello\" close-quote",
     output: "open-quote \"hello\" close-quote",
     ast: "word \"open-quote\" 0..10\nspace \" \" 10..11\nstring \"hello\" 11..18 quote=\"\\\"\"\nspace \" \" 18..19\nword \"close-quote\" 19..30",
-  },
-  ParserCase {
-    input: "x",
-    output: "x",
-    ast: "word \"x\" 0..1",
   },
   ParserCase {
     input: "🎉",
@@ -5125,6 +5130,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("1s", Some(("1", "s"))),
   ("spin", None),
   ("ignore", None),
+  ("y", None),
   ("circle", None),
   ("#F7F5F6", None),
   ("black", None),
@@ -5421,7 +5427,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("*3", None),
   ("00\\\\", Some(("00", "\\\\"))),
   ("10%-.5px", Some(("10", "%-.5px"))),
-  ("y", None),
   ("1px\\u30002px", Some(("1", "px\\u30002px"))),
   ("3%", Some(("3", "%"))),
   ("/", None),

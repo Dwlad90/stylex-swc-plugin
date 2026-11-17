@@ -29,11 +29,13 @@ use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_binding_ident, create_ident,
 };
 use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engine_threw};
-use stylex_utils::hash::stable_hash_unspanned_call;
+use stylex_utils::hash::{stable_hash_unspanned_call, stable_hash_wide};
 
 use super::Decline;
 use super::backstop::{self, BACKSTOP_SOURCE, Backstops};
+use super::losing_operand::{EITHER_SOURCE, Rewrite};
 use super::math;
+use super::sequence;
 use super::theme::{compile_traps, var_group_traps};
 use stylex_diagnostics::code_frame::print_module;
 
@@ -158,7 +160,17 @@ impl FoldKey {
   /// The key for `call` printed under a parameter list whose shape hashes to
   /// `parameters` — see [`Transport::parameters_key`](super::transport::Transport::parameters_key)
   /// for what that stands for.
-  pub(super) fn new(call: &CallExpr, parameters: u128) -> Self {
+  ///
+  /// `losing_operands` is where the printed source runs a losing operand (see
+  /// [`losing_operand`](super::losing_operand)). It changes the printed text,
+  /// so it is part of the key. Most folds have none, and their key is the
+  /// parameters hash alone.
+  pub(super) fn new(call: &CallExpr, parameters: u128, losing_operands: &[usize]) -> Self {
+    let parameters = match losing_operands.is_empty() {
+      true => parameters,
+      false => stable_hash_wide(&(parameters, losing_operands)),
+    };
+
     Self {
       call: stable_hash_unspanned_call(call),
       parameters,
@@ -242,7 +254,9 @@ impl Engine {
   /// engine that kept function source would fold a spelling no other build
   /// produces, which is worse than declining the fold.
   pub(super) fn new() -> Result<ManuallyDrop<Self>, Decline> {
-    Self::started_on(NO_FUNCTION_SOURCE, &var_group_traps(), BACKSTOP_SOURCE)
+    let prelude = [NO_FUNCTION_SOURCE, EITHER_SOURCE].concat();
+
+    Self::started_on(&prelude, &var_group_traps(), BACKSTOP_SOURCE)
   }
 
   /// The same engine, built from three written sources rather than from the
@@ -400,8 +414,26 @@ pub(super) fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Resu
 ///
 /// Called only where [`Engine::eval`] misses its memo, which is what makes the
 /// clone and the emitter walk below a per-shape cost rather than a per-fold one.
-pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
+///
+/// `losing_operands` names the logical operators that run their right operand
+/// always. They are changed first, while the trees still hold every operator
+/// that the positions count.
+pub(super) fn print_fold(
+  call: &CallExpr,
+  mut params: Vec<Pat>,
+  losing_operands: &[usize],
+) -> Printed {
   let mut folded = Expr::Call(call.clone());
+
+  let mut rewrite = Rewrite::new(losing_operands);
+
+  rewrite.apply(&mut folded);
+
+  for param in &mut params {
+    if let Pat::Assign(declared) = param {
+      rewrite.apply(&mut declared.right);
+    }
+  }
 
   // The call and each declaration crossing as a default are rewritten one tree
   // at a time, because what a tree binds is read from that tree — see
@@ -452,6 +484,7 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
 /// native that computes it as Node does (see [`math`]), and with
 /// the fold's two checks put in. Answers whether the tree needs the checks.
 fn prepared_for_the_engine(tree: &mut Expr) -> bool {
+  sequence::last_operand_of_each_sequence(tree);
   math::exponentiation_as_native_calls(tree);
 
   backstop::checked(tree)

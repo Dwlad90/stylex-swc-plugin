@@ -102,7 +102,7 @@ mod state_manager {
 
     state.queue_insertion(InsertionSlot::AfterImports, expr_stmt("after_imports"));
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
     state.queue_insertion(InsertionSlot::ThemeImports, import_stmt("theme"));
@@ -124,6 +124,43 @@ mod state_manager {
     );
   }
 
+  /// Two registrations that left the same object each inject in front of their
+  /// own statement, in the order they registered, and the items of one
+  /// registration stay together.
+  #[test]
+  fn flush_pending_insertions_gives_each_registration_its_own_statement() {
+    let mut state = StateManager::default();
+    let styles_init = Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: vec![],
+    });
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let mut body = vec![
+      var_decl_item("first", styles_init.clone()),
+      var_decl_item("second", styles_init),
+    ];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
+      expr_stmt("first_a"),
+    );
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
+      expr_stmt("first_b"),
+    );
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash, 2),
+      expr_stmt("second_a"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(
+      item_labels(&body),
+      vec!["first_a", "first_b", "var:first", "second_a", "var:second"]
+    );
+  }
+
   #[test]
   fn flush_pending_insertions_drops_runtime_gated_slots_when_runtime_injection_is_disabled() {
     let mut state = StateManager::default();
@@ -140,7 +177,7 @@ mod state_manager {
 
     state.queue_insertion(InsertionSlot::AfterImports, expr_stmt("after_imports"));
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
     state.queue_insertion(InsertionSlot::ThemeImports, import_stmt("theme"));
@@ -201,7 +238,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", array_expr(vec![styles_init]))];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -221,7 +258,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", initializer)];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -242,7 +279,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", initializer)];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -289,7 +326,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", initializer)];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -320,7 +357,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", array_expr(vec![held]))];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -343,7 +380,7 @@ mod state_manager {
     )];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -365,11 +402,11 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", outer.clone())];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(stable_hash_unspanned(&outer)),
+      InsertionSlot::BeforeDecl(stable_hash_unspanned(&outer), 1),
       expr_stmt("outer"),
     );
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(stable_hash_unspanned(&inner)),
+      InsertionSlot::BeforeDecl(stable_hash_unspanned(&inner), 1),
       expr_stmt("inner"),
     );
 
@@ -397,7 +434,7 @@ mod state_manager {
     ];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -429,7 +466,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", initializer)];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 
@@ -455,7 +492,7 @@ mod state_manager {
     let mut body = vec![var_decl_item("styles", initializer)];
 
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(before_decl_hash),
+      InsertionSlot::BeforeDecl(before_decl_hash, 1),
       expr_stmt("before_decl"),
     );
 

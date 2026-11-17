@@ -6,4 +6,8 @@ _inject2({
     priority: 0
 });
 export const fallback = "xx8jbh6-B";
+_inject2({
+    ltr: "@keyframes xx8jbh6-B{from{}to{margin:0;}}",
+    priority: 0
+});
 export const omitted = "xx8jbh6-B";

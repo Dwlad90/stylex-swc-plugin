@@ -7,18 +7,6 @@ _inject2({
     priority: 3000
 });
 export const styles = {
-    and: {
-        kMwMTN: "x1e2nbdu",
-        $$css: true
-    },
-    or: {
-        kMwMTN: "x1e2nbdu",
-        $$css: true
-    },
-    nullish: {
-        kMwMTN: "x1e2nbdu",
-        $$css: true
-    },
     conditionalCons: {
         kMwMTN: "x1e2nbdu",
         $$css: true

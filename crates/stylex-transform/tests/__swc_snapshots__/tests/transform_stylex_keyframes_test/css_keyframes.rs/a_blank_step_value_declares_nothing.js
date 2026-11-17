@@ -6,6 +6,10 @@ _inject2({
     priority: 0
 });
 export const empty = "x1mv4754-B";
+_inject2({
+    ltr: "@keyframes x1mv4754-B{from{}to{color:blue;}}",
+    priority: 0
+});
 export const blank = "x1mv4754-B";
 _inject2({
     ltr: "@keyframes x11nzq9p-B{from{opacity:.5;}to{color:blue;}}",

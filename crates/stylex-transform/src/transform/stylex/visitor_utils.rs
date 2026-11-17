@@ -85,11 +85,9 @@ pub(crate) fn insert_stylex_identifier_entry(
 /// map — rather than off the namespace as a value.
 ///
 /// Registered whether or not the option is set. `env` is a key of the StyleX
-/// namespace however the compiler is configured, so an unset option is
-/// reported by the member step as the option being unset; an absent entry
-/// would be reported as a property nobody can find and send an author looking
-/// in their source. It is also what keeps the namespace's key list the same
-/// list on every configuration.
+/// namespace however the compiler is configured, and an unset option is an
+/// empty object whose keys read as `undefined`. It is also what keeps the
+/// namespace's key list the same list on every configuration.
 pub(crate) fn register_env_in_namespace_fold(state: &StateManager, function_map: &mut FunctionMap) {
   for name in state.stylex_imports() {
     insert_stylex_identifier_entry(

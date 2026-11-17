@@ -693,10 +693,69 @@ fn an_rtl_twin_of_a_keyframes_block_or_of_a_blockless_at_rule_follows_the_refere
   );
 }
 
+// ==================== @position-try ====================
+
+/// The rule the transform emits for a `positionTry` call.
+fn position_try() -> Rule {
+  rule(
+    "--x1v351di",
+    "@position-try --x1v351di {height:100px;left:0;position-anchor:--anchor;top:0;width:100px;}",
+    None,
+    0.0,
+  )
+}
+
+#[test]
+fn process_stylex_rules_does_not_inject_ancestor_selector_into_position_try() {
+  let css = sheet(
+    &[position_try()],
+    &config_of(r#"{"enableLTRRTLComments": false}"#),
+  );
+
+  assert!(!css.contains("html[dir='rtl'] height"));
+  assert!(!css.contains("html[dir='rtl'] width"));
+  assert!(css.contains("@position-try --x1v351di {height:"));
+}
+
+#[test]
+fn process_stylex_rules_does_not_inject_specificity_into_position_try() {
+  let css = sheet(
+    &[position_try()],
+    &config_of(r#"{"useLayers": false, "legacyDisableLayers": false}"#),
+  );
+
+  assert!(!css.contains(r"@position-try --x1v351di :not(#\#)"));
+  assert!(css.contains("@position-try --x1v351di {height:"));
+}
+
+/// The emitted rule has no RTL text and sits in the first group, so neither
+/// guard above is reached by it. This block has an RTL text and sits in the
+/// second group, after a rule of negative priority. Measured on the plugin.
+#[test]
+fn adds_no_ancestor_or_specificity_to_a_position_try_block_that_would_get_one() {
+  let rules = [
+    rule("xn", ".xn{color:red}", None, -2000.0),
+    rule(
+      "--xp",
+      "@position-try --xp {left:0;}",
+      Some("@position-try --xp {right:0;}"),
+      0.0,
+    ),
+  ];
+
+  assert_eq!(
+    sheet(
+      &rules,
+      &config_of(r#"{"useLayers": false, "legacyDisableLayers": false}"#)
+    ),
+    ".xn{color:red}\n@position-try --xp {left:0;}\n@position-try --xp {right:0;}"
+  );
+}
+
 // ==================== the helpers ====================
 
 #[test]
-fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_keyframes() {
+fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_a_selectorless_block() {
   assert_eq!(
     add_ancestor_selector(".x{float:left}", "html[dir='rtl']"),
     "html[dir='rtl'] .x{float:left}"
@@ -711,6 +770,10 @@ fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_keyfra
   assert_eq!(
     add_ancestor_selector("@keyframes k{0%{left:0}}", "html[dir='rtl']"),
     "@keyframes k{0%{left:0}}"
+  );
+  assert_eq!(
+    add_ancestor_selector("@position-try --xp {right:0;}", "html[dir='rtl']"),
+    "@position-try --xp {right:0;}"
   );
   // `indexOf('{', lastAtRule)` is -1 for an at-rule with no block, and the
   // ancestor then goes in front of the whole text.
@@ -737,6 +800,10 @@ fn the_specificity_level_goes_before_a_pseudo_element_else_before_the_block() {
   assert_eq!(
     add_specificity_level("@keyframes k{0%{left:0}}", 3),
     Some("@keyframes k{0%{left:0}}".into())
+  );
+  assert_eq!(
+    add_specificity_level("@position-try --xp {left:0;}", 3),
+    Some("@position-try --xp {left:0;}".into())
   );
   // `lastIndexOf('{')` is -1 for a text with no block, and `slice(0, -1)` then
   // keeps all but the last character.

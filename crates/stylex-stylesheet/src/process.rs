@@ -1065,11 +1065,18 @@ pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> 
   out
 }
 
+/// True for a `@keyframes` or `@position-try` block. Its name is followed by
+/// declarations, not by a selector, so an ancestor selector or a specificity
+/// level has no place to go.
+fn holds_no_selector(selector: &str) -> bool {
+  selector.starts_with("@keyframes") || selector.starts_with("@position-try")
+}
+
 /// `addAncestorSelector`, written into `out`: `ancestor_selector` prefixed to
 /// the rule's own selector, inside the innermost at-rule when the rule sits in
-/// one. A `@keyframes` block holds no selector to prefix.
+/// one. A block with no selector ([`holds_no_selector`]) is written as it is.
 fn write_with_ancestor(out: &mut String, selector: &str, ancestor_selector: &str) {
-  if selector.starts_with("@keyframes") {
+  if holds_no_selector(selector) {
     out.push_str(selector);
     return;
   }
@@ -1109,10 +1116,10 @@ pub(crate) fn add_specificity_level(selector: &str, index: usize) -> Option<Stri
 /// ([`last_brace_or_last_unit`]).
 ///
 /// An empty `pseudo`, as for the first [`PriorityGroup`], gives back the text
-/// as it was, even where JavaScript cuts a character in two. A `@keyframes`
-/// block holds no selector, so it also comes back as it was.
+/// as it was, even where JavaScript cuts a character in two. A block with no
+/// selector ([`holds_no_selector`]) also comes back as it was.
 fn insert_specificity<'s>(selector: &'s str, pseudo: &str) -> Option<Cow<'s, str>> {
-  if pseudo.is_empty() || selector.starts_with("@keyframes") {
+  if pseudo.is_empty() || holds_no_selector(selector) {
     return Some(Cow::Borrowed(selector));
   }
 

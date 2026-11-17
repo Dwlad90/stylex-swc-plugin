@@ -68,6 +68,18 @@ mod test_css_type_alpha_value {
       let result = AlphaValue::parser().parse_to_end("1").unwrap();
       assert_eq!(result.value, 1.0);
     }
+
+    #[test]
+    fn preserves_the_sign_of_negative_alpha_values() {
+      assert_eq!(
+        AlphaValue::parser().parse("-0.5").unwrap(),
+        AlphaValue::new(-0.5)
+      );
+      assert_eq!(
+        AlphaValue::parser().parse("-50%").unwrap(),
+        AlphaValue::new(-0.5)
+      );
+    }
   }
 
   mod percentages {

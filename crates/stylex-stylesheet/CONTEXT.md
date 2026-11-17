@@ -7,10 +7,11 @@ function here. The reference is `packages/@stylexjs/babel-plugin/src/index.js`
 at facebook/stylex `1fcb9a51cbecad2c82255e0f4b45cc072fa1a95a`, the commit
 `@stylexjs/babel-plugin` 0.19.1 was published from: upstream changes enter this
 project once they are on npm, so the port follows the published version. The
-output is the string that version writes, byte for byte, with one correction
+output is the string that version writes, byte for byte, with two corrections
 ahead of it: the priority of a rule keyed by a `defineConsts` at-rule
 (facebook/stylex#1988, fixed upstream by facebook/stylex#1989; the term
-**At-rule constant key** below).
+**At-rule constant key** below), and a constant value written as it is, not as
+a replacement pattern (the term **Constant substitution** below).
 
 `process::process_stylex_rules` is the assembly; `width_sort_key` holds the order
 it sorts by. [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) exports it
@@ -76,9 +77,11 @@ Before the sort, every constant's value is resolved through the constants it
 refers to (`var(--key)`, a chain that returns to itself is refused by name) and
 written into every style's text, `ltr` then `rtl`, one constant at a time in
 declaration order; a constant whose value is itself a `var(...)` also renames a
-declaration of the constant (`--key:`) to the variable it names. The
-replacements are `String.prototype.replace`/`replaceAll` with a string
-replacement, dollar patterns included, as the reference calls them.
+declaration of the constant (`--key:`) to the variable it names. A value goes
+in as written: a `$&`, `$$`, `` $` `` or `$'` in it is data, not a replacement
+pattern. The rename is still a `replaceAll` with a string replacement, dollar
+patterns included. The vendored copy (the fallback) writes a value the same
+way, so the two paths agree.
 _Avoid_: inlining, expansion
 
 **At-rule constant key**:

@@ -81,12 +81,11 @@ describe('defineConsts breakpoints', () => {
   const metadata = collectMetadata();
 
   // The ordering below is the assembler's rather than this compiler's: no
-  // production code here decides it. The catalog range is `^0.19.1`, so a
-  // later release that reorders would fail the expectations under this one
-  // with nothing to say why. Naming the version measured is cheaper than
-  // pinning the catalog entry, which 61 projects share.
+  // production code here decides it. A later release that reorders would
+  // fail the expectations below with nothing to say why, so the version
+  // measured is named here and fails first.
   test('measures the assembler this expectation was taken from', () => {
-    expect(pluginPkg.version).toBe('0.19.1');
+    expect(pluginPkg.version).toBe('0.19.2');
   });
 
   test('emits each constant beside the placeholder its consumer carries', () => {
@@ -129,9 +128,9 @@ describe('defineConsts breakpoints', () => {
     expect(css).toBe(
       [
         '.x1mqxbix{color:black}',
-        '.x1exxlbk{width:100px}',
         '@media (max-width: 1000px){.x1dypaho.x1dypaho{color:red}}',
         '@media (max-width: 500px){.x7bplha.x7bplha{color:blue}}',
+        '.x1exxlbk{width:100px}',
         '@media (min-width: 1000px){.xxw7ul5.xxw7ul5{width:200px}}',
         '@media (min-width: 1500px){.x193souu.x193souu{width:300px}}',
       ].join('\n')

@@ -161,7 +161,7 @@ const chain = (names: readonly string[]) =>
 
 describe('processStylexRules', () => {
   test('the fixture is the whole reference file', () => {
-    expect(fixture.cases).toHaveLength(36);
+    expect(fixture.cases).toHaveLength(39);
   });
 
   for (const recorded of fixture.cases) {

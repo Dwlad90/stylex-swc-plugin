@@ -21,8 +21,10 @@ evaluator can ask these questions without the full transformation pipeline.
 - `string`, JavaScript string operations over Rust strings:
   `split_at_utf16_lengths` cuts a text at lengths that JavaScript counts in
   UTF-16 code units, `js_substitution` expands the `$` patterns of a
-  replacement, and `js_replace_first` and `js_replace_all` are
-  `String.prototype.replace` and `replaceAll` with a string pattern
+  replacement, `js_replace_first` and `js_replace_all` are
+  `String.prototype.replace` and `replaceAll` with a string pattern, and
+  `js_replace_all_verbatim` is `replaceAll` with a function replacer, which
+  writes the replacement as it is
 - A low crate: it depends on primitives, macros and a few small libraries only
 
 ## Architecture

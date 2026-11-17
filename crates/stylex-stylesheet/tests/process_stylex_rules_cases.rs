@@ -84,14 +84,14 @@ fn assert_case(name: &str) {
 
 #[test]
 fn the_fixture_holds_every_test_of_the_reference_file() {
-  assert_eq!(fixture().cases.len(), 36);
+  assert_eq!(fixture().cases.len(), 39);
   assert_eq!(
     fixture()
       .cases
       .iter()
       .map(|case| case.calls.len())
       .sum::<usize>(),
-    45
+    48
   );
 }
 
@@ -180,6 +180,24 @@ fn legacy_expand_shorthands_with_logical_styles_polyfill() {
 #[test]
 fn logical_float_vars_are_emitted_when_the_float_comes_from_a_constant() {
   assert_case("logical float vars are emitted when the float comes from a constant");
+}
+
+/// `substitutes a constant value containing `$&` verbatim`
+#[test]
+fn substitutes_a_constant_value_containing_dollar_amp_verbatim() {
+  assert_case("substitutes a constant value containing `$&` verbatim");
+}
+
+/// `substitutes a constant value containing `$&` with no alias chain`
+#[test]
+fn substitutes_a_constant_value_containing_dollar_amp_with_no_alias_chain() {
+  assert_case("substitutes a constant value containing `$&` with no alias chain");
+}
+
+/// `substitutes constant values containing other `$` sequences verbatim`
+#[test]
+fn substitutes_constant_values_containing_other_dollar_sequences_verbatim() {
+  assert_case("substitutes constant values containing other `$` sequences verbatim");
 }
 
 /// `legacy-expand-shorthands duplicates theme selectors for higher precedence`

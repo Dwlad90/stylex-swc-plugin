@@ -14,7 +14,8 @@
 //! output. The port names each one and does what it does:
 //!
 //! - `localeCompare`
-//! - `String.prototype.replace` with a string replacement
+//! - `String.prototype.replace` with a string replacement, and with a
+//!   function replacer, which inserts a constant's value as written
 //! - `trim` and `slice(-1)`
 //! - V8's `Array.prototype.sort`
 //! - `new Map(...)`, which keeps the first position under the last value
@@ -32,7 +33,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_constants::constants::priorities::AT_RULE_PRIORITIES;
 use stylex_js::array_sort::array_tim_sort;
-use stylex_js::string::{js_replace_all, js_substitution};
+use stylex_js::string::{js_replace_all, js_replace_all_verbatim};
 use stylex_js::value::{JsValue, MapKey};
 use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR};
 use stylex_utils::number::is_js_whitespace;
@@ -200,16 +201,11 @@ pub(crate) fn resolve_constant(
     let reference = reference.to_string();
     visited.push(reference.clone());
     let replacement = resolve_constant(referenced, constants, visited)?;
-    // `result.replace(match[0], replacement.toString())`. The first
-    // occurrence of the matched text is this match: the search starts from
-    // the front, and an earlier occurrence would have matched first.
-    let substitution = js_substitution(
-      &replacement.to_js_string(),
-      &result[range.clone()],
-      &result[..range.start],
-      &result[range.end..],
-    );
-    result.replace_range(range, &substitution);
+    // The match is the first occurrence of its text: the search starts from
+    // the front, so an earlier occurrence would have matched first. The value
+    // goes in as written. If a `$&` in it wrote the reference back, the search
+    // would find it again and never end.
+    result.replace_range(range, &replacement.to_js_string());
     visited.retain(|seen| *seen != reference);
     position = 0;
   }
@@ -263,11 +259,12 @@ impl<'c> Substitution<'c> {
     }
   }
 
-  /// `original.replaceAll(varRef, replacement)`, then, with a rename,
-  /// `original.replaceAll(`${constName}:`, `${targetName}:`)`.
+  /// Every reference replaced by the value as written, then, with a rename,
+  /// every `--<class name>:` replaced by `--<target>:`. The rename is a string
+  /// replacement, so its `$` patterns are expanded.
   fn apply<'t>(&self, text: Cow<'t, str>) -> Cow<'t, str> {
     let text = changed(text, |text| {
-      js_replace_all(text, self.var_ref, &self.replacement)
+      js_replace_all_verbatim(text, self.var_ref, &self.replacement)
     });
 
     match &self.rename {

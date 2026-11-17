@@ -3,7 +3,8 @@
 use std::cmp::Ordering;
 
 use super::{
-  js_replace_all, js_replace_first, js_string_cmp, js_substitution, split_at_utf16_lengths,
+  js_replace_all, js_replace_all_verbatim, js_replace_first, js_string_cmp, js_substitution,
+  split_at_utf16_lengths,
 };
 
 #[test]
@@ -132,8 +133,7 @@ fn a_string_replacement_reads_the_dollar_patterns_of_get_substitution() {
 fn replace_first_replaces_one_occurrence_or_none() {
   assert_eq!(js_replace_first("a-b-a", "a", "x"), "x-b-a");
   assert_eq!(js_replace_first("a-b-a", "z", "x"), "a-b-a");
-  // The reference's `result.replace(match[0], replacement.toString())` passes a
-  // string, so a `$&` in a constant's value doubles the match (0.19.1).
+  // A string replacement reads `$&` as the match, so the match is written twice.
   assert_eq!(
     js_replace_first("var(--a)", "var(--a)", "$&$&"),
     "var(--a)var(--a)"
@@ -151,6 +151,26 @@ fn replace_all_replaces_every_occurrence_each_with_its_own_surroundings() {
   );
   assert!(matches!(
     js_replace_all("a-b", "z", "x"),
+    std::borrow::Cow::Borrowed("a-b")
+  ));
+}
+
+/// Answers measured in Node 24 for `replaceAll(pattern, () => replacement)`.
+#[test]
+fn replace_all_verbatim_writes_every_dollar_sequence_as_it_is() {
+  assert_eq!(
+    js_replace_all_verbatim("1 var(--a) 2 var(--a)", "var(--a)", "$&"),
+    "1 $& 2 $&"
+  );
+  assert_eq!(
+    js_replace_all_verbatim("a-b-a", "a", "$$|$`|$'"),
+    "$$|$`|$'-b-$$|$`|$'"
+  );
+  assert_eq!(js_replace_all_verbatim("ab", "", "$&"), "$&a$&b$&");
+  assert_eq!(js_replace_all_verbatim("é😀", "", "-"), "-é-😀-");
+  assert_eq!(js_replace_all_verbatim("", "", "-"), "-");
+  assert!(matches!(
+    js_replace_all_verbatim("a-b", "z", "x"),
     std::borrow::Cow::Borrowed("a-b")
   ));
 }

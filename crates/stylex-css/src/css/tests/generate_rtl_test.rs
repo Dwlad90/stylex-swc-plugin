@@ -602,4 +602,56 @@ mod generate_rtl_tests {
       rtl.value
     );
   }
+
+  /// Each shadow the flip rewrites, and what it reads in right-to-left.
+  ///
+  /// The first part is a length whenever it starts with a number, whatever
+  /// unit follows. Only commas
+  /// and other dividers outside a function split one shadow from the next, and
+  /// a shadow splits into parts at each single space, even inside `calc()`.
+  #[test]
+  fn box_shadow_flips_as_the_reference_compiler_does() {
+    let cases = [
+      ("1.5px 2px red", Some("-1.5px 2px red")),
+      ("1pt 2pt red", Some("-1pt 2pt red")),
+      ("1e2px 2px red", Some("-1e2px 2px red")),
+      (".5px 1px red", Some("-.5px 1px red")),
+      ("+1px 2px red", Some("-+1px 2px red")),
+      ("1px", Some("-1px")),
+      (
+        "1px 2px var(--a,3px 4px)",
+        Some("-1px 2px var(--a,3px 4px)"),
+      ),
+      ("1px 2px rgba(0,0,-1,.5)", Some("-1px 2px rgba(0,0,-1,.5)")),
+      (
+        "1px 2px red, 3px 4px blue",
+        Some("-1px 2px red,-3px 4px blue"),
+      ),
+      (
+        "1px 2px red , -3px 4px blue",
+        Some("-1px 2px red,3px 4px blue"),
+      ),
+      ("1px 2px red,", Some("-1px 2px red")),
+      ("1px/2px red", Some("-1px,-2px red")),
+      ("a 1px, b", Some("a -1px,b")),
+      ("1px  2px red", Some("-1px  2px red")),
+      (" 1px 2px red", Some(" -1px 2px red")),
+      ("calc(1px + 2px) 3px red", Some("calc(1px -+ 2px) 3px red")),
+      ("0 2px red", None),
+      ("none", None),
+    ];
+
+    for (value, expected) in cases {
+      for key in ["box-shadow", "text-shadow"] {
+        let pair = Pair::new(key, value);
+        let rtl = generate_rtl(&pair, &flipping_options());
+
+        assert_eq!(
+          rtl.as_ref().map(|rtl| rtl.value.as_ref()),
+          expected,
+          "{key}: {value}"
+        );
+      }
+    }
+  }
 }

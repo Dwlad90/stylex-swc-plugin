@@ -4,9 +4,9 @@
 
 use crate::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CONSTANT_REFERENCE, CSS_VAR_REFERENCE,
-  DESCENDANT_SELECTOR, IS_CSS_VAR, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX,
-  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, THEME_ROOT_SELECTOR,
-  URL_REGEX, VAR_EXTRACTION_REGEX,
+  DESCENDANT_SELECTOR, IS_CSS_VAR, PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR,
+  SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, THEME_ROOT_SELECTOR, URL_REGEX,
+  VAR_EXTRACTION_REGEX,
 };
 
 /// A constant's reference captures the name whatever characters it holds, and
@@ -29,10 +29,9 @@ fn the_stylesheet_step_patterns_capture_what_they_name() {
   assert!(!THEME_ROOT_SELECTOR.is_match(".a,.a:root{}"));
 }
 
-/// A style key is read as a variable reference only when it holds one, and a
-/// length is read as a length only when it spells one.
+/// A style key is read as a variable reference only when it holds one.
 #[test]
-fn var_references_and_lengths_match_expected_tokens() {
+fn var_references_match_expected_tokens() {
   assert!(CSS_VAR_REFERENCE.is_match("var(--x1a2b3)").unwrap());
   assert!(
     CSS_VAR_REFERENCE
@@ -45,8 +44,6 @@ fn var_references_and_lengths_match_expected_tokens() {
   assert!(!CSS_VAR_REFERENCE.is_match("var(--Colour)").unwrap());
   assert!(!CSS_VAR_REFERENCE.is_match("var(--my-colour)").unwrap());
   assert!(!CSS_VAR_REFERENCE.is_match("var(--my_colour)").unwrap());
-  assert!(LENGTH_UNIT_TESTER_REGEX.is_match("12px").unwrap());
-  assert!(LENGTH_UNIT_TESTER_REGEX.is_match("-5").unwrap());
 }
 
 /// Core token cleanups should match css var calls and spacing cases.

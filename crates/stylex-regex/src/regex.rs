@@ -40,12 +40,6 @@ pub static THEME_ROOT_SELECTOR: Lazy<regex::Regex> = Lazy::new(|| {
     .expect("Theme root selector regex is valid")
 });
 
-// CSS dimension units including modern viewport and container units
-pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^-?\d+(?:px|%|em|rem|ex|ch|vh|vw|vmin|vmax|dvh|dvw|lvh|lvw|svh|svw|cqw|cqh|cqi|cqb|cqmin|cqmax)?$")
-    .expect("Length unit tester regex is valid")
-});
-
 // The character class is spelled out rather than written as `[\w-]`: `\w` is
 // Unicode-aware here but ASCII-only in the `/^var\(--[a-zA-Z0-9-_]+\)$/` this
 // mirrors, so `[\w-]` also accepted names like `var(--épaisseur)`.

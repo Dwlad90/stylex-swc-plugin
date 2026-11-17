@@ -1,6 +1,7 @@
 use super::*;
 use crate::token_types::{SimpleToken, TokenList};
 use std::fmt::{self, Write as FmtWrite};
+use std::rc::Rc;
 
 // ── Token-list helper ────────────────────────────────────────────────────────
 
@@ -35,6 +36,10 @@ fn px(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
   use crate::css_types::length::Length;
   use crate::css_types::length_percentage::LengthPercentage;
   LengthPercentage::Length(Length::new(v, "px".to_string()))
+}
+
+fn side(v: f64) -> Rc<crate::css_types::length_percentage::LengthPercentage> {
+  Rc::new(px(v))
 }
 
 fn pct(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
@@ -1278,10 +1283,10 @@ fn basic_shape_parser_free_function_path() {
 fn display_inset_all_branches_propagates_writer_errors() {
   // Inset with 4 distinct values — exercises the 4-value branch of Display.
   let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(20.0),
-    bottom: px(30.0),
-    left: px(40.0),
+    top: side(10.0),
+    right: side(20.0),
+    bottom: side(30.0),
+    left: side(40.0),
     round: None,
   };
   let (mut saw_ok, mut saw_err) = (false, false);
@@ -1302,10 +1307,10 @@ fn display_inset_all_branches_propagates_writer_errors() {
 fn display_inset_with_round_propagates_writer_errors() {
   // Inset with round — exercises format!(" round {}", r) and write!(...) with round_str.
   let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(20.0),
-    bottom: px(30.0),
-    left: px(40.0),
+    top: side(10.0),
+    right: side(20.0),
+    bottom: side(30.0),
+    left: side(40.0),
     round: Some(px(5.0)),
   };
   let (mut saw_ok, mut saw_err) = (false, false);
@@ -1324,12 +1329,13 @@ fn display_inset_with_round_propagates_writer_errors() {
 
 #[test]
 fn display_inset_two_values_propagates_writer_errors() {
-  // top == bottom, left == right — exercises the 2-value branch
+  // bottom shares top and left shares right — exercises the 2-value branch
+  let (vertical, horizontal) = (side(10.0), side(20.0));
   let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(20.0),
-    bottom: px(10.0),
-    left: px(20.0),
+    top: Rc::clone(&vertical),
+    right: Rc::clone(&horizontal),
+    bottom: vertical,
+    left: horizontal,
     round: None,
   };
   let (mut saw_ok, mut saw_err) = (false, false);
@@ -1344,12 +1350,13 @@ fn display_inset_two_values_propagates_writer_errors() {
 
 #[test]
 fn display_inset_three_values_propagates_writer_errors() {
-  // top == bottom but left != right — exercises the 3-value branch
+  // only left shares right — exercises the 3-value branch
+  let horizontal = side(20.0);
   let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(20.0),
-    bottom: px(10.0),
-    left: px(30.0),
+    top: side(10.0),
+    right: Rc::clone(&horizontal),
+    bottom: side(30.0),
+    left: horizontal,
     round: None,
   };
   let (mut saw_ok, mut saw_err) = (false, false);
@@ -1482,29 +1489,13 @@ fn display_circle_radius_length_propagates_writer_errors() {
 // ════════════════════════════════════════════════════════════════════════════
 
 #[test]
-fn inset_display_single_value_all_equal_with_round_equal() {
-  // When top==right==bottom==left and round equals them — single value form
-  // Actually that condition: top==right && right==bottom && bottom==left &&
-  // left == round.as_ref().unwrap_or(left) needs round to be None or equal to left.
-  let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(10.0),
-    bottom: px(10.0),
-    left: px(10.0),
-    round: Some(px(10.0)),
-  };
-  // All equal including round == left → single-value form with round_str
-  let s = value.to_string();
-  assert!(s.starts_with("inset("), "s: {s}");
-}
-
-#[test]
 fn inset_display_single_value_all_equal_no_round() {
+  let all = side(5.0);
   let value = BasicShape::Inset {
-    top: px(5.0),
-    right: px(5.0),
-    bottom: px(5.0),
-    left: px(5.0),
+    top: Rc::clone(&all),
+    right: Rc::clone(&all),
+    bottom: Rc::clone(&all),
+    left: all,
     round: None,
   };
   assert_eq!(value.to_string(), "inset(5px)");
@@ -1512,43 +1503,27 @@ fn inset_display_single_value_all_equal_no_round() {
 
 #[test]
 fn inset_display_two_values_with_round() {
+  let (vertical, horizontal) = (side(10.0), side(20.0));
   let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(20.0),
-    bottom: px(10.0),
-    left: px(20.0),
+    top: Rc::clone(&vertical),
+    right: Rc::clone(&horizontal),
+    bottom: vertical,
+    left: horizontal,
     round: Some(px(3.0)),
   };
-  let s = value.to_string();
-  assert!(s.contains("round"), "expected round in: {s}");
-}
-
-#[test]
-fn inset_display_three_values_with_round() {
-  // top==bottom, left != right
-  let value = BasicShape::Inset {
-    top: px(10.0),
-    right: px(20.0),
-    bottom: px(10.0),
-    left: px(30.0),
-    round: Some(px(2.0)),
-  };
-  let s = value.to_string();
-  assert!(s.contains("round"), "expected round in: {s}");
+  assert_eq!(value.to_string(), "inset(10px 20px round 3px)");
 }
 
 #[test]
 fn inset_display_four_values_with_round() {
   let value = BasicShape::Inset {
-    top: px(1.0),
-    right: px(2.0),
-    bottom: px(3.0),
-    left: px(4.0),
+    top: side(1.0),
+    right: side(2.0),
+    bottom: side(3.0),
+    left: side(4.0),
     round: Some(px(5.0)),
   };
-  let s = value.to_string();
-  assert!(s.contains("round"), "expected round in: {s}");
-  assert!(s.contains("1px"), "expected 1px in: {s}");
+  assert_eq!(value.to_string(), "inset(1px 2px 3px 4px round 5px)");
 }
 
 // ════════════════════════════════════════════════════════════════════════════

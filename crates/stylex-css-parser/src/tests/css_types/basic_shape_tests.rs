@@ -2,6 +2,7 @@
 // Source: crates/stylex-css-parser/src/css_types/basic_shape.rs
 
 use super::*;
+use std::rc::Rc;
 
 #[test]
 fn test_circle_radius() {
@@ -27,11 +28,15 @@ fn test_basic_shape_display() {
 
 #[test]
 fn test_inset_display_optimization() {
+  let side = Rc::new(LengthPercentage::Length(crate::css_types::Length::new(
+    10.0,
+    "px".to_string(),
+  )));
   let inset = BasicShape::Inset {
-    top: LengthPercentage::Length(crate::css_types::Length::new(10.0, "px".to_string())),
-    right: LengthPercentage::Length(crate::css_types::Length::new(10.0, "px".to_string())),
-    bottom: LengthPercentage::Length(crate::css_types::Length::new(10.0, "px".to_string())),
-    left: LengthPercentage::Length(crate::css_types::Length::new(10.0, "px".to_string())),
+    top: Rc::clone(&side),
+    right: Rc::clone(&side),
+    bottom: Rc::clone(&side),
+    left: side,
     round: None,
   };
   assert_eq!(inset.to_string(), "inset(10px)");

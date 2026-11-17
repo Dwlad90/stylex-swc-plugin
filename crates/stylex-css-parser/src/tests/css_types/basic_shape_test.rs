@@ -6,6 +6,8 @@ Test CSS Type: <basic-shape>
 Tests parsing of inset(), circle(), ellipse(), polygon(), and path() functions.
 */
 
+use std::rc::Rc;
+
 use crate::css_types::{
   basic_shape::{BasicShape, CircleRadius},
   common_types::Percentage,
@@ -36,19 +38,19 @@ mod test_css_type_basic_shape {
       } = result
       {
         assert_eq!(
-          top,
+          *top,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          right,
+          *right,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          bottom,
+          *bottom,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          left,
+          *left,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(round, None);
@@ -69,19 +71,19 @@ mod test_css_type_basic_shape {
       } = result
       {
         assert_eq!(
-          top,
+          *top,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          right,
+          *right,
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
         assert_eq!(
-          bottom,
+          *bottom,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          left,
+          *left,
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
       } else {
@@ -101,19 +103,19 @@ mod test_css_type_basic_shape {
       } = result
       {
         assert_eq!(
-          top,
+          *top,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          right,
+          *right,
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
         assert_eq!(
-          bottom,
+          *bottom,
           LengthPercentage::Length(Length::new(30.0, "px".to_string()))
         );
         assert_eq!(
-          left,
+          *left,
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
       } else {
@@ -133,19 +135,19 @@ mod test_css_type_basic_shape {
       } = result
       {
         assert_eq!(
-          top,
+          *top,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          right,
+          *right,
           LengthPercentage::Length(Length::new(20.0, "px".to_string()))
         );
         assert_eq!(
-          bottom,
+          *bottom,
           LengthPercentage::Length(Length::new(30.0, "px".to_string()))
         );
         assert_eq!(
-          left,
+          *left,
           LengthPercentage::Length(Length::new(40.0, "px".to_string()))
         );
       } else {
@@ -167,19 +169,19 @@ mod test_css_type_basic_shape {
       } = result
       {
         assert_eq!(
-          top,
+          *top,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          right,
+          *right,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          bottom,
+          *bottom,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
-          left,
+          *left,
           LengthPercentage::Length(Length::new(10.0, "px".to_string()))
         );
         assert_eq!(
@@ -198,6 +200,48 @@ mod test_css_type_basic_shape {
         BasicShape::parse()
           .parse_to_end("inset(10px, invalid)")
           .is_err()
+      );
+    }
+
+    #[test]
+    fn should_stringify_the_shortest_valid_form() {
+      let roundtrip = |css: &str| BasicShape::parse().parse_to_end(css).unwrap().to_string();
+      // 1 value: all four sides share top.
+      assert_eq!(roundtrip("inset(10px)"), "inset(10px)");
+      // 2 values: vertical / horizontal.
+      assert_eq!(roundtrip("inset(10px 20px)"), "inset(10px 20px)");
+      // 3 values: top / horizontal / bottom (left shares right).
+      assert_eq!(roundtrip("inset(10px 20px 30px)"), "inset(10px 20px 30px)");
+      // 4 values: all distinct (no trailing space before the paren).
+      assert_eq!(
+        roundtrip("inset(10px 20px 30px 40px)"),
+        "inset(10px 20px 30px 40px)"
+      );
+      // round radius is preserved.
+      assert_eq!(roundtrip("inset(10px round 5px)"), "inset(10px round 5px)");
+      assert_eq!(
+        roundtrip("inset(10px 20px 30px round 5px)"),
+        "inset(10px 20px 30px round 5px)"
+      );
+    }
+
+    #[test]
+    fn should_keep_explicitly_repeated_sides() {
+      let roundtrip = |css: &str| BasicShape::parse().parse_to_end(css).unwrap().to_string();
+      assert_eq!(roundtrip("inset(10px 10px)"), "inset(10px 10px)");
+      assert_eq!(roundtrip("inset(10px 20px 10px)"), "inset(10px 20px 10px)");
+      assert_eq!(
+        roundtrip("inset(10px 10px 10px 10px)"),
+        "inset(10px 10px 10px 10px)"
+      );
+      assert_eq!(
+        roundtrip("inset(10px 20px 30px 20px)"),
+        "inset(10px 20px 30px 20px)"
+      );
+      assert_eq!(roundtrip("inset(5px round 5px)"), "inset(5px round 5px)");
+      assert_eq!(
+        roundtrip("inset(10px 20px 10px 40px round 5px)"),
+        "inset(10px 20px 10px 40px round 5px)"
       );
     }
   }
@@ -462,11 +506,15 @@ mod test_css_type_basic_shape {
   // Test string representations
   #[test]
   fn test_inset_string_representation() {
+    let side = Rc::new(LengthPercentage::Length(Length::new(
+      10.0,
+      "px".to_string(),
+    )));
     let inset = BasicShape::Inset {
-      top: LengthPercentage::Length(Length::new(10.0, "px".to_string())),
-      right: LengthPercentage::Length(Length::new(10.0, "px".to_string())),
-      bottom: LengthPercentage::Length(Length::new(10.0, "px".to_string())),
-      left: LengthPercentage::Length(Length::new(10.0, "px".to_string())),
+      top: Rc::clone(&side),
+      right: Rc::clone(&side),
+      bottom: Rc::clone(&side),
+      left: side,
       round: None,
     };
     assert_eq!(inset.to_string(), "inset(10px)");

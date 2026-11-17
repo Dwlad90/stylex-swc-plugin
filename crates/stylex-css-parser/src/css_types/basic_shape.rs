@@ -14,15 +14,18 @@ use crate::{
   },
   token_types::{SimpleToken, TokenList},
 };
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BasicShape {
+  /// A side the source omits shares the `Rc` of the side it copies. Display
+  /// compares sides by identity, so a hand-built value must use `Rc::clone`
+  /// for a side that it omits. `PartialEq` still compares by value.
   Inset {
-    top: LengthPercentage,
-    right: LengthPercentage,
-    bottom: LengthPercentage,
-    left: LengthPercentage,
+    top: Rc<LengthPercentage>,
+    right: Rc<LengthPercentage>,
+    bottom: Rc<LengthPercentage>,
+    left: Rc<LengthPercentage>,
     round: Option<LengthPercentage>,
   },
   Circle {
@@ -78,15 +81,13 @@ impl fmt::Display for BasicShape {
           .map(|r| format!(" round {}", r))
           .unwrap_or_default();
 
-        if top == right
-          && right == bottom
-          && bottom == left
-          && left == round.as_ref().unwrap_or(left)
-        {
+        // Write one value for each side the source gave. A shared side is a
+        // side that the source omitted.
+        if Rc::ptr_eq(top, right) && Rc::ptr_eq(right, bottom) && Rc::ptr_eq(bottom, left) {
           write!(f, "inset({}{})", top, round_str)
-        } else if top == bottom && left == right {
+        } else if Rc::ptr_eq(top, bottom) && Rc::ptr_eq(left, right) {
           write!(f, "inset({} {}{})", top, right, round_str)
-        } else if top == bottom {
+        } else if Rc::ptr_eq(left, right) {
           write!(f, "inset({} {} {}{})", top, right, bottom, round_str)
         } else {
           write!(
@@ -157,7 +158,7 @@ impl BasicShape {
         }
 
         // Parse first length-percentage (required)
-        let top = (length_percentage_parser().run)(tokens)?;
+        let top = Rc::new((length_percentage_parser().run)(tokens)?);
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -171,9 +172,9 @@ impl BasicShape {
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
               let _ = tokens.consume_next_token();
             }
-            right_val
+            Rc::new(right_val)
           },
-          _ => top.clone(),
+          _ => Rc::clone(&top),
         };
 
         // Parse optional bottom value, or default to top
@@ -183,9 +184,9 @@ impl BasicShape {
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
               let _ = tokens.consume_next_token();
             }
-            bottom_val
+            Rc::new(bottom_val)
           },
-          _ => top.clone(),
+          _ => Rc::clone(&top),
         };
 
         // Parse optional left value, or default to right
@@ -195,9 +196,9 @@ impl BasicShape {
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
               let _ = tokens.consume_next_token();
             }
-            left_val
+            Rc::new(left_val)
           },
-          _ => right.clone(),
+          _ => Rc::clone(&right),
         };
 
         // Handle optional "round" parameter. Any whitespace before the keyword

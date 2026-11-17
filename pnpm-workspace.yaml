@@ -163,7 +163,7 @@ catalogs:
     '@storybook/addon-vitest': '^10.6.5'
     '@storybook/react': '^10.6.5'
     '@storybook/react-vite': '^10.6.5'
-    'next': '^16.4.3'
+    'next': '^16.4.5'
     'next-rspack': '^16.4.3'
     'react': '^19.3.1'
     'react-dom': '^19.3.1'

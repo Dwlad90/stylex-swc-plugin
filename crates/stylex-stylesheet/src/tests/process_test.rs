@@ -489,17 +489,20 @@ fn a_very_deep_constant_chain_is_refused_without_a_stack_overflow() {
   );
 }
 
-/// The reference (0.19.1) hands `replaceAll` a string, so a `$&` in a
-/// constant's value stands for the reference it replaces: the declaration
-/// reads as it did. Measured on the plugin.
+/// A constant's value is data, not a replacement pattern: each `$` sequence
+/// goes in as written, through a chain and in a rule.
 #[test]
-fn a_dollar_pattern_in_a_constant_is_read_as_get_substitution_reads_it() {
+fn a_dollar_pattern_in_a_constant_is_written_as_it_is() {
   let rules = [
     constant("xA", text("$&")),
-    rule("x1", ".x1{content:var(--xA)}", None, 3000.0),
+    constant("xB", text("var(--xA) $$ $` $'")),
+    rule("x1", ".x1{content:var(--xA);--b:var(--xB)}", None, 3000.0),
   ];
 
-  assert_eq!(sheet(&rules, &without_layers()), ".x1{content:var(--xA)}");
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x1{content:$&;--b:$& $$ $` $'}"
+  );
 }
 
 #[test]

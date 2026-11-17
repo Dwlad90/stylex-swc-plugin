@@ -168,6 +168,36 @@ pub fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Co
   Cow::Owned(out)
 }
 
+/// `text.replaceAll(pattern, () => replacement)`: every occurrence replaced by
+/// the replacement as written. What a function replacer returns is not a
+/// template, so a `$` in it stays a `$`. A text with no occurrence is handed
+/// back as it is.
+///
+/// The text is searched once. The empty pattern occurs at each character
+/// boundary and at the end, as in JavaScript (less the boundaries inside a
+/// character outside the Basic Multilingual Plane, as in [`js_replace_all`]).
+pub fn js_replace_all_verbatim<'t>(
+  text: &'t str,
+  pattern: &str,
+  replacement: &str,
+) -> Cow<'t, str> {
+  let mut occurrences = text.match_indices(pattern).peekable();
+  if occurrences.peek().is_none() {
+    return Cow::Borrowed(text);
+  }
+
+  let mut out = String::with_capacity(text.len());
+  let mut copied = 0;
+  for (start, _) in occurrences {
+    out.push_str(&text[copied..start]);
+    out.push_str(replacement);
+    copied = start + pattern.len();
+  }
+  out.push_str(&text[copied..]);
+
+  Cow::Owned(out)
+}
+
 /// [`js_replace_all`] of the empty pattern: the replacement at each character
 /// boundary of `text`, and at its end.
 fn replace_empty_pattern(text: &str, replacement: &str) -> String {

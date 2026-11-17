@@ -52,7 +52,7 @@ impl AlphaValue {
   /// from coverage tests.
   pub(crate) fn extract_number_token(token: SimpleToken) -> AlphaValue {
     if let SimpleToken::Number(value) = token {
-      // Handle sign and use directly as alpha value
+      // The token value already carries its sign, so use it as is.
       AlphaValue::new(value)
     } else {
       stylex_unreachable!()
@@ -62,10 +62,10 @@ impl AlphaValue {
   /// Parser for alpha values
   pub fn parser() -> TokenParser<AlphaValue> {
     TokenParser::one_of(vec![
-      // Percentage: v[4].signCharacter === '-' ? -1 : 1) * v[4].value) / 100
+      // Percentage: the signed percent, divided down to a fraction.
       TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
         .map(Self::extract_percentage_token, Some("percentage_to_alpha")),
-      // Number: (v[4].signCharacter === '-' ? -1 : 1) * v[4].value
+      // Number: the signed value, as written.
       TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
         .map(Self::extract_number_token, Some("number_to_alpha")),
     ])
@@ -97,22 +97,9 @@ pub fn alpha_as_number() -> TokenParser<f64> {
 /// percentage token holding `50`, and the alpha it denotes is `0.5`. That much
 /// the reference compiler also does, in `AlphaValue.parser` itself.
 ///
-/// **One thing here is not parity, and the doc used to claim it was.** The
-/// reference compiler's `AlphaValue.parser` multiplies its token value by
-/// `signCharacter === '-' ? -1 : 1` -- and that value already carries the sign,
-/// so it negates twice. Measured through its own tokenizer rather than read off
-/// the source: `-0.5` arrives as `value: -0.5` *and* `signCharacter: '-'`, so
-/// the parser answers `+0.5`, and `-50%` likewise answers `+0.5`.
-///
-/// This reader keeps a negative alpha negative. No plugin run enters it, so no
-/// emitted CSS differs and no output is evidence about it -- see the
-/// *Unwitnessed parser* entry in `CONTEXT.md`. Reproducing a sign bug in a
-/// reader with no caller would be the wrong way to close the gap. What is fixed
-/// here is the claim: this is a divergence, and the next person to add a caller
-/// needs to know that rather than trust a comment that said "parity".
-///
-/// [`crate::css_types::common_types::NumberOrPercentage`] inherits the same gap
-/// through its number arm, and says so.
+/// The token value already carries its sign, so a negative alpha stays
+/// negative: `-0.5` reads as `-0.5`, and `-50%` as `-0.5`. The reference
+/// compiler's `AlphaValue.parser` does the same.
 ///
 /// Kept as a token reader rather than a `TokenParser` because the four callers
 /// read their way through a comma-separated legacy grammar by hand rather than

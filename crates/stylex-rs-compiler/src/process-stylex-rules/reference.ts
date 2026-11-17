@@ -28,6 +28,10 @@
 // replacer, so a `$` in a constant's value is written as it is. The next
 // vendoring writes the same two lines.
 //
+// Also not written by the generator: `addAncestorSelector` and
+// `addSpecificityLevel` return a `@position-try` block as it is, as they do a
+// `@keyframes` block. The next vendoring writes the same two lines.
+//
 // The functions below are upstream's, as the published bundle holds them. The
 // one change: `mediaQueryWidthSortKey` calls the addon's media query parser
 // through `mediaQueryWidthBound`, because the bundle's parser is not
@@ -313,7 +317,7 @@ function processStylexRules(rules, config) {
   return logicalFloatVars + header + collectedCSS;
 }
 function addAncestorSelector(selector, ancestorSelector) {
-  if (selector.startsWith('@keyframes')) {
+  if (selector.startsWith('@keyframes') || selector.startsWith('@position-try')) {
     return selector;
   }
   if (!selector.startsWith('@')) {
@@ -326,7 +330,7 @@ function addAncestorSelector(selector, ancestorSelector) {
   return `${mediaQueryPart}${ancestorSelector} ${rest}`;
 }
 function addSpecificityLevel(selector, index) {
-  if (selector.startsWith('@keyframes')) {
+  if (selector.startsWith('@keyframes') || selector.startsWith('@position-try')) {
     return selector;
   }
   const pseudo = Array.from({

@@ -208,6 +208,66 @@ describe('processStylexRules', () => {
     }
   });
 
+  describe('@position-try', () => {
+    /** The rules this compiler emits for one `positionTry` call. */
+    function positionTryRules(): StyleXRule[] {
+      const { metadata } = transform(
+        path.join(__dirname, 'positionTry.js'),
+        `
+          import * as stylex from '@stylexjs/stylex';
+          export const name = stylex.positionTry({
+            positionAnchor: '--anchor',
+            top: '0',
+            left: '0',
+            width: '100px',
+            height: '100px'
+          });
+        `,
+        { dev: false, unstable_moduleResolution: { type: 'haste' } }
+      );
+      return metadata.stylex;
+    }
+
+    test('processStylexRules does not inject ancestor selector into @position-try', () => {
+      const rules = positionTryRules();
+      const config = { enableLTRRTLComments: false };
+      const css = processStylexRules(rules, config);
+
+      expect(css).not.toContain("html[dir='rtl'] height");
+      expect(css).not.toContain("html[dir='rtl'] width");
+      expect(css).toContain('@position-try --x1v351di {height:');
+      expect(css).toBe(babelProcessStylexRules(rules, config));
+    });
+
+    test('processStylexRules does not inject specificity into @position-try', () => {
+      const rules = positionTryRules();
+      const config = { useLayers: false, legacyDisableLayers: false };
+      const css = processStylexRules(rules, config);
+
+      expect(css).not.toContain('@position-try --x1v351di :not(#\\#)');
+      expect(css).toContain('@position-try --x1v351di {height:');
+      expect(css).toBe(babelProcessStylexRules(rules, config));
+    });
+
+    // The compiled rule above has no RTL text and sits in the first group, so
+    // neither change reaches it. These rules do: an RTL twin, and a block in
+    // the second group, after a rule of negative priority.
+    test('adds no ancestor or specificity to a @position-try block that would get one', () => {
+      const rules: StyleXRule[] = [
+        ['xn', styleOf('.xn{color:red}'), -2000],
+        ['--xp', { ltr: '@position-try --xp {left:0;}', rtl: '@position-try --xp {right:0;}' }, 0],
+      ];
+      const config = { useLayers: false, legacyDisableLayers: false };
+
+      expect(processStylexRules(rules, config)).toBe(
+        ['.xn{color:red}', '@position-try --xp {left:0;}', '@position-try --xp {right:0;}'].join(
+          '\n'
+        )
+      );
+      expect(divergences([rules], [false, config])).toEqual([]);
+    });
+  });
+
   // An at-rule from `defineConsts` used as a condition key reaches the
   // consuming module as its `var(--hash)` placeholder, and the compile step
   // priced it as one: 3000, the share of an attribute selector, where the

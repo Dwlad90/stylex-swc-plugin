@@ -97,6 +97,19 @@ describe('the vendored reference', () => {
     expect(reference(rules.toReversed())).toBe(babelProcessStylexRules(rules.toReversed()));
   });
 
+  test('adds no ancestor or specificity to a @position-try block that would get one', () => {
+    // An RTL twin, and a block in the second group after a rule of negative
+    // priority: each would get an ancestor and a `:not(#\#)` if it were a rule.
+    const rules: StyleXRule[] = [
+      ['xn', { ltr: '.xn{color:red}', rtl: null }, -2000],
+      ['--xp', { ltr: '@position-try --xp {left:0;}', rtl: '@position-try --xp {right:0;}' }, 0],
+    ];
+
+    for (const config of [false, { useLayers: false, legacyDisableLayers: false }]) {
+      expect(reference(rules, config)).toBe(babelProcessStylexRules(rules, config));
+    }
+  });
+
   test('reads a media query the parser rejects as one with no bound', () => {
     expect(mediaQueryWidthBound('@media (min-width: 768px)')).toEqual({ kind: 'min', value: 768 });
     expect(mediaQueryWidthBound('@media (max-width: 0)')).toEqual({ kind: 'max', value: 0 });

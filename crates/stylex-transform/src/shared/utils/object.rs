@@ -9,7 +9,12 @@ use swc_core::ecma::ast::{Expr, KeyValueProp};
 use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_state::state_manager::StateManager;
-use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
+use stylex_structures::{
+  order_pair::OrderPair,
+  pair::{Pair, PairCow},
+  raw_value::TRawValue,
+};
+use stylex_utils::collections::{FxBuildHasher, FxIndexMap};
 
 use super::css::common::transform_value_cached;
 
@@ -36,6 +41,25 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, TRawVa
   }
 
   map
+}
+
+/// Maps each declaration with `mapper`, and keeps one per property name.
+///
+/// `mapper` can rename a property, so two declarations can map to one name.
+/// Then the later value wins and stays in the place of the first, as for any
+/// object key.
+pub(crate) fn obj_map_entry<'a>(
+  pairs: &'a [Pair],
+  mapper: impl Fn(&'a Pair) -> PairCow<'a>,
+) -> Vec<PairCow<'a>> {
+  let mut entries = FxIndexMap::with_capacity_and_hasher(pairs.len(), FxBuildHasher);
+
+  for pair in pairs {
+    let mapped = mapper(pair);
+    entries.insert(mapped.key.clone(), mapped);
+  }
+
+  entries.into_values().collect()
 }
 
 /// Maps each key, then converts each raw value with the mapped key.

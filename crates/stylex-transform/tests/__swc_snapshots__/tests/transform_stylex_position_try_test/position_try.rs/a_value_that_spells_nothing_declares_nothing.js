@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex';
-export const nullish = "--x1rdsnup";
-export const empty = "--x1rdsnup";
-export const blank = "--x1rdsnup";
-export const anchorOnly = "--x1rdsnup";
+export const nullish = "--xsgi8eb";
+export const empty = "--xsgi8eb";
+export const blank = "--xsgi8eb";
+export const anchorOnly = "--xsgi8eb";

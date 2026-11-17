@@ -5,9 +5,11 @@ mod stylex_keyframes {
   use swc_core::ecma::ast::PropOrSpread;
 
   use crate::shared::transformers::stylex_keyframes::stylex_keyframes;
+  use crate::tests::support::expr;
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
+  use stylex_enums::style_resolution::StyleResolution;
   use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
   use stylex_types::{
     enums::data_structures::injectable_style::InjectableStyleKind,
@@ -127,5 +129,62 @@ mod stylex_keyframes {
         priority: Some(0.0),
       })
     );
+  }
+
+  /// The name and the rule a source compiles to with the logical properties
+  /// resolved to physical ones.
+  fn compile_with_legacy_polyfill(code: &str) -> (String, InjectableStyle) {
+    let mut state = StateManager::default();
+    state.options.style_resolution = StyleResolution::LegacyExpandShorthands;
+    state.options.enable_logical_styles_polyfill = true;
+
+    match stylex_keyframes(&EvaluateResultValue::Expr(expr(code)), &mut state) {
+      (name, InjectableStyleKind::Regular(style)) => (name, style),
+      (_, other) => panic!("an animation is a regular rule: {other:?}"),
+    }
+  }
+
+  /// When two declarations of a step resolve to one property name, the later
+  /// value wins and keeps the place of the first, as for any object key.
+  #[test]
+  fn keeps_one_declaration_per_property_name_in_a_step() {
+    let cases = [
+      (
+        "{ '0%': { insetInlineStart: 0, left: 2 } }",
+        "xbdbhb5-B",
+        "0%{left:2px;}",
+        "0%{right:0;left:2px;}",
+      ),
+      (
+        "{ '0%': { insetInlineStart: 0, top: 1, left: 2 } }",
+        "x1e4n2n5-B",
+        "0%{left:2px;top:1px;}",
+        "0%{right:0;top:1px;left:2px;}",
+      ),
+      (
+        "{ '0%': { left: 2, top: 1, insetInlineStart: 0 } }",
+        "x1rf296t-B",
+        "0%{left:0;top:1px;}",
+        "0%{left:2px;top:1px;right:0;}",
+      ),
+      (
+        "{ from: { marginInlineStart: 1, marginLeft: 3 }, to: { left: 5 } }",
+        "xmlwlte-B",
+        "from{margin-left:3px;}to{left:5px;}",
+        "from{margin-right:1px;margin-left:3px;}to{left:5px;}",
+      ),
+    ];
+
+    for (code, expected_name, ltr, rtl) in cases {
+      let (name, style) = compile_with_legacy_polyfill(code);
+
+      assert_eq!(name, expected_name, "{code}");
+      assert_eq!(style.ltr, format!("@keyframes {name}{{{ltr}}}"), "{code}");
+      assert_eq!(
+        style.rtl,
+        Some(format!("@keyframes {name}{{{rtl}}}")),
+        "{code}"
+      );
+    }
   }
 }

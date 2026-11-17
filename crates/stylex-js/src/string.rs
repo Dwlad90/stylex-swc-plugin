@@ -4,7 +4,17 @@
 //! These functions take the counts and positions that JavaScript gives and
 //! answer what JavaScript answers.
 
-use std::borrow::Cow;
+use std::{borrow::Cow, cmp::Ordering};
+
+/// The order JavaScript puts two strings in: by UTF-16 code unit, as `<` and
+/// the default `sort()` compare them.
+///
+/// It differs from the byte order of `str` only for a character outside the
+/// Basic Multilingual Plane, whose first code unit sorts before U+E000 to
+/// U+FFFF although its UTF-8 bytes sort after them.
+pub fn js_string_cmp(left: &str, right: &str) -> Ordering {
+  left.encode_utf16().cmp(right.encode_utf16())
+}
 
 /// `text` cut into consecutive pieces of the given lengths, each counted in
 /// UTF-16 code units as JavaScript's `length` counts it.

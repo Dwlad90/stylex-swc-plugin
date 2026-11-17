@@ -77,12 +77,11 @@ stylex_test!(
   "#
 );
 
-// `positionTry()` uses the active transform options while preprocessing
-// properties, but default options for LTR/RTL pair generation. Legacy logical
-// polyfill settings therefore do not flip the generated `@position-try`
-// declaration keys during direction generation.
+// The direction resolvers read the active transform options, so the legacy
+// logical polyfill writes `insetInlineStart` as `left` in one direction and
+// `right` in the other.
 stylex_test!(
-  position_try_object_uses_default_direction_options,
+  position_try_object_uses_direction_options,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
       .with_enable_logical_styles_polyfill(true)

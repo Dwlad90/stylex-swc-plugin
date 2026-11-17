@@ -173,14 +173,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(expectedImportTestMetadata).toMatchInlineSnapshot(`
@@ -195,18 +195,18 @@ describe('@stylexjs/babel-plugin', ()=>{
               1,
             ],
             [
-              "--x5jppmd",
+              "--xpd0xwl",
               {
-                "ltr": "@position-try --x5jppmd {anchor-name:anchor-name;anchor-name:--myAnchor;position-area:position-area;position-area:top left;}",
-                "rtl": "@position-try --x5jppmd {anchor-name:--myAnchor;position-area:top left;}",
+                "ltr": "@position-try --xpd0xwl {anchor-name:--myAnchor;position-area:top left;}",
+                "rtl": null,
               },
               0,
             ],
             [
-              "--x17pzx6",
+              "--x10ycovl",
               {
-                "ltr": "@position-try --x17pzx6 {anchor-name:anchor-name;anchor-name:--otherAnchor;inset-inline-start:inset-inline-start;inset-inline-start:anchor(start);top:top;top:anchor(bottom);}",
-                "rtl": "@position-try --x17pzx6 {anchor-name:--otherAnchor;inset-inline-start:anchor(start);top:anchor(bottom);}",
+                "ltr": "@position-try --x10ycovl {anchor-name:--otherAnchor;inset-inline-start:anchor(start);top:anchor(bottom);}",
+                "rtl": null,
               },
               0,
             ],
@@ -227,9 +227,9 @@ describe('@stylexjs/babel-plugin', ()=>{
               3000,
             ],
             [
-              "x7cint9",
+              "x14dju54",
               {
-                "ltr": ".x7cint9{position-try-fallbacks:--x5jppmd,--x17pzx6}",
+                "ltr": ".x14dju54{position-try-fallbacks:--xpd0xwl,--x10ycovl}",
                 "rtl": null,
               },
               3000,
@@ -297,14 +297,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(metadata).toEqual(expectedImportTestMetadata);
@@ -335,14 +335,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(metadata).toEqual(expectedImportTestMetadata);
@@ -383,14 +383,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(metadata).toEqual(expectedImportTestMetadata);
@@ -417,14 +417,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(metadata).toEqual(expectedImportTestMetadata);
@@ -465,14 +465,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(metadata).toEqual(expectedImportTestMetadata);
@@ -493,14 +493,14 @@ describe('@stylexjs/babel-plugin', ()=>{
           __varGroupHash__: "xop34xu"
         };
         const viewTransition1 = "xchu1hv";
-        const fallback1 = "--x5jppmd";
-        const fallback2 = "--x17pzx6";
+        const fallback1 = "--xpd0xwl";
+        const fallback2 = "--x10ycovl";
         const theme = {
           xop34xu: "xfnndu4 xop34xu",
           $$css: true
         };
         ({
-          className: "x1qar0u3 x7cint9 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
+          className: "x1qar0u3 x14dju54 x1e2nbdu x14693no x15oojuh xfnndu4 xop34xu"
         });"
       `);
             expect(metadata).toEqual(expectedImportTestMetadata);

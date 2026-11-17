@@ -11,7 +11,7 @@ import { describe, expect, test } from 'vitest';
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
 import { GUARDED_GLOBALS, UNGUARDED_GLOBALS } from '../dist/process-stylex-rules/built-ins.js';
 import { createReferenceProcessStylexRules } from '../dist/process-stylex-rules/reference.js';
-import { mediaQueryWidthBound } from '../dist/transform.js';
+import { getPriority, mediaQueryWidthBound } from '../dist/transform.js';
 import { loadBabelPlugin } from '../parity/lib/compilers.js';
 import { PROCESS_STYLEX_RULES_CASES, stylesheetFixturesDir } from '../parity/lib/fixtures.js';
 import { withLfEndings } from '../parity/lib/text.js';
@@ -31,7 +31,7 @@ interface RecordedCase {
 }
 
 const packageDir = path.resolve(__dirname, '..');
-const reference = createReferenceProcessStylexRules(mediaQueryWidthBound);
+const reference = createReferenceProcessStylexRules(mediaQueryWidthBound, getPriority);
 const { processStylexRules: babelProcessStylexRules } = loadBabelPlugin();
 const fixture = JSON.parse(
   fs.readFileSync(path.join(stylesheetFixturesDir(packageDir), PROCESS_STYLEX_RULES_CASES), 'utf8')

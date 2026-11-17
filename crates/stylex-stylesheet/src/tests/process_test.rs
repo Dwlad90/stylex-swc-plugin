@@ -1,6 +1,6 @@
 //! The branches of `process` the reference's own cases do not reach, and the
 //! JavaScript built-ins the port stands in for. An expectation that says
-//! "measured on the plugin" is what `@stylexjs/babel-plugin` 0.19.1 answers
+//! "measured on the plugin" is what `@stylexjs/babel-plugin` 0.19.2 answers
 //! for the same input in Node 24.
 
 use stylex_js::value::JsValue;
@@ -559,11 +559,11 @@ fn a_pattern_brought_in_by_a_substitution_is_applied_by_a_later_one() {
   );
 }
 
-/// The priority of a group's first rule decides whether the group goes in a
-/// layer (`group[0][2]`): 0 and 500 share level 0, and the group stays out of
-/// every layer, though its second rule is above 0. Measured on the plugin.
+/// Each rule of a group goes by its own priority, not by the first rule's: 0
+/// and 500 share level 0, the rule of priority 0 stays out of every layer and
+/// the rule of priority 500 goes in the group's layer. Measured on the plugin.
 #[test]
-fn the_first_rule_of_a_group_decides_its_layer() {
+fn each_rule_of_a_group_decides_its_own_layer() {
   let rules = [
     rule("a", ".a{x:0}", None, 0.0),
     rule("b", ".b{y:0}", None, 500.0),
@@ -571,7 +571,7 @@ fn the_first_rule_of_a_group_decides_its_layer() {
 
   assert_eq!(
     sheet(&rules, &ProcessStylexRulesConfig::from(true)),
-    "\n@layer priority1;\n.a{x:0}\n.b{y:0}"
+    "\n@layer priority1;\n.a{x:0}\n@layer priority1{\n.b{y:0}\n}"
   );
 }
 
@@ -1127,6 +1127,73 @@ fn layers_without_a_prefix_are_the_bare_ordinals() {
   );
 }
 
+/// With layers on, a rule of negative or `NaN` priority is neither unlayered
+/// (priority 0) nor layerable (positive priority), so it is not written. Its
+/// group still takes a layer name and a line. Measured on the plugin.
+#[test]
+fn layers_drop_a_rule_of_negative_or_nan_priority() {
+  for priority in [-2000.0, f64::NAN] {
+    let rules = [
+      rule("a", ".a{x:1}", None, priority),
+      rule("b", ".b{y:1}", None, 3000.0),
+    ];
+
+    assert_eq!(
+      sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+      "\n@layer priority1, priority2;\n\n@layer priority2{\n.b{y:1}\n}",
+      "priority {priority}"
+    );
+  }
+}
+
+/// With layers on, only the number 0 keeps a rule out of every layer
+/// (`priority === 0`). A priority that only reads as 0 sorts and groups as 0,
+/// but is neither unlayered nor layerable, so the rule is not written.
+/// Measured on the plugin.
+#[test]
+fn layers_drop_a_priority_that_only_reads_as_zero() {
+  let sheet_with = |priority: &str| {
+    answer(
+      json(&format!(
+        r#"[["a", {{"ltr": ".a{{x:0}}"}}, {priority}], ["b", {{"ltr": ".b{{y:0}}"}}, 1]]"#
+      )),
+      json("true"),
+    )
+  };
+
+  for priority in ["null", "false", r#""0""#, "[0]", r#""""#] {
+    assert_eq!(
+      sheet_with(priority),
+      Ok("\n@layer priority1;\n@layer priority1{\n.b{y:0}\n}".into()),
+      "priority {priority}"
+    );
+  }
+  for priority in ["0", "-0"] {
+    assert_eq!(
+      sheet_with(priority),
+      Ok("\n@layer priority1;\n.a{x:0}\n@layer priority1{\n.b{y:0}\n}".into()),
+      "priority {priority}"
+    );
+  }
+}
+
+/// The unlayered and the layerable parts of a group drop repeated class names
+/// each on its own: a class name in both parts is written in both. Measured
+/// on the plugin.
+#[test]
+fn layers_deduplicate_the_unlayered_and_layerable_parts_apart() {
+  let rules = [
+    rule("a", "@keyframes a{}", None, 0.0),
+    rule("a", ".a{--x:1}", None, 1.0),
+    rule("c", ".c{--y:1}", None, 1.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@keyframes a{}\n@layer priority1{\n.a{--x:1}\n.c{--y:1}\n}"
+  );
+}
+
 /// `rawUseLayers !== false`: every value but `false` and `null` turns the
 /// layers on, with the defaults when it is not an object (`typeof` fails for
 /// a string or a number, and an array has none of the properties). Measured on
@@ -1428,7 +1495,8 @@ fn a_rule_reads_three_items_and_ignores_the_rest() {
 /// A string rule is iterable: its characters are the class name, the style
 /// and the priority. A character as the style has no `ltr`, so the rule
 /// throws where it is written, unless a later rule of its class takes its
-/// place. Measured on the plugin.
+/// place. With layers on, a rule of `NaN` priority is not written, so it does
+/// not throw. Measured on the plugin.
 #[test]
 fn a_string_rule_reads_its_characters() {
   let rules = rules_of(r#"["ab1", "ab"]"#);
@@ -1449,6 +1517,10 @@ fn a_string_rule_reads_its_characters() {
 
   assert_eq!(
     answer(json(r#"["ab"]"#), true.into()),
+    Ok("\n@layer priority1;\n".into())
+  );
+  assert_eq!(
+    answer(json(r#"["ab"]"#), false.into()),
     Err(ProcessStylexRulesError::TextNotAString {
       direction: TextDirection::Ltr,
       class_name: "a".into(),
@@ -1849,7 +1921,8 @@ fn a_priority_is_read_as_javascript_arithmetic_reads_it() {
 
 /// A priority that is no number writes the sheet the reference writes: an
 /// array or an object priority is coerced, and an `undefined` one is `NaN`
-/// where a `null` one is 0. Measured on the plugin.
+/// where a `null` one is 0. With layers on, a rule of `NaN` priority is not
+/// written. Measured on the plugin.
 #[test]
 fn a_loose_priority_writes_the_sheet_the_reference_writes() {
   let layers = ProcessStylexRulesConfig::from(true);
@@ -1867,7 +1940,7 @@ fn a_loose_priority_writes_the_sheet_the_reference_writes() {
       r#"[["x1", {"ltr": ".x1{a:0}"}, {}], ["x2", {"ltr": ".x2{b:0}"}, 3000]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2;\n.x1{a:0}\n@layer priority2{\n.x2{b:0}\n}"
+    "\n@layer priority1, priority2;\n\n@layer priority2{\n.x2{b:0}\n}"
   );
   assert_eq!(
     sheet_of(
@@ -1878,28 +1951,28 @@ fn a_loose_priority_writes_the_sheet_the_reference_writes() {
   );
   assert_eq!(
     sheet_of(r#"[["x1", {"ltr": ".x1{color:red}"}]]"#, &layers),
-    "\n@layer priority1;\n.x1{color:red}"
+    "\n@layer priority1;\n"
   );
   assert_eq!(
     sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}], ["x3", {"ltr": ".x3{c:0}"}, 1000]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2, priority3;\n@layer priority1{\n.x1{a:0}\n}\n.x2{b:0}\n@layer priority3{\n.x3{c:0}\n}"
+    "\n@layer priority1, priority2, priority3;\n@layer priority1{\n.x1{a:0}\n}\n\n@layer priority3{\n.x3{c:0}\n}"
   );
   assert_eq!(
     sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}], ["x3", {"ltr": ".x3{c:0}"}, 3000], ["x4", {"ltr": ".x4{d:0}"}, 2000]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2, priority3, priority4;\n@layer priority1{\n.x1{a:0}\n}\n.x2{b:0}\n@layer priority3{\n.x4{d:0}\n}\n@layer priority4{\n.x3{c:0}\n}"
+    "\n@layer priority1, priority2, priority3, priority4;\n@layer priority1{\n.x1{a:0}\n}\n\n@layer priority3{\n.x4{d:0}\n}\n@layer priority4{\n.x3{c:0}\n}"
   );
   assert_eq!(
     sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}, null]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2;\n.x2{b:0}\n@layer priority2{\n.x1{a:0}\n}"
+    "\n@layer priority1, priority2;\n\n@layer priority2{\n.x1{a:0}\n}"
   );
   assert_eq!(
     sheet_of(

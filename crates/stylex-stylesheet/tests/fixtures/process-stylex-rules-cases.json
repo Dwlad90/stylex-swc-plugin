@@ -1,5 +1,5 @@
 {
- "reference": "@stylexjs/babel-plugin 0.19.1 (facebook/stylex 1fcb9a51), __tests__/transform-process-test.js: every processStylexRules call each test makes, with the rules handed in (the Babel transform's metadata for the cases that compile a fixture), the config, and the string the plugin answered, which is the test's inline snapshot. Recorded by running the test file against the published plugin.",
+ "reference": "@stylexjs/babel-plugin 0.19.2 (facebook/stylex d7e6174c), __tests__/transform-process-test.js: every processStylexRules call each test makes, with the rules handed in (the Babel transform's metadata for the cases that compile a fixture), the config, and the string the plugin answered, which is the test's inline snapshot. Recorded by running the test file against the published plugin.",
  "cases": [
   {
    "name": "no rules",
@@ -631,7 +631,200 @@
       "useLayers": true,
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer priority1, priority2, priority3, priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer priority1, priority2, priority3, priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+    }
+   ]
+  },
+  {
+   "name": "custom properties stay inside @layer alongside priority-0 at-rules",
+   "calls": [
+    {
+     "rules": [
+      [
+       "x18re5ia-B",
+       {
+        "ltr": "@keyframes x18re5ia-B{from{opacity:0;}to{opacity:1;}}",
+        "rtl": null
+       },
+       0
+      ],
+      [
+       "xqcmdr3",
+       {
+        "ltr": ".xqcmdr3{animation-name:x18re5ia-B}",
+        "rtl": null
+       },
+       3000
+      ],
+      [
+       "x1vtiyio",
+       {
+        "ltr": ".x1vtiyio{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ],
+      [
+       "x1e2nbdu",
+       {
+        "ltr": ".x1e2nbdu{color:red}",
+        "rtl": null
+       },
+       3000
+      ]
+     ],
+     "config": {
+      "useLayers": true,
+      "enableLTRRTLComments": false
+     },
+     "output": "\n@layer priority1, priority2;\n@keyframes x18re5ia-B{from{opacity:0;}to{opacity:1;}}\n@layer priority1{\n.x1vtiyio{--card-padding:16px}\n}\n@layer priority2{\n.xqcmdr3{animation-name:x18re5ia-B}\n.x1e2nbdu{color:red}\n}"
+    }
+   ]
+  },
+  {
+   "name": "keeps @keyframes fade{from{opacity:0}to{opacity:1}} unlayered with and without custom properties",
+   "calls": [
+    {
+     "rules": [
+      [
+       "atRule",
+       {
+        "ltr": "@keyframes fade{from{opacity:0}to{opacity:1}}",
+        "rtl": null
+       },
+       0
+      ]
+     ],
+     "config": true,
+     "output": "\n@layer priority1;\n@keyframes fade{from{opacity:0}to{opacity:1}}"
+    },
+    {
+     "rules": [
+      [
+       "customProperty",
+       {
+        "ltr": ".custom{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ],
+      [
+       "atRule",
+       {
+        "ltr": "@keyframes fade{from{opacity:0}to{opacity:1}}",
+        "rtl": null
+       },
+       0
+      ],
+      [
+       "customProperty",
+       {
+        "ltr": ".custom{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ]
+     ],
+     "config": true,
+     "output": "\n@layer priority1;\n@keyframes fade{from{opacity:0}to{opacity:1}}\n@layer priority1{\n.custom{--card-padding:16px}\n}"
+    }
+   ]
+  },
+  {
+   "name": "keeps @property --card-padding{syntax:\"<length>\";inherits:false;initial-value:0px} unlayered with and without custom properties",
+   "calls": [
+    {
+     "rules": [
+      [
+       "atRule",
+       {
+        "ltr": "@property --card-padding{syntax:\"<length>\";inherits:false;initial-value:0px}",
+        "rtl": null
+       },
+       0
+      ]
+     ],
+     "config": true,
+     "output": "\n@layer priority1;\n@property --card-padding{syntax:\"<length>\";inherits:false;initial-value:0px}"
+    },
+    {
+     "rules": [
+      [
+       "customProperty",
+       {
+        "ltr": ".custom{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ],
+      [
+       "atRule",
+       {
+        "ltr": "@property --card-padding{syntax:\"<length>\";inherits:false;initial-value:0px}",
+        "rtl": null
+       },
+       0
+      ],
+      [
+       "customProperty",
+       {
+        "ltr": ".custom{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ]
+     ],
+     "config": true,
+     "output": "\n@layer priority1;\n@property --card-padding{syntax:\"<length>\";inherits:false;initial-value:0px}\n@layer priority1{\n.custom{--card-padding:16px}\n}"
+    }
+   ]
+  },
+  {
+   "name": "keeps @position-try --fallback{top:0} unlayered with and without custom properties",
+   "calls": [
+    {
+     "rules": [
+      [
+       "atRule",
+       {
+        "ltr": "@position-try --fallback{top:0}",
+        "rtl": null
+       },
+       0
+      ]
+     ],
+     "config": true,
+     "output": "\n@layer priority1;\n@position-try --fallback{top:0}"
+    },
+    {
+     "rules": [
+      [
+       "customProperty",
+       {
+        "ltr": ".custom{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ],
+      [
+       "atRule",
+       {
+        "ltr": "@position-try --fallback{top:0}",
+        "rtl": null
+       },
+       0
+      ],
+      [
+       "customProperty",
+       {
+        "ltr": ".custom{--card-padding:16px}",
+        "rtl": null
+       },
+       1
+      ]
+     ],
+     "config": true,
+     "output": "\n@layer priority1;\n@position-try --fallback{top:0}\n@layer priority1{\n.custom{--card-padding:16px}\n}"
     }
    ]
   },
@@ -906,7 +1099,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer reset, typography, priority1, priority2, priority3, priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer reset, typography, priority1, priority2, priority3, priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -1181,7 +1374,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer priority1, priority2, priority3, priority4, overrides, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer priority1, priority2, priority3, priority4, overrides, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -1458,7 +1651,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer reset, priority1, priority2, priority3, priority4, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer reset, priority1, priority2, priority3, priority4, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -1730,7 +1923,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer stylex.priority1, stylex.priority2, stylex.priority3, stylex.priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer stylex.priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer stylex.priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer stylex.priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer stylex.priority1, stylex.priority2, stylex.priority3, stylex.priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer stylex.priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer stylex.priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer stylex.priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer stylex.priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -2009,7 +2202,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer reset, typography, stylex.priority1, stylex.priority2, stylex.priority3, stylex.priority4, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer stylex.priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer stylex.priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer stylex.priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer reset, typography, stylex.priority1, stylex.priority2, stylex.priority3, stylex.priority4, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer stylex.priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer stylex.priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer stylex.priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer stylex.priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -2288,7 +2481,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer xds.reset, xds.typography, xds.base.priority1, xds.base.priority2, xds.base.priority3, xds.base.priority4, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer xds.base.priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer xds.base.priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer xds.base.priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer xds.reset, xds.typography, xds.base.priority1, xds.base.priority2, xds.base.priority3, xds.base.priority4, xds.theme;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer xds.base.priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer xds.base.priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer xds.base.priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer xds.base.priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -2561,7 +2754,7 @@
       },
       "enableLTRRTLComments": false
      },
-     "output": "\n@layer priority1, priority2, priority3, priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
+     "output": "\n@layer priority1, priority2, priority3, priority4;\n@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n@layer priority1{\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n}\n@layer priority2{\n.xymmreb{margin:10px 20px}\n.x1s2izit{padding:var(--x1ec7iuc)}\n}\n@layer priority3{\n.x1bg2uv5{border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn{border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys{border-color:yellow}}}\n}\n@layer priority4{\n.x13ah0pd{animation-name:x35atj5-B}\n.xrkmrrc{background-color:red}\n.x14rh7hd{color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f{float:left}\nhtml[dir='rtl'] .x1kmio9f{float:right}\n.x18abd1y{outline-color:var(--xkxfyv)}\n.x1skrh0i{text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *){background-color:green}\n.xbrh7vm:hover{background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn{background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}\n}"
     }
    ]
   },
@@ -3554,7 +3747,6 @@
        0
       ]
      ],
-     "config": null,
      "output": "@property --x-color { syntax: \"*\"; inherits: false;}\n@keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}\n:root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}\n:root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}\n@media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}\n@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}\n@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}\n.x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}\n.x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}\n.xufgesz{--orange-theme-color:red}\n.xymmreb:not(#\\#){margin:10px 20px}\n.x1s2izit:not(#\\#){padding:var(--x1ec7iuc)}\n.x1bg2uv5:not(#\\#):not(#\\#){border-color:green}\n@media (max-width: 1000px){.xio2edn.xio2edn:not(#\\#):not(#\\#){border-color:var(--xpqh4lw)}}\n@media (max-width: 500px){@media (max-width: 1000px){.xqiy1ys.xqiy1ys.xqiy1ys:not(#\\#):not(#\\#){border-color:yellow}}}\n.x13ah0pd:not(#\\#):not(#\\#):not(#\\#){animation-name:x35atj5-B}\n.xrkmrrc:not(#\\#):not(#\\#):not(#\\#){background-color:red}\n.x14rh7hd:not(#\\#):not(#\\#):not(#\\#){color:var(--x-color)}\nhtml:not([dir='rtl']) .x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:left}\nhtml[dir='rtl'] .x1kmio9f:not(#\\#):not(#\\#):not(#\\#){float:right}\n.x18abd1y:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--xkxfyv)}\n.x1skrh0i:not(#\\#):not(#\\#):not(#\\#){text-shadow:1px 2px 3px 4px red}\n.xfy810d.xfy810d:where(.x-default-marker:focus *):not(#\\#):not(#\\#):not(#\\#){background-color:green}\n.xbrh7vm:hover:not(#\\#):not(#\\#):not(#\\#){background-color:blue}\n@media (max-width: 1000px){.xahc4vn.xahc4vn:not(#\\#):not(#\\#):not(#\\#){background-color:yellow}}\n@media (min-width: 320px){.xtj17id.xtj17id:not(#\\#):not(#\\#):not(#\\#){text-shadow:10px 20px 30px 40px green}}\n@media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)):not(#\\#):not(#\\#):not(#\\#){background-color:purple}}\n@media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)):not(#\\#):not(#\\#):not(#\\#){background-color:orange}}"
     }
    ]

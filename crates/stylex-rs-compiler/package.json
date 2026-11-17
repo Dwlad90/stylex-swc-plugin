@@ -74,6 +74,7 @@
     "@napi-rs/cli": "catalog:tooling",
     "@stylexjs/babel-plugin": "catalog:runtime",
     "@stylexswc/ast": "catalog:internal",
+    "@stylexswc/css": "catalog:internal",
     "@stylexswc/enums": "catalog:internal",
     "@stylexswc/logs": "catalog:internal",
     "@stylexswc/macros": "catalog:internal",

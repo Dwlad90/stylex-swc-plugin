@@ -15,10 +15,12 @@ that throws, since Turbopack runs no webpack plugin.
 _Avoid_: plugin, transformer, hook
 
 **Import bail-out**:
-The substring check against the configured `stylexImports` that returns the
-module untouched before the compiler is called. It runs after the empty-input
-check, tests both fields of a `{ from, as }` object, and is a plain `includes`
-rather than a parse, because it is paid on every file.
+The substring check that returns the module untouched before the compiler is
+called. It reads the compiler options, with `stylexImports` folded into
+`rsOptions.importSources`, so the check and the compiler agree on the import
+sources. It runs after the empty-input check, tests both fields of a
+`{ from, as }` object, and is a plain `includes` rather than a parse, because it
+is paid on every file.
 _Avoid_: filter, include check, guard
 
 **Skip-warn resource**:

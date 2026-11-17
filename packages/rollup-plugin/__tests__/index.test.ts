@@ -23,12 +23,17 @@ describe('@stylexswc/rollup-plugin', () => {
     vi.unstubAllEnvs();
   });
 
-  async function runStylex(options: PluginOptions) {
+  async function runStylex(options: PluginOptions, fixture = 'index.js') {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
       // Remove stylex runtime from bundle
-      external: ['stylex', '@stylexjs/stylex', '@stylexjs/stylex/lib/stylex-inject'],
-      input: path.resolve(__dirname, '__fixtures__/index.js'),
+      external: [
+        'stylex',
+        '@stylexjs/stylex',
+        '@stylexjs/stylex/lib/stylex-inject',
+        'custom-stylex',
+      ],
+      input: path.resolve(__dirname, '__fixtures__', fixture),
       plugins: [
         nodeResolve(),
         commonjs(),
@@ -63,6 +68,24 @@ describe('@stylexswc/rollup-plugin', () => {
       await bundle.close();
     }
   }
+
+  it('still transforms built-in imports when a custom importSource is set', async () => {
+    const { css } = await runStylex({
+      fileName: 'stylex.css',
+      rsOptions: { importSources: ['custom-stylex'] },
+    });
+
+    expect(css).toContain('display: flex;');
+  });
+
+  it('transforms a module that imports from a custom importSource', async () => {
+    const { css } = await runStylex(
+      { fileName: 'stylex.css', rsOptions: { importSources: ['custom-stylex'] } },
+      'customSource.js'
+    );
+
+    expect(css).toContain('color: red;');
+  });
 
   it('extracts CSS and removes stylex.inject calls', async () => {
     const { css, js } = await runStylex({ fileName: 'stylex.css' });

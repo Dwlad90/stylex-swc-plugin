@@ -63,8 +63,10 @@ Every plugin asks `shouldProcessSource` and gets the same answer. It reads the
 module source as text, so a mention in a string or a comment counts; a false
 positive costs one compile that changes nothing, while a false negative leaves
 an element silently unstyled. It has two halves, because a module can need the
-compiler for either reason: it names one of the configured import sources, or it
-uses the `sx` prop. A leaf component that only forwards the prop has nothing to
+compiler for either reason: it names one of the built-in import sources
+(`stylex`, `@stylexjs/stylex`) or one of the configured ones, or it uses the
+`sx` prop. The compiler adds the configured sources to the built-in ones, so the
+scan does too. A leaf component that only forwards the prop has nothing to
 import, so the prop half must stand on its own. The scan must match every prop
 form a build step writes, bare and quoted alike -- the shapes named in
 [stylex-transform](../../crates/stylex-transform/CONTEXT.md), **Compiled `sx`

@@ -27,7 +27,6 @@ function createStylexLoaderContext(options?: Partial<StyleXLoaderOptions>) {
     rootContext: ROOT_CONTEXT,
     context: path.dirname(FIXTURE_PATH),
     getOptions: () => ({
-      stylexImports: ['stylex', '@stylexjs/stylex'],
       rsOptions: { dev: false, runtimeInjection: false },
       nextjsMode: false,
       nextjsAppRouterMode: false,
@@ -111,6 +110,23 @@ describe('stylex-loader', () => {
 
     expect(result.code).toBe(source);
     expect(buildInfo[BUILD_INFO_STYLEX_KEY]).toBeUndefined();
+  });
+
+  test('transforms a module that imports from a custom importSource', async () => {
+    // The source text holds no `stylex`, so only the configured source can
+    // select it. The scan must read the same options the compiler reads.
+    const { context, result } = createStylexLoaderContext({
+      rsOptions: { dev: false, runtimeInjection: false, importSources: ['design-system'] },
+    });
+    const source = [
+      "import * as css from 'design-system';",
+      "export const styles = css.create({ red: { color: 'red' } });",
+    ].join('\n');
+
+    await stylexLoader.call(context, source, undefined);
+
+    expect(result.error).toBeFalsy();
+    expect(String(result.code)).toContain(LOADER_TRANSFORMED_FLAG);
   });
 
   test('skips the dummy import when extractCSS is disabled', async () => {

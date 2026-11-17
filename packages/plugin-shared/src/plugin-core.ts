@@ -9,6 +9,7 @@ import {
   NEXTJS_COMPILER_NAMES,
   VIRTUAL_ENTRYPOINT_CSS_PATTERN,
 } from './constants';
+import { withStylexImports } from './module-selection';
 import { mergeStyleXRulesInto, publishStyleXRules } from './nextjs-registry';
 import type { StyleXRulesMap } from './nextjs-registry';
 import { escapeRegExp } from './regexp';
@@ -89,17 +90,18 @@ export class StyleXPluginCore {
     this.include = rsOptions.include;
     this.exclude = rsOptions.exclude;
     this.loaderOption = {
-      stylexImports,
-      rsOptions: {
-        enableFontSizePxToRem: true,
-        runtimeInjection: false,
-        treeshakeCompensation: true,
-        importSources: stylexImports,
-        injectStylexSideEffects: loaderOrder !== 'last',
-        ...rsOptions,
-        include: undefined,
-        exclude: undefined,
-      },
+      rsOptions: withStylexImports(
+        {
+          enableFontSizePxToRem: true,
+          runtimeInjection: false,
+          treeshakeCompensation: true,
+          injectStylexSideEffects: loaderOrder !== 'last',
+          ...rsOptions,
+          include: undefined,
+          exclude: undefined,
+        },
+        stylexImports
+      ),
       nextjsMode,
       nextjsAppRouterMode,
       extractCSS,

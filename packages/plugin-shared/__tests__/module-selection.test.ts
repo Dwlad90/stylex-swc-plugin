@@ -3,9 +3,12 @@
 import { transform } from '@stylexswc/rs-compiler';
 import { describe, expect, test, vi } from 'vitest';
 
-import { shouldProcessSource } from '../src/module-selection';
+import { shouldProcessSource, withStylexImports } from '../src/module-selection';
 
 const IMPORTING_MODULE = "import * as stylex from '@stylexjs/stylex';";
+
+// Mentions no built-in import source, so only the configured list can match it.
+const OTHER_MODULE = "import { css } from 'react-strict-dom';";
 
 // A leaf component that only forwards the prop has nothing to import, so the
 // import scan alone would drop it and leave the element unstyled.
@@ -26,32 +29,53 @@ function timedScan(sourceCode: string): [boolean, number] {
 }
 
 describe('shouldProcessSource', () => {
-  describe('no import source to look for', () => {
-    test('skips the module when the option is missing', () => {
-      expect(shouldProcessSource(IMPORTING_MODULE, {})).toBe(false);
+  describe('the built-in import sources', () => {
+    // The compiler adds the configured sources to the built-in ones, so the
+    // scan must find the built-in ones whatever the option holds.
+    test('processes a built-in import when the option is missing', () => {
+      expect(shouldProcessSource(IMPORTING_MODULE, {})).toBe(true);
     });
 
-    test('skips the module when the list is empty', () => {
-      expect(shouldProcessSource(IMPORTING_MODULE, { importSources: [] })).toBe(false);
+    test('processes a built-in import when the list is empty', () => {
+      expect(shouldProcessSource(IMPORTING_MODULE, { importSources: [] })).toBe(true);
+    });
+
+    test('still transforms built-in imports when a custom importSource is set', () => {
+      expect(shouldProcessSource(IMPORTING_MODULE, { importSources: ['custom-stylex'] })).toBe(
+        true
+      );
+    });
+
+    test('skips a module that mentions no import source', () => {
+      expect(shouldProcessSource('export const a = 1;', {})).toBe(false);
+    });
+
+    test('are the sources the compiler recognises', () => {
+      // Holds the two ends together: with a custom source configured, the
+      // compiler still compiles a module that imports a built-in source.
+      const sourceCode = `${IMPORTING_MODULE}
+export const styles = stylex.create({ red: { color: 'red' } });`;
+      const options = { importSources: ['custom-stylex'] };
+
+      expect(shouldProcessSource(sourceCode, options)).toBe(true);
+      expect(transform('/js/styles.js', sourceCode, options).metadata.stylex).not.toHaveLength(0);
     });
   });
 
   describe('a bare specifier', () => {
     test('processes a module that mentions it', () => {
-      expect(shouldProcessSource(IMPORTING_MODULE, { importSources: ['@stylexjs/stylex'] })).toBe(
-        true
-      );
+      expect(shouldProcessSource(OTHER_MODULE, { importSources: ['react-strict-dom'] })).toBe(true);
     });
 
     test('skips a module that does not', () => {
       expect(
-        shouldProcessSource('export const a = 1;', { importSources: ['@stylexjs/stylex'] })
+        shouldProcessSource('export const a = 1;', { importSources: ['react-strict-dom'] })
       ).toBe(false);
     });
 
     test('processes the module when any one entry matches', () => {
       expect(
-        shouldProcessSource(IMPORTING_MODULE, { importSources: ['react-strict-dom', 'stylex'] })
+        shouldProcessSource(OTHER_MODULE, { importSources: ['custom-stylex', 'react-strict-dom'] })
       ).toBe(true);
     });
   });
@@ -99,18 +123,16 @@ describe('shouldProcessSource', () => {
     // A blank entry matches every module. One misconfigured option would turn
     // into a whole-project compile.
     test.each([[''], ['   ']])('skips the module for the bare specifier %j', specifier => {
-      expect(shouldProcessSource(IMPORTING_MODULE, { importSources: [specifier] })).toBe(false);
+      expect(shouldProcessSource(OTHER_MODULE, { importSources: [specifier] })).toBe(false);
     });
 
     test('skips the module for a blank source', () => {
-      expect(shouldProcessSource(IMPORTING_MODULE, { importSources: [{ from: '  ' }] })).toBe(
-        false
-      );
+      expect(shouldProcessSource(OTHER_MODULE, { importSources: [{ from: '  ' }] })).toBe(false);
     });
 
     test('skips the module for a blank local name', () => {
       expect(
-        shouldProcessSource(IMPORTING_MODULE, { importSources: [{ as: '', from: 'nowhere' }] })
+        shouldProcessSource(OTHER_MODULE, { importSources: [{ as: '', from: 'nowhere' }] })
       ).toBe(false);
     });
   });
@@ -118,8 +140,8 @@ describe('shouldProcessSource', () => {
   describe('a source that arrived as JSON text', () => {
     test('reads the specifier out of it', () => {
       expect(
-        shouldProcessSource(IMPORTING_MODULE, {
-          importSources: ['{"from":"@stylexjs/stylex","as":"stylex"}'],
+        shouldProcessSource(OTHER_MODULE, {
+          importSources: ['{"from":"react-strict-dom","as":"unused"}'],
         })
       ).toBe(true);
     });
@@ -127,7 +149,7 @@ describe('shouldProcessSource', () => {
     test('skips a module that does not mention the specifier', () => {
       expect(
         shouldProcessSource('export const a = 1;', {
-          importSources: ['{"from":"@stylexjs/stylex"}'],
+          importSources: ['{"from":"react-strict-dom"}'],
         })
       ).toBe(false);
     });
@@ -144,12 +166,12 @@ describe('shouldProcessSource', () => {
       // the module count for no gain.
       // A specifier no other case uses, so the count does not depend on
       // whether an earlier case already read this one.
-      const specifier = '{"from":"@stylexjs/stylex","as":"readOnceProbe"}';
+      const specifier = '{"from":"react-strict-dom","as":"readOnceProbe"}';
       const parse = vi.spyOn(JSON, 'parse');
 
       try {
         for (let module = 0; module < 50; module += 1) {
-          shouldProcessSource(`${IMPORTING_MODULE}\n// module ${module}`, {
+          shouldProcessSource(`${OTHER_MODULE}\n// module ${module}`, {
             importSources: [specifier],
           });
         }
@@ -172,7 +194,7 @@ describe('shouldProcessSource', () => {
       // Deliberate. A false positive costs one compile that changes nothing,
       // while a false negative costs a silently unstyled element.
       expect(
-        shouldProcessSource('// see @stylexjs/stylex', { importSources: ['@stylexjs/stylex'] })
+        shouldProcessSource('// see react-strict-dom', { importSources: ['react-strict-dom'] })
       ).toBe(true);
     });
   });
@@ -394,5 +416,28 @@ describe('shouldProcessSource', () => {
         shouldProcessSource('{ "\u{1F600}": s }', { ...NO_IMPORT, sxPropName: '\u{1F600}' })
       ).toBe(true);
     });
+  });
+});
+
+describe('withStylexImports', () => {
+  test('uses stylexImports when the compiler options set no import sources', () => {
+    expect(withStylexImports({ sxPropName: 'css' }, ['design-system'])).toEqual({
+      sxPropName: 'css',
+      importSources: ['design-system'],
+    });
+  });
+
+  test('keeps the import sources the compiler options set', () => {
+    expect(withStylexImports({ importSources: ['custom-stylex'] }, ['design-system'])).toEqual({
+      importSources: ['custom-stylex'],
+    });
+  });
+
+  test('does not change the options it reads', () => {
+    const rsOptions = {};
+
+    withStylexImports(rsOptions, ['design-system']);
+
+    expect(rsOptions).toEqual({});
   });
 });

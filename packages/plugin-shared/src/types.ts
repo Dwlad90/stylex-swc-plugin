@@ -143,7 +143,6 @@ export interface StyleXPluginOption {
 }
 
 export type StyleXLoaderOptions = {
-  stylexImports: StyleXOptions['importSources'];
   rsOptions: Partial<StyleXOptions>;
   nextjsMode: boolean;
   nextjsAppRouterMode: boolean;

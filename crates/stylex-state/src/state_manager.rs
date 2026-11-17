@@ -289,7 +289,8 @@ impl ImportState {
 /// The binding sets one `Discover` pre-scan produced, moved to the state
 /// together.
 ///
-/// A type rather than four parameters because all four are `FxHashSet<Id>`: see
+/// A type rather than one parameter per set, because all of them are
+/// `FxHashSet<Id>`: see
 /// [`StateManager::adopt_binding_writes`].
 pub struct BindingWrites {
   /// See [`StateManager::binding_reassignments`].
@@ -300,6 +301,8 @@ pub struct BindingWrites {
   pub deep_mutations: FxHashSet<Id>,
   /// See [`StateManager::declared_bindings`].
   pub declared: FxHashSet<Id>,
+  /// See [`StateManager::enclosed_bindings`].
+  pub enclosed: FxHashSet<Id>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -796,11 +799,11 @@ pub struct StateManager {
   /// (`ModuleBindingsCollector`), in the same walk that fills
   /// [`Self::binding_mutations`].
   ///
-  /// Behind an `Rc` for the reason the memoized module is. All four sets are
+  /// Behind an `Rc` for the reason the memoized module is. All these sets are
   /// filled once by the `Discover` pre-scan and read-only afterwards, and
   /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
   /// once per invocation. `declared_bindings` alone holds every binding the
-  /// module declares, so copying the four of them made a callback's cost scale
+  /// module declares, so copying all of them made a callback's cost scale
   /// with the size of the file it happens to sit in.
   pub binding_reassignments: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is mutated in place — `obj.x = 1`,
@@ -832,6 +835,13 @@ pub struct StateManager {
   /// either of its modes, in the same walk that fills the two write sets above.
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub declared_bindings: Rc<FxHashSet<Id>>,
+  /// The **enclosed bindings**: the declared bindings that a function, a
+  /// block or a class body holds, so they are not visible at program level.
+  /// Read through [`Self::is_enclosed_binding`].
+  ///
+  /// Filled by the same pre-scan as [`Self::declared_bindings`].
+  /// Shared rather than copied -- see [`Self::binding_reassignments`].
+  pub enclosed_bindings: Rc<FxHashSet<Id>>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Positions in [`Self::top_level_expressions`] of the entries that *are* a
   /// given call. Maintained by [`Self::push_top_level_expression`] and
@@ -1073,6 +1083,7 @@ impl StateManager {
       binding_mutations: Rc::default(),
       binding_deep_mutations: Rc::default(),
       declared_bindings: Rc::default(),
+      enclosed_bindings: Rc::default(),
       top_level_expressions: vec![],
       top_level_call_index: Rc::default(),
       top_level_name_index: Rc::default(),
@@ -1193,8 +1204,8 @@ impl StateManager {
 
   /// Takes the binding sets the `Discover` pre-scan collected.
   ///
-  /// One argument rather than four of the same type, for the reason
-  /// [`ModuleBase`] is its own type: four positional `FxHashSet<Id>` can be
+  /// One argument rather than one per set of the same type, for the reason
+  /// [`ModuleBase`] is its own type: positional `FxHashSet<Id>` sets can be
   /// transposed at a call site and still compile, and the answer would be a
   /// reference silently refused for the wrong reason. Named fields make the
   /// mistake visible where it is written, and the sets travel together anyway --
@@ -1204,6 +1215,7 @@ impl StateManager {
     self.binding_mutations = Rc::new(writes.mutations);
     self.binding_deep_mutations = Rc::new(writes.deep_mutations);
     self.declared_bindings = Rc::new(writes.declared);
+    self.enclosed_bindings = Rc::new(writes.enclosed);
   }
 
   /// The declarators that the top level of the module binds, in source order.
@@ -1650,6 +1662,13 @@ impl StateManager {
   /// name of. See [`StateManager::declared_bindings`].
   pub fn declares_binding(&self, ident: &Ident) -> bool {
     self.declared_bindings.contains(&ident.to_id())
+  }
+
+  /// Whether `ident` refers to a binding below program level, such as a
+  /// function parameter or a `let` in a block. A global and a program-level
+  /// binding both answer `false`. See [`StateManager::enclosed_bindings`].
+  pub fn is_enclosed_binding(&self, ident: &Ident) -> bool {
+    self.enclosed_bindings.contains(&ident.to_id())
   }
 
   /// Seeds an empty replacement entry for a JSX spread expression seen during

@@ -13,7 +13,7 @@ use swc_core::{
   ecma::{
     ast::{Module, Pass, Program},
     parser::{Parser, Syntax, TsSyntax, lexer::Lexer},
-    transforms::base::resolver,
+    transforms::{base::resolver, typescript::strip},
   },
 };
 
@@ -36,16 +36,24 @@ pub(crate) fn resolved_module(code: &str) -> Module {
       tsx: true,
       ..Default::default()
     }),
+    false,
   )
 }
 
 /// The same over TypeScript without JSX, which is the only syntax that reads
 /// an angle-bracket cast: where JSX is on, `<any>value` opens an element.
 pub(crate) fn resolved_ts_module(code: &str) -> Module {
-  resolved_module_in(code, Syntax::Typescript(Default::default()))
+  resolved_module_in(code, Syntax::Typescript(Default::default()), false)
 }
 
-fn resolved_module_in(code: &str, syntax: Syntax) -> Module {
+/// The same as [`resolved_ts_module`], then with the types stripped, as the
+/// compiler does before the StyleX pass. An `enum` or a `namespace` is a
+/// function call after this.
+pub(crate) fn stripped_ts_module(code: &str) -> Module {
+  resolved_module_in(code, Syntax::Typescript(Default::default()), true)
+}
+
+fn resolved_module_in(code: &str, syntax: Syntax, strip_types: bool) -> Module {
   let source_map = SourceMap::default();
 
   // The name says which syntax read the module, so a parse failure names the
@@ -73,7 +81,13 @@ fn resolved_module_in(code: &str, syntax: Syntax) -> Module {
   };
 
   let mut program = Program::Module(module);
-  resolver(Mark::new(), Mark::new(), true).process(&mut program);
+  let unresolved_mark = Mark::new();
+  let top_level_mark = Mark::new();
+  resolver(unresolved_mark, top_level_mark, true).process(&mut program);
+
+  if strip_types {
+    strip(unresolved_mark, top_level_mark).process(&mut program);
+  }
 
   match program {
     Program::Module(module) => module,

@@ -19,12 +19,13 @@ fn span(lo: u32, hi: u32) -> Span {
   Span::new(BytePos(lo), BytePos(hi))
 }
 
-/// The four sets one pre-scan produced, each holding the bindings named.
+/// The sets one pre-scan produced, each holding the bindings named.
 fn writes(
   reassigned: &[Ident],
   mutated: &[Ident],
   deeply_mutated: &[Ident],
   declared: &[Ident],
+  enclosed: &[Ident],
 ) -> BindingWrites {
   let collect = |idents: &[Ident]| -> FxHashSet<swc_core::ecma::ast::Id> {
     idents.iter().map(Ident::to_id).collect()
@@ -35,6 +36,7 @@ fn writes(
     mutations: collect(mutated),
     deep_mutations: collect(deeply_mutated),
     declared: collect(declared),
+    enclosed: collect(enclosed),
   }
 }
 
@@ -48,9 +50,10 @@ fn a_state_that_took_no_pre_scan_knows_of_no_writes() {
   assert!(!state.has_binding_mutation(&subject));
   assert!(!state.has_deep_binding_mutation(&subject));
   assert!(!state.declares_binding(&subject));
+  assert!(!state.is_enclosed_binding(&subject));
 }
 
-/// The four sets are taken together and read back apart: a binding in one of
+/// The sets are taken together and read back apart: a binding in one of
 /// them answers for that question alone.
 #[test]
 fn each_set_answers_only_its_own_question() {
@@ -61,6 +64,7 @@ fn each_set_answers_only_its_own_question() {
     &[ident("mutated")],
     &[ident("deeply")],
     &[ident("declared")],
+    &[ident("enclosed")],
   ));
 
   assert!(state.has_binding_reassignment(&ident("reassigned")));
@@ -74,6 +78,9 @@ fn each_set_answers_only_its_own_question() {
 
   assert!(state.declares_binding(&ident("declared")));
   assert!(!state.has_deep_binding_mutation(&ident("declared")));
+
+  assert!(state.is_enclosed_binding(&ident("enclosed")));
+  assert!(!state.is_enclosed_binding(&ident("declared")));
 }
 
 /// The scope is part of the question. A name written in one scope says nothing
@@ -87,6 +94,7 @@ fn a_write_in_one_scope_says_nothing_about_another() {
     &[],
     &[],
     &[ident_at("styles", 1)],
+    &[ident_at("styles", 1)],
   ));
 
   assert!(state.has_binding_reassignment(&ident_at("styles", 1)));
@@ -94,6 +102,9 @@ fn a_write_in_one_scope_says_nothing_about_another() {
 
   assert!(state.declares_binding(&ident_at("styles", 1)));
   assert!(!state.declares_binding(&ident_at("styles", 2)));
+
+  assert!(state.is_enclosed_binding(&ident_at("styles", 1)));
+  assert!(!state.is_enclosed_binding(&ident_at("styles", 2)));
 }
 
 /// Taking a second pre-scan replaces the first, rather than adding to it: one
@@ -102,8 +113,8 @@ fn a_write_in_one_scope_says_nothing_about_another() {
 fn a_second_pre_scan_replaces_the_first() {
   let mut state = state();
 
-  state.adopt_binding_writes(writes(&[ident("first")], &[], &[], &[]));
-  state.adopt_binding_writes(writes(&[ident("second")], &[], &[], &[]));
+  state.adopt_binding_writes(writes(&[ident("first")], &[], &[], &[], &[]));
+  state.adopt_binding_writes(writes(&[ident("second")], &[], &[], &[], &[]));
 
   assert!(state.has_binding_reassignment(&ident("second")));
   assert!(!state.has_binding_reassignment(&ident("first")));

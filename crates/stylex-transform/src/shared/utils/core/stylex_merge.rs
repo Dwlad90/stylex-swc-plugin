@@ -1,7 +1,10 @@
 use std::rc::Rc;
 
-use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
+use stylex_ast::ast::convertors::{
+  convert_lit_to_string, key_value_name, normalize_expr, normalize_expr_mut,
+};
 
+use swc_core::common::util::take::Take;
 use swc_core::ecma::{
   ast::{
     BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
@@ -238,7 +241,7 @@ pub(crate) fn stylex_merge(
         state: &mut *state,
         hoist_expression,
       };
-      arg_path.expr.visit_mut_with(&mut object_hoister);
+      object_hoister.hoist_in_argument(&mut arg_path.expr);
     }
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
@@ -311,16 +314,87 @@ struct CompiledStyleObjectHoister<'a> {
   hoist_expression: fn(Expr, &mut StateManager) -> Ident,
 }
 
-impl VisitMut for CompiledStyleObjectHoister<'_> {
-  fn visit_mut_expr(&mut self, expr: &mut Expr) {
-    expr.visit_mut_children_with(self);
+impl CompiledStyleObjectHoister<'_> {
+  /// Hoists the compiled style objects in one argument of the call.
+  ///
+  /// An argument that is itself an object is the only object checked. Any
+  /// other argument is searched for objects at every depth.
+  fn hoist_in_argument(&mut self, arg: &mut Expr) {
+    let arg = normalize_expr_mut(arg);
 
-    if let Expr::Object(object) = expr
-      && object_has_css_marker(object)
-    {
-      *expr = Expr::Ident((self.hoist_expression)(expr.clone(), self.state));
+    if arg.is_object() {
+      self.hoist_object(arg);
+    } else {
+      arg.visit_mut_children_with(self);
     }
   }
+
+  /// Hoists `expr` if it is a compiled style object that can move to program
+  /// level, and tells whether it did.
+  fn hoist_object(&mut self, expr: &mut Expr) -> bool {
+    let Expr::Object(object) = expr else {
+      return false;
+    };
+
+    if !object_has_css_marker(object) || !can_hoist_object(object, self.state) {
+      return false;
+    }
+
+    *expr = Expr::Ident((self.hoist_expression)(expr.take(), self.state));
+
+    true
+  }
+}
+
+impl VisitMut for CompiledStyleObjectHoister<'_> {
+  /// Outer objects come first. A hoisted object is not searched again, and an
+  /// object that stays is searched for compiled objects inside it.
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    if !self.hoist_object(expr) {
+      expr.visit_mut_children_with(self);
+    }
+  }
+}
+
+/// Whether every name the object reads is visible at program level, so the
+/// object can move there.
+///
+/// Each property must be a plain or shorthand property. A computed key that
+/// is a name must be visible at program level. A value must be a literal, a
+/// template literal or a name that is visible at program level. A global is
+/// visible everywhere, so it passes.
+fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
+  // `None` when the expression is not a name. Otherwise, whether the name is
+  // visible at program level.
+  let name_is_visible = |expr: &Expr| match normalize_expr(expr) {
+    Expr::Ident(ident) => Some(!state.is_enclosed_binding(ident)),
+    _ => None,
+  };
+
+  object.props.iter().all(|prop| {
+    let PropOrSpread::Prop(prop) = prop else {
+      return false;
+    };
+
+    match prop.as_ref() {
+      Prop::Shorthand(ident) => !state.is_enclosed_binding(ident),
+      Prop::KeyValue(key_value) => {
+        let key_is_visible = match &key_value.key {
+          PropName::Computed(computed) => name_is_visible(&computed.expr).unwrap_or(true),
+          _ => true,
+        };
+        let value_is_visible = name_is_visible(&key_value.value).unwrap_or_else(|| {
+          matches!(
+            normalize_expr(&key_value.value),
+            Expr::Lit(_) | Expr::Tpl(_)
+          )
+        });
+
+        key_is_visible && value_is_visible
+      },
+      _ => false,
+    }
+  })
 }
 
 /// Whether an object literal carries a `$$css: true` property, marking it as a

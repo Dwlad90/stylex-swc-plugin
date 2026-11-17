@@ -14,9 +14,11 @@ The walk that records module-wide facts a visitor cannot ask for later, in two
 modes that collect different things. `for_sx()` runs at the start of `Discover`,
 and only when `sxPropName` is set: every import source, every bound name, the
 scope spans of local bindings, every [declared
-binding](../stylex-evaluator/CONTEXT.md#declared-binding), and every binding
-written to. `writes_only()` runs after `Discover`, only for a module that
-reaches evaluation, and records the declared bindings and binding writes alone.
+binding](../stylex-evaluator/CONTEXT.md#declared-binding) with the
+[enclosed](../stylex-state/CONTEXT.md) ones marked, and every binding written
+to. `writes_only()` runs after `Discover`, only for a module that reaches
+evaluation, and records the declared and enclosed bindings and binding writes
+alone.
 So an import source or a scope span is only ever populated on the `sx` path.
 _Avoid_: first pass, collection phase, analysis
 

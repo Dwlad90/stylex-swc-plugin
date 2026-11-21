@@ -18,7 +18,10 @@ type LoaderResult = {
   map: unknown;
 };
 
-function createStylexLoaderContext(options?: Partial<StyleXLoaderOptions>) {
+function createStylexLoaderContext(
+  options?: Partial<StyleXLoaderOptions>,
+  readOptions?: () => Partial<StyleXLoaderOptions>
+) {
   const result: LoaderResult = { error: undefined, code: undefined, map: undefined };
   const buildInfo: Record<string, unknown> = {};
 
@@ -26,13 +29,15 @@ function createStylexLoaderContext(options?: Partial<StyleXLoaderOptions>) {
     resourcePath: FIXTURE_PATH,
     rootContext: ROOT_CONTEXT,
     context: path.dirname(FIXTURE_PATH),
-    getOptions: () => ({
-      rsOptions: { dev: false, runtimeInjection: false },
-      nextjsMode: false,
-      nextjsAppRouterMode: false,
-      extractCSS: true,
-      ...options,
-    }),
+    getOptions:
+      readOptions ??
+      (() => ({
+        rsOptions: { dev: false, runtimeInjection: false },
+        nextjsMode: false,
+        nextjsAppRouterMode: false,
+        extractCSS: true,
+        ...options,
+      })),
     async: () => (error: Error | null | undefined, code?: string | Buffer, map?: unknown) => {
       result.error = error;
       result.code = code;
@@ -124,6 +129,17 @@ describe('stylex-loader', () => {
     ].join('\n');
 
     await stylexLoader.call(context, source, undefined);
+
+    expect(result.error).toBeFalsy();
+    expect(String(result.code)).toContain(LOADER_TRANSFORMED_FLAG);
+  });
+
+  test('completes when the loader is given no options', async () => {
+    // A direct webpack user can add the loader without options. The loader
+    // must still call back, or webpack waits for it forever.
+    const { context, result } = createStylexLoaderContext(undefined, () => ({}));
+
+    await stylexLoader.call(context, fixtureSource, undefined);
 
     expect(result.error).toBeFalsy();
     expect(String(result.code)).toContain(LOADER_TRANSFORMED_FLAG);

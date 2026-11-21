@@ -432,25 +432,36 @@ fn flatten_or_rule(rule: MediaQueryRule) -> Vec<MediaQueryRule> {
   }
 }
 
-/// The media type that the keywords of an `and` list require. `Some(None)`
-/// means any media type, and `None` means that the list never matches.
-fn and_media_type(rules: &[MediaQueryRule]) -> Option<Option<&str>> {
+/// The media type that the keywords of an `and` list require.
+enum AndMediaType<'a> {
+  /// The keywords contradict each other, so the list never matches.
+  Never,
+  /// The keywords accept any media type.
+  Any,
+  /// The keywords accept this media type only.
+  Only(&'a str),
+}
+
+/// The media type that the keywords of an `and` list require.
+fn and_media_type(rules: &[MediaQueryRule]) -> AndMediaType<'_> {
   let mut media_type = None;
   for rule in rules {
     let MediaQueryRule::MediaKeyword(keyword) = rule else {
       continue;
     };
-    let required = media_type_requirement(keyword)?;
+    let Some(required) = media_type_requirement(keyword) else {
+      return AndMediaType::Never;
+    };
     if required == "all" {
       continue;
     }
     match media_type {
-      Some(current) if current != required => return None,
+      Some(current) if current != required => return AndMediaType::Never,
       Some(_) => {},
       None => media_type = Some(required),
     }
   }
-  Some(media_type)
+  media_type.map_or(AndMediaType::Any, AndMediaType::Only)
 }
 
 /// Whether a branch is a keyword that cannot match together with
@@ -488,14 +499,50 @@ fn single_or_wrap(
   rules.pop().unwrap_or_else(empty)
 }
 
-/// The work that is left for [`resolve_media_types`], in copied nodes. `None`
-/// means that the work went past the budget.
-type WorkBudget = Option<u64>;
+/// The work that is left for [`resolve_media_types`], in copied nodes. When
+/// a cost goes past what is left, the budget is gone and stays gone.
+struct WorkBudget {
+  left: Option<u64>,
+}
 
-/// Takes `cost` from the budget. Returns `false` when the budget is gone.
-fn spend(budget: &mut WorkBudget, cost: u64) -> bool {
-  *budget = budget.and_then(|left| left.checked_sub(cost));
-  budget.is_some()
+impl WorkBudget {
+  fn new(left: u64) -> Self {
+    Self { left: Some(left) }
+  }
+
+  /// Takes `cost` from the budget. Returns `false` when the budget is gone.
+  fn spend(&mut self, cost: u64) -> bool {
+    self.left = self.left.and_then(|left| left.checked_sub(cost));
+    self.left.is_some()
+  }
+
+  fn is_gone(&self) -> bool {
+    self.left.is_none()
+  }
+}
+
+/// The number of nodes in a query that cannot split, or `None` when it can.
+///
+/// A split happens only for an `or` in an `and` list, and a `not` over an
+/// `and` or an `or` can become such an `or`. Without a split, each `and` list
+/// is resolved in one pass that pays once for each of its items, so the work
+/// is not more than the number of nodes.
+fn split_free_node_count(rule: &MediaQueryRule, in_and: bool) -> Option<u64> {
+  let count_all = |rules: &[MediaQueryRule], in_and: bool| {
+    rules.iter().try_fold(1u64, |count, rule| {
+      count.checked_add(split_free_node_count(rule, in_and)?)
+    })
+  };
+  match rule {
+    MediaQueryRule::Or(MediaOrRules { rules, .. }) if !in_and => count_all(rules, false),
+    MediaQueryRule::And(MediaAndRules { rules, .. }) => count_all(rules, true),
+    MediaQueryRule::Not(not_rule) => match not_rule.rule.as_ref() {
+      MediaQueryRule::And(_) | MediaQueryRule::Or(_) => None,
+      inner => split_free_node_count(inner, in_and)?.checked_add(1),
+    },
+    MediaQueryRule::Or(_) => None,
+    _ => Some(1),
+  }
 }
 
 /// Resolves the media types of a normalized query, with a limit on the work.
@@ -511,9 +558,14 @@ fn resolve_media_types_within_budget(node: MediaQueryRule) -> MediaQueryRule {
   if !contains_media_keyword(&node) {
     return node;
   }
-  let mut budget: WorkBudget = Some(MAX_DISTRIBUTION_NODES);
+  let mut budget = WorkBudget::new(MAX_DISTRIBUTION_NODES);
+  // The work of a query that cannot split fits in the budget, so the query
+  // needs no copy to fall back to.
+  if split_free_node_count(&node, false).is_some_and(|count| count <= MAX_DISTRIBUTION_NODES) {
+    return resolve_media_types(node, true, &mut budget);
+  }
   let resolved = resolve_media_types(node.clone(), true, &mut budget);
-  if budget.is_some() { resolved } else { node }
+  if budget.is_gone() { node } else { resolved }
 }
 
 /// Rewrites a normalized media query so that its media types are valid CSS:
@@ -529,7 +581,7 @@ fn resolve_media_types(
   budget: &mut WorkBudget,
 ) -> MediaQueryRule {
   // Past the budget, the caller discards the result, so stop the work.
-  if budget.is_none()
+  if budget.is_gone()
     || (is_query_list && is_leading_not_query(&node))
     || !contains_media_keyword(&node)
   {
@@ -574,7 +626,7 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
   // does not deepen the stack.
   loop {
     // A pass resolves each item again, so it pays for each item.
-    if !spend(budget, rules.len() as u64) {
+    if !budget.spend(rules.len() as u64) {
       return never_rule();
     }
     // A nested `and` is flattened, so that a media type in it can move to the
@@ -587,37 +639,39 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
       }
     }
 
-    // Contradicting keywords put a contradiction into every branch of the
-    // split below, so the list never matches. Stop before the split.
-    let Some(media_type) = and_media_type(&resolved).map(|t| t.map(str::to_owned)) else {
-      return never_rule();
-    };
-
-    // Split the list over its first `or`, so that each branch gets its own
-    // media type. A bare keyword branch of that `or` that contradicts the list
-    // never matches, so it is removed before the split. In a breakpoint
-    // ladder, this leaves one branch. The later `or`s stay whole: each one is
-    // split in a later pass, with its branch first.
+    // The list is split over its first `or`. The later `or`s stay whole: each
+    // one is split in a later pass, with its branch first.
     let mut nested_or: Option<MediaOrRules> = None;
     let mut rest: Vec<MediaQueryRule> = Vec::with_capacity(resolved.len());
     for rule in resolved {
       match rule {
-        MediaQueryRule::Or(mut or_rules) if nested_or.is_none() => {
-          if let Some(media_type) = &media_type {
-            or_rules
-              .rules
-              .retain(|branch| !contradicts_media_type(branch, media_type));
-            if or_rules.rules.is_empty() {
-              return never_rule();
-            }
-          }
-          nested_or = Some(or_rules);
-        },
+        MediaQueryRule::Or(or_rules) if nested_or.is_none() => nested_or = Some(or_rules),
         rule => rest.push(rule),
       }
     }
 
-    if let Some(or_rules) = nested_or {
+    // Contradicting keywords put a contradiction into every branch of the
+    // split below, so the list never matches. Stop before the split. All the
+    // keywords are in `rest`, because the `or` is not a keyword.
+    let media_type = match and_media_type(&rest) {
+      AndMediaType::Never => return never_rule(),
+      AndMediaType::Any => None,
+      AndMediaType::Only(media_type) => Some(media_type),
+    };
+
+    if let Some(mut or_rules) = nested_or {
+      // Each branch gets its own media type. A bare keyword branch that
+      // contradicts the list never matches, so it is removed before the
+      // split. In a breakpoint ladder, this leaves one branch.
+      if let Some(media_type) = media_type {
+        or_rules
+          .rules
+          .retain(|branch| !contradicts_media_type(branch, media_type));
+        if or_rules.rules.is_empty() {
+          return never_rule();
+        }
+      }
+
       // Each branch goes first in its own copy of the rest of the list.
       match <[MediaQueryRule; 1]>::try_from(or_rules.rules) {
         Ok([branch]) => {
@@ -634,7 +688,7 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
         },
         Err(branches) => {
           let copied_nodes = rest.iter().map(node_count).fold(1, u64::saturating_add);
-          if !spend(budget, copied_nodes.saturating_mul(branches.len() as u64)) {
+          if !budget.spend(copied_nodes.saturating_mul(branches.len() as u64)) {
             // The caller discards the result.
             return never_rule();
           }
@@ -657,27 +711,30 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
     }
 
     // The first positive keyword starts the query (the anchor). It is kept
-    // as written, so that `only` stays.
-    let mut anchor_node: Option<MediaKeyword> = None;
-    let mut others: Vec<MediaQueryRule> = Vec::with_capacity(rest.len());
-    for rule in rest {
+    // as written, so that `only` stays. A list without an anchor gets a new
+    // keyword for its media type. That keyword is made before `rest` moves,
+    // because the media type is a part of `rest`.
+    let anchor_index = rest.iter().position(|rule| {
+      matches!(rule, MediaQueryRule::MediaKeyword(keyword) if !keyword.not && keyword.key != "all")
+    });
+    let mut anchor_node = match anchor_index {
+      Some(_) => None,
+      None => media_type.map(|media_type| MediaKeyword::new(media_type, false, false)),
+    };
+    let mut rules: Vec<MediaQueryRule> = Vec::with_capacity(rest.len());
+    for (index, rule) in rest.into_iter().enumerate() {
       match rule {
         MediaQueryRule::MediaKeyword(keyword) => {
-          if anchor_node.is_none() && !keyword.not && keyword.key != "all" {
+          if anchor_index == Some(index) {
             anchor_node = Some(keyword);
           }
         },
-        other => others.push(other),
+        other => rules.push(other),
       }
     }
-
-    let mut rules: Vec<MediaQueryRule> = Vec::with_capacity(others.len() + 1);
-    if let Some(media_type) = media_type {
-      rules.push(MediaQueryRule::MediaKeyword(
-        anchor_node.unwrap_or_else(|| MediaKeyword::new(media_type, false, false)),
-      ));
+    if let Some(anchor_node) = anchor_node {
+      rules.insert(0, MediaQueryRule::MediaKeyword(anchor_node));
     }
-    rules.extend(others);
     return single_or_wrap(rules, always_rule, |rules| {
       MediaQueryRule::And(MediaAndRules::new(rules))
     });

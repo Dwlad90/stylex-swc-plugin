@@ -3251,3 +3251,47 @@ fn a_long_screen_ladder_does_not_deepen_the_stack() {
   };
   assert_eq!(text, screen_ladder_text(rungs));
 }
+
+// ---------------------------------------------------------------------------
+// split_free_node_count()
+// ---------------------------------------------------------------------------
+
+/// A query without an `or` in an `and` list, and without a `not` over a list,
+/// cannot split, so its node count is its work.
+#[test]
+fn split_free_node_count_counts_a_query_that_cannot_split() {
+  let negated_keyword = MediaQueryRule::Not(MediaNotRule::new(keyword("print", false)));
+  let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![
+    keyword("screen", false),
+    negated_keyword,
+  ]));
+  let query_list = MediaQueryRule::Or(MediaOrRules::new(vec![and_rule, keyword("print", false)]));
+
+  assert_eq!(split_free_node_count(&query_list, false), Some(6));
+}
+
+/// An `or` in an `and` list, and a `not` over an `and` or an `or`, can split.
+#[test]
+fn split_free_node_count_refuses_a_query_that_can_split() {
+  let or_rule = || {
+    MediaQueryRule::Or(MediaOrRules::new(vec![
+      keyword("screen", false),
+      keyword("print", false),
+    ]))
+  };
+  let and_rule = || MediaQueryRule::And(MediaAndRules::new(vec![keyword("screen", false)]));
+  let or_in_and = MediaQueryRule::And(MediaAndRules::new(vec![
+    keyword("screen", false),
+    or_rule(),
+  ]));
+  let not_and = MediaQueryRule::Not(MediaNotRule::new(and_rule()));
+  let not_or = MediaQueryRule::Not(MediaNotRule::new(or_rule()));
+  let not_not_and = MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::Not(MediaNotRule::new(
+    and_rule(),
+  ))));
+
+  assert_eq!(split_free_node_count(&or_in_and, false), None);
+  assert_eq!(split_free_node_count(&not_and, false), None);
+  assert_eq!(split_free_node_count(&not_or, false), None);
+  assert_eq!(split_free_node_count(&not_not_and, false), None);
+}

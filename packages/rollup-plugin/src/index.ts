@@ -42,6 +42,29 @@ export default function stylexPlugin({
 
   const transformedOptions = toTransformedOptions(useCSSLayers, rsOptions);
 
+  // The options are read once, when the plugin is made, as for every Rollup
+  // plugin. The plugin applies the include and exclude filter itself, so the
+  // compiler gets the options without it. Nothing changes them later, so each
+  // module reads the same options.
+  const { include, exclude } = rsOptions;
+  const compilerRsOptions = normalizeRsOptions({
+    ...rsOptions,
+    include: undefined,
+    exclude: undefined,
+  });
+
+  // The compiler reads an input source map only for debug annotations
+  // (`debug` and `enableDebugDataProp`). Plain map chaining is done by Rollup
+  // when the plugin returns its own map. The map is fetched only when it is
+  // needed, because with no previous maps Rollup makes a hi-res map of the
+  // whole module, which is then stringified, parsed again and cloned. Rollup
+  // resets the source map chain when `getCombinedSourcemap` is used, so the
+  // plugin returns the chained map.
+  const fetchCombinedMap =
+    (compilerRsOptions.debug ?? compilerRsOptions.dev) === true &&
+    compilerRsOptions.enableDebugDataProp !== false &&
+    compilerRsOptions.inputSourceMap === undefined;
+
   return {
     name: 'rollup-plugin-stylex',
     buildStart() {
@@ -82,45 +105,26 @@ export default function stylexPlugin({
       id: string
     ): Promise<null | TransformResult> {
       // Check if file should be transformed based on include/exclude patterns
-      if (!shouldTransformFile(id, rsOptions.include, rsOptions.exclude)) {
+      if (!shouldTransformFile(id, include, exclude)) {
         return null;
       }
 
-      // The plugin applied the filter above, so the compiler gets a copy
-      // without it. The options object itself must stay unchanged, because
-      // each later module reads the same filter.
-      const normalizedRsOptions = normalizeRsOptions({
-        ...rsOptions,
-        include: undefined,
-        exclude: undefined,
-      });
-
-      if (!shouldProcessSource(inputCode, normalizedRsOptions)) {
+      if (!shouldProcessSource(inputCode, compilerRsOptions)) {
         // In rollup, returning null from any plugin phase means
         // "no changes made".
         return null;
       }
 
-      // The combined map of all previous plugins lets the compiler resolve
-      // debug source-map annotations to the original authored file. The
-      // compiler only reads it for those annotations (`debug` +
-      // `enableDebugDataProp`); plain map chaining is handled by Rollup
-      // itself when the plugin returns its own map. Fetching it
-      // unconditionally is expensive: with no previous maps Rollup
-      // synthesizes a hi-res map of the whole module, which then gets
-      // stringified, re-parsed and cloned per module. Rollup resets the
-      // sourcemap chain when `getCombinedSourcemap` is used, so returning
-      // the chained map is the expected contract.
-      const needsInputSourceMap =
-        (normalizedRsOptions.debug ?? normalizedRsOptions.dev) === true &&
-        normalizedRsOptions.enableDebugDataProp !== false;
+      // A module that gets a source map gets its own copy of the options, so
+      // its map does not reach the next module.
+      let moduleRsOptions = compilerRsOptions;
 
-      if (needsInputSourceMap && normalizedRsOptions.inputSourceMap === undefined) {
+      if (fetchCombinedMap) {
         try {
           const combinedMap = this.getCombinedSourcemap();
 
           if (combinedMap?.mappings) {
-            normalizedRsOptions.inputSourceMap = JSON.stringify(combinedMap);
+            moduleRsOptions = { ...compilerRsOptions, inputSourceMap: JSON.stringify(combinedMap) };
           }
         } catch {
           // No usable source map for this module - annotations fall back to
@@ -128,7 +132,7 @@ export default function stylexPlugin({
         }
       }
 
-      const result = stylexTransform(id, inputCode, normalizedRsOptions);
+      const result = stylexTransform(id, inputCode, moduleRsOptions);
 
       if (result == null) {
         console.warn('stylex: transformAsync returned null');
@@ -157,7 +161,7 @@ export default function stylexPlugin({
 
       if (
         extractCSS &&
-        !normalizedRsOptions.runtimeInjection &&
+        !compilerRsOptions.runtimeInjection &&
         metadata.stylex != null &&
         metadata.stylex.length > 0
       ) {

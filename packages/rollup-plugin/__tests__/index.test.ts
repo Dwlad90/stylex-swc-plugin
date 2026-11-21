@@ -23,7 +23,11 @@ describe('@stylexswc/rollup-plugin', () => {
     vi.unstubAllEnvs();
   });
 
-  async function runStylex(options: PluginOptions, fixture = 'index.js') {
+  async function runStylex(
+    options: PluginOptions,
+    fixture = 'index.js',
+    pluginsBefore: rollup.Plugin[] = []
+  ) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
       // Remove stylex runtime from bundle
@@ -37,6 +41,7 @@ describe('@stylexswc/rollup-plugin', () => {
       plugins: [
         nodeResolve(),
         commonjs(),
+        ...pluginsBefore,
         stylexPlugin({
           useCSSLayers: true,
           ...options,
@@ -143,6 +148,37 @@ describe('@stylexswc/rollup-plugin', () => {
     expect(css).toContain('display: flex;');
     expect(css).not.toContain('width: 100%;');
     expect(rsOptions.include).toEqual([/index\.js$/]);
+  });
+
+  it('reads each module through its own source map', async () => {
+    // A plugin before StyleX moves each module down by a different number of
+    // lines and returns the map back. The debug annotations must name the
+    // original lines, which they can only do when each module gets its own map.
+    const linesBefore = (id: string) => (id.endsWith('index.js') ? 3 : 9);
+    const shiftLines: rollup.Plugin = {
+      name: 'shift-lines',
+      transform(code, id) {
+        const shift = linesBefore(id);
+        const lineCount = code.split('\n').length;
+        // Each line maps to the start of the same line in the original file.
+        const mappings =
+          ';'.repeat(shift) +
+          ['AAAA', ...Array.from({ length: lineCount - 1 }, () => 'AACA')].join(';');
+
+        return {
+          code: '\n'.repeat(shift) + code,
+          map: { mappings, names: [], sources: [id], version: 3 },
+        };
+      },
+    };
+    const annotations = (js: string | undefined) => js?.match(/\$\$css: "[^"]+"/g);
+    const rsOptions = { debug: true, runtimeInjection: true };
+
+    const { js: plainJs } = await runStylex({ rsOptions });
+    const { js: shiftedJs } = await runStylex({ rsOptions }, 'index.js', [shiftLines]);
+
+    expect(annotations(plainJs)?.length).toBeGreaterThan(1);
+    expect(annotations(shiftedJs)).toEqual(annotations(plainJs));
   });
 
   it('builds again from the cache when a module gave no rules', async () => {

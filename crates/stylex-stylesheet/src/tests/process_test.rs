@@ -2309,14 +2309,13 @@ fn a_long_chain_of_constants_resolves() {
   assert_eq!(sheet(&rules, &without_layers()), ".x1{color:red}");
 }
 
-// ==================== at-rule constants as condition keys (facebook/stylex#1989) ====================
+// ==================== at-rule constants as condition keys ====================
 
 /// The issue's example (facebook/stylex#1988): the coarse-pointer reset keyed
 /// by a constant was compiled at 6170, the placeholder's 3000 in place of the
 /// at-rule's 200, and sorted after the attribute rule at 6000 that the literal
 /// at 3370 sorts before. Once the constant is known, it sorts, and is layered,
-/// as the literal is. Measured on the plugin with facebook/stylex#1989
-/// applied.
+/// as the literal is. Measured on the published plugin.
 #[test]
 fn an_at_rule_constant_used_as_a_condition_key_sorts_as_the_literal_does() {
   let rules = [
@@ -2368,7 +2367,7 @@ fn an_at_rule_constant_used_as_a_condition_key_sorts_as_the_literal_does() {
 /// Each at-rule of the table gives its own share, 30, 200 or 300, in place of
 /// the placeholder's 3000, and a rule under two constant wrappers gains both
 /// differences: 9000 sorts at 3500, after the container rule at 3300. Measured
-/// on the plugin with facebook/stylex#1989 applied.
+/// on the published plugin.
 #[test]
 fn each_at_rule_constant_wrapper_gives_the_share_of_its_at_rule() {
   let rules = [
@@ -2394,7 +2393,7 @@ fn each_at_rule_constant_wrapper_gives_the_share_of_its_at_rule() {
 
 /// A constant that resolves to an at-rule through another constant counts as
 /// that at-rule: the map is read after the constants are resolved. Measured on
-/// the plugin with facebook/stylex#1989 applied.
+/// the published plugin.
 #[test]
 fn an_at_rule_constant_reached_through_another_constant_counts_as_the_at_rule() {
   let rules = [
@@ -2413,7 +2412,7 @@ fn an_at_rule_constant_reached_through_another_constant_counts_as_the_at_rule() 
 /// A placeholder that no `{` follows is a value, not a wrapper; a wrapper
 /// whose constant is no at-rule (a value used as one), is not a string, or is
 /// not declared gains nothing, as the reference's pattern and map read them;
-/// none moves. Measured on the plugin, with and without facebook/stylex#1989.
+/// none moves. Measured on the published plugin.
 #[test]
 fn a_placeholder_that_is_a_value_or_wraps_no_at_rule_keeps_its_priority() {
   let rules = [
@@ -2466,8 +2465,7 @@ fn a_rule_whose_ltr_text_is_not_a_string_gains_nothing() {
 /// An at-rule outside the table gets the fallback 3000 from `getPriority`,
 /// the placeholder's own share, so the rule keeps its priority; one whose text
 /// holds a `:` is left to the reference, whose `getPriority` reads such a text
-/// through the pseudo-class tables. Measured on the plugin with
-/// facebook/stylex#1989 applied.
+/// through the pseudo-class tables. Measured on the published plugin.
 #[test]
 fn an_at_rule_constant_outside_the_table_keeps_its_priority_or_is_left_to_the_reference() {
   let rules = [
@@ -2498,5 +2496,72 @@ fn an_at_rule_constant_outside_the_table_keeps_its_priority_or_is_left_to_the_re
   assert_eq!(
     error.to_string(),
     "var(--xu) holds @scope with a `:`, an at-rule the priority table does not give"
+  );
+}
+
+/// A `defineVars` variable and a `createTheme` override under an imported
+/// media constant: each counts the at-rule in its own fractional priority
+/// (0.2 and 0.6), below the placeholder's share, so both keep it, and each
+/// conditional rule follows its default in the same layer. The rules of the
+/// test of the same name, measured on the published plugin.
+#[test]
+fn variable_and_theme_rules_under_an_imported_at_rule_constant_keep_their_priorities() {
+  let rules = [
+    constant("x1r2wpmh", text("@media (max-width: 600px)")),
+    rule("x1mmh4rn", ":root, .x1mmh4rn{--x1jwwzce:blue;}", None, 0.1),
+    rule(
+      "x1mmh4rn-1kkhlgn",
+      "var(--x1r2wpmh){:root, .x1mmh4rn{--x1jwwzce:red;}}",
+      None,
+      0.2,
+    ),
+    rule(
+      "x14qsmo4",
+      ".x14qsmo4, .x14qsmo4:root{--x1jwwzce:green;}",
+      None,
+      0.5,
+    ),
+    rule(
+      "x14qsmo4-1kkhlgn",
+      "var(--x1r2wpmh){.x14qsmo4, .x14qsmo4:root{--x1jwwzce:yellow;}}",
+      None,
+      0.6000000000000001,
+    ),
+  ];
+
+  let body = ":root, .x1mmh4rn{--x1jwwzce:blue;}\n\
+     @media (max-width: 600px){:root, .x1mmh4rn{--x1jwwzce:red;}}\n\
+     .x14qsmo4.x14qsmo4, .x14qsmo4.x14qsmo4:root{--x1jwwzce:green;}\n\
+     @media (max-width: 600px){.x14qsmo4.x14qsmo4, .x14qsmo4.x14qsmo4:root{--x1jwwzce:yellow;}}";
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    format!("\n@layer priority1;\n@layer priority1{{\n{body}\n}}")
+  );
+  assert_eq!(sheet(&rules, &without_layers()), body);
+}
+
+/// The share is checked again before each wrapper, against the priority as
+/// corrected so far: a rule at 3400 under two media constants is corrected
+/// once, to 600, and then no longer holds the share, so the inner wrapper
+/// leaves it there; one at 6400 is corrected for both, to 800. Measured on
+/// the published plugin.
+#[test]
+fn a_wrapper_is_corrected_only_while_the_priority_holds_the_placeholder_share() {
+  let rules = [
+    constant("xm", text("@media (min-width: 10rem)")),
+    constant("xn", text("@media (max-width: 20rem)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xm){var(--xn){.b.b{color:red}}}", None, 6400.0),
+    rule("d", "var(--xm){var(--xn){.d.d{color:red}}}", None, 3400.0),
+    rule("e", ".e{color:red}", None, 500.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.e{color:red}\n\
+     @media (min-width: 10rem){@media (max-width: 20rem){.d.d{color:red}}}\n\
+     @media (min-width: 10rem){@media (max-width: 20rem){.b.b{color:red}}}\n}\n\
+     @layer priority2{\n.a{color:red}\n}"
   );
 }

@@ -270,69 +270,144 @@ describe('processStylexRules', () => {
 
   // An at-rule from `defineConsts` used as a condition key reaches the
   // consuming module as its `var(--hash)` placeholder, and the compile step
-  // priced it as one: 3000, the share of an attribute selector, where the
-  // literal `@media` gets 200 (facebook/stylex#1988). Once the assembly knows
-  // the constant, the rule sorts and is layered as the literal is
-  // (facebook/stylex#1989). The expectation is the plugin's with that change
-  // applied; the published 0.19.1 sorts the constant-keyed rule after the
-  // attribute rule, so the reference is not consulted here.
-  test('sorts an imported at-rule constant used as a condition key as the literal at-rule', () => {
+  // prices it as one: 3000, the share of an attribute selector, where the
+  // literal `@media` gets 200. Once the assembly knows the constant, the rule
+  // sorts and is layered as the literal is. `haste` resolution names a module
+  // by its file name alone, so no source has to exist on disk; the hashes it
+  // gives differ from a `commonJS` build, so class names and variables are
+  // compared as `.x` and `--x`.
+  describe('at-rule constants used as condition keys', () => {
     const rootDir = __dirname;
     const options = { dev: false, unstable_moduleResolution: { type: 'haste' as const, rootDir } };
-    const compile = (name: string, source: string) =>
-      transform(path.join(rootDir, name), source, options).metadata.stylex;
-    const keys = compile(
-      'keys.stylex.js',
+    const transformFixtureRules = (filename: string, source: string) =>
+      transform(path.join(rootDir, filename), source, options).metadata.stylex;
+    const constants = transformFixtureRules(
+      'constants.stylex.js',
       `
         import * as stylex from '@stylexjs/stylex';
-        export const keys = stylex.defineConsts({ touch: '@media (pointer: coarse)' });
+        export const breakpoints = stylex.defineConsts({
+          small: '@media (max-width: 600px)',
+          medium: '@media (min-width: 601px) and (max-width: 1024px)',
+          large: '@media (max-width: 1025px)',
+        });
       `
     );
-    const overlay = (condition: string) =>
-      compile(
-        'overlay.js',
+    const withoutHashes = (sheet: string) =>
+      sheet.replace(/\.x[a-z0-9]+/g, '.x').replace(/--x[a-z0-9]+/g, '--x');
+
+    test('an imported at-rule constant sorts like the at-rule it names', () => {
+      const created = (condition: string) =>
+        transformFixtureRules(
+          'main.stylex.js',
+          `
+            import * as stylex from '@stylexjs/stylex';
+            import { breakpoints } from 'constants.stylex.js';
+            export const styles = stylex.create({
+              overlay: {
+                backgroundImage: {
+                  default: null,
+                  ':active': {
+                    default: 'linear-gradient(red, red)',
+                    ${condition}: 'none',
+                  },
+                  '[data-press="on"]': 'linear-gradient(blue, blue)',
+                },
+              },
+            });
+          `
+        );
+      const rules = (condition: string, config: ProcessStylexRulesConfig) =>
+        withoutHashes(processStylexRules([...constants, ...created(condition)], config))
+          .split('\n')
+          .filter(line => line.includes('background-image') || line.startsWith('@layer'));
+
+      // The compile step still prices the placeholder; only the assembly
+      // corrects it.
+      expect(
+        created('[breakpoints.small]').map(([, style, priority]) => [style.ltr, priority])
+      ).toContainEqual([
+        expect.stringMatching(
+          /^var\(--[a-z0-9]+\)\{\.x[a-z0-9]+\.x[a-z0-9]+:active\{background-image:none\}\}$/
+        ),
+        6170,
+      ]);
+
+      const configs = [
+        { useLayers: false, legacyDisableLayers: true },
+        { useLayers: true },
+      ] as const;
+      for (const config of configs) {
+        expect(rules('[breakpoints.small]', config)).toEqual(
+          rules("'@media (max-width: 600px)'", config)
+        );
+      }
+      expect(rules('[breakpoints.small]', configs[0])).toEqual([
+        '.x:active{background-image:linear-gradient(red,red)}',
+        '@media (max-width: 600px){.x.x:active{background-image:none}}',
+        '.x[data-press="on"]{background-image:linear-gradient(blue,blue)}',
+      ]);
+      expect(rules('[breakpoints.small]', configs[1])).toEqual([
+        '@layer priority1, priority2;',
+        '@layer priority1{',
+        '.x:active{background-image:linear-gradient(red,red)}',
+        '@media (max-width: 600px){.x.x:active{background-image:none}}',
+        '@layer priority2{',
+        '.x[data-press="on"]{background-image:linear-gradient(blue,blue)}',
+      ]);
+      const constantKeyed = [...constants, ...created('[breakpoints.small]')];
+      for (const config of configs) {
+        expect(nativeInputOf(constantKeyed, config, nativeCollation)).not.toBeNull();
+      }
+      expect(divergences([constantKeyed], configs)).toEqual([]);
+    });
+
+    // Variable and theme rules count at-rules in their own fractional
+    // priorities, below the placeholder's share, so the assembly keeps them.
+    test('variable and theme rules under an imported at-rule constant keep their priorities', () => {
+      const vars = transformFixtureRules(
+        'themeVars.stylex.js',
         `
           import * as stylex from '@stylexjs/stylex';
-          import { keys } from 'keys.stylex.js';
-          export const styles = stylex.create({
-            overlay: {
-              backgroundImage: {
-                default: null,
-                ':active': { default: 'linear-gradient(red, red)', ${condition}: 'none' },
-                '[data-press="on"]': 'linear-gradient(blue, blue)',
-              },
+          import { breakpoints } from 'constants.stylex.js';
+          export const themeVars = stylex.defineVars({
+            accent: {
+              default: 'blue',
+              [breakpoints.small]: 'red',
             },
           });
         `
       );
-    const lines = (condition: string, config: ProcessStylexRulesConfig) =>
-      processStylexRules([...keys, ...overlay(condition)], config)
-        .split('\n')
-        .filter(line => line.includes('background-image') || line.startsWith('@layer'))
-        .map(line => line.replace(/\.x[a-z0-9]+/g, '.x'));
+      const theme = transformFixtureRules(
+        'main.stylex.js',
+        `
+          import * as stylex from '@stylexjs/stylex';
+          import { breakpoints } from 'constants.stylex.js';
+          import { themeVars } from 'themeVars.stylex.js';
+          export const theme = stylex.createTheme(themeVars, {
+            accent: { default: 'green', [breakpoints.small]: 'yellow' },
+          });
+        `
+      );
+      const rules = [...constants, ...vars, ...theme];
+      const body = [
+        ':root, .x{--x:blue;}',
+        '@media (max-width: 600px){:root, .x{--x:red;}}',
+        '.x.x, .x.x:root{--x:green;}',
+        '@media (max-width: 600px){.x.x, .x.x:root{--x:yellow;}}',
+      ];
 
-    const constantKeyed = overlay('[keys.touch]');
-    expect(constantKeyed.map(([, style, priority]) => [style.ltr, priority])).toContainEqual([
-      expect.stringMatching(
-        /^var\(--[a-z0-9]+\)\{\.x[a-z0-9]+\.x[a-z0-9]+:active\{background-image:none\}\}$/
-      ),
-      6170,
-    ]);
-
-    for (const config of [
-      { useLayers: false, legacyDisableLayers: true },
-      { useLayers: true },
-    ] as const) {
-      expect(lines('[keys.touch]', config)).toEqual(lines("'@media (pointer: coarse)'", config));
-    }
-    expect(lines('[keys.touch]', { useLayers: true })).toEqual([
-      '@layer priority1, priority2;',
-      '@layer priority1{',
-      '.x:active{background-image:linear-gradient(red,red)}',
-      '@media (pointer: coarse){.x.x:active{background-image:none}}',
-      '@layer priority2{',
-      '.x[data-press="on"]{background-image:linear-gradient(blue,blue)}',
-    ]);
+      expect(withoutHashes(processStylexRules(rules, { useLayers: true }))).toBe(
+        ['', '@layer priority1;', '@layer priority1{', ...body, '}'].join('\n')
+      );
+      expect(
+        withoutHashes(processStylexRules(rules, { useLayers: false, legacyDisableLayers: true }))
+      ).toBe(body.join('\n'));
+      const configs = [{ useLayers: true }, { useLayers: false, legacyDisableLayers: true }];
+      for (const config of configs) {
+        expect(nativeInputOf(rules, config, nativeCollation)).not.toBeNull();
+      }
+      expect(divergences([rules], configs)).toEqual([]);
+    });
   });
 
   test('reads a bare boolean, a null and an absent config as the reference does', () => {

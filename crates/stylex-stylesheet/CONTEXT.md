@@ -89,15 +89,15 @@ unknown key, 3000, the share of an attribute selector, where the at-rule it
 stands for gets 30, 200 or 300 (`@supports`, `@media`, `@container`); so the
 rule sorted, and was layered, after rules it sorts before when the at-rule is
 written inline. After the constants are resolved, the sheet step adds the
-difference for each such wrapper, as facebook/stylex#1989 does in
-`processStylexRules`; a placeholder that is a value, a wrapper whose constant
-is no at-rule, and a constant the sheet does not declare add nothing. An
-at-rule outside the table keeps the placeholder's share (`getPriority`
-falls back to 3000 for it), unless its text holds a `:`, which the
+difference for each such wrapper; a placeholder that is a value, a wrapper
+whose constant is no at-rule, and a constant the sheet does not declare add
+nothing. An at-rule outside the table keeps the placeholder's share
+(`getPriority` falls back to 3000 for it), unless its text holds a `:`, which the
 reference's pseudo-class tables may read: that rule is left to the
-reference. The reference adds a difference only while the priority is at
-least the placeholder's share, and this step does not check that, so the two
-differ for a rule whose priority is below 3000; a build never emits one.
+reference. A difference is added only while the priority is at least the
+placeholder's share, checked again before each wrapper: `defineVars` and
+`createTheme` rules count at-rules in their own fractional priorities, below
+that share, and keep them.
 _Avoid_: placeholder priority, media constant
 
 **Priority group**:

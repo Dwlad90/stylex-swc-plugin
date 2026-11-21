@@ -397,26 +397,30 @@ fn at_rule_priority(value: &str) -> Option<f64> {
     .map(|priority| **priority)
 }
 
-/// What a rule's priority gains once its constants are known
-/// (facebook/stylex#1989). A `defineConsts` at-rule used as a condition key
-/// reaches the compile step as its placeholder, `var(--x)`, and the rule's
-/// priority took `getPriority` of the placeholder for it, [`PLACEHOLDER_PRIORITY`],
-/// where the literal at-rule gets 30, 200 or 300. For each placeholder the
-/// text uses as a wrapper, `var(--x){` (the reference's
-/// `/var\(--[A-Za-z0-9_-]+\)(?=\{)/g`), whose constant resolves to a text that
-/// starts with `@`, the difference is added, so the rule sorts and is layered
-/// as if the at-rule were written inline. A placeholder of a constant the
-/// sheet does not declare, a constant that is not a string and a text that is
-/// not a string add nothing.
-fn const_at_rule_priority_delta(
+/// A rule's priority once its constants are known. A `defineConsts` at-rule
+/// used as a condition key reaches the compile step as its placeholder,
+/// `var(--x)`, and the rule's priority took `getPriority` of the placeholder
+/// for it, [`PLACEHOLDER_PRIORITY`], where the literal at-rule
+/// gets 30, 200 or 300. For each placeholder the text uses as a wrapper,
+/// `var(--x){` (the reference's `/var\(--[A-Za-z0-9_-]+\)(?=\{)/g`), whose
+/// constant resolves to a text that starts with `@`, the difference is added,
+/// so the rule sorts and is layered as if the at-rule were written inline.
+///
+/// A wrapper is corrected only while the priority still holds the
+/// placeholder's share. Variable and theme rules count their at-rules in a
+/// fractional priority below that share, so they keep the priority they have.
+/// A placeholder of a constant the sheet does not declare, a constant that is
+/// not a string and a text that is not a string change nothing.
+fn adjust_const_at_rule_priority(
   text: &JsValue,
+  priority: f64,
   constants: &OrderedConstants,
 ) -> Result<f64, ProcessStylexRulesError> {
   let JsValue::String(text) = text else {
-    return Ok(0.0);
+    return Ok(priority);
   };
 
-  let mut delta = 0.0;
+  let mut adjusted = priority;
   for placeholder in CONSTANT_REFERENCE.find_iter(text) {
     if !text[placeholder.end()..].starts_with('{') {
       continue;
@@ -425,11 +429,13 @@ fn const_at_rule_priority_delta(
     let Some(JsValue::String(value)) = constants.get(placeholder) else {
       continue;
     };
-    if !value.starts_with('@') {
+    // A `NaN` priority is never at least the share, so it is kept.
+    let holds_placeholder_share = adjusted >= PLACEHOLDER_PRIORITY;
+    if !value.starts_with('@') || !holds_placeholder_share {
       continue;
     }
-    let priority = match at_rule_priority(value) {
-      Some(priority) => priority,
+    let value_priority = match at_rule_priority(value) {
+      Some(value_priority) => value_priority,
       // Outside the table, `getPriority` reads the value through the
       // pseudo-class tables, which live in the compile step's crate and
       // match on `:`, and then falls back as it does for the placeholder.
@@ -441,15 +447,17 @@ fn const_at_rule_priority_delta(
       },
       None => PLACEHOLDER_PRIORITY,
     };
-    delta += priority - PLACEHOLDER_PRIORITY;
+    // Added one wrapper at a time, in the reference's order, so a fractional
+    // priority rounds as it does there.
+    adjusted += value_priority - PLACEHOLDER_PRIORITY;
   }
 
-  Ok(delta)
+  Ok(adjusted)
 }
 
 /// Every rule with the constants substituted into its texts and its priority
 /// corrected for the at-rule constants it is wrapped in
-/// ([`const_at_rule_priority_delta`]). A rule that neither changes text nor
+/// ([`adjust_const_at_rule_priority`]). A rule that neither changes text nor
 /// priority is handed on as it is rather than copied, and most rules are such.
 fn substitute_constants<'r>(
   rules: Vec<&'r Rule>,
@@ -470,9 +478,10 @@ fn substitute_constants<'r>(
       continue;
     }
 
-    // The delta reads the text as the compile step wrote it, before the
+    // The priority correction reads the text as the compile step wrote it, before the
     // substitution replaces the placeholders.
-    let delta = const_at_rule_priority_delta(&rule.style().ltr, constants)?;
+    let priority = adjust_const_at_rule_priority(&rule.style().ltr, rule.priority(), constants)?;
+    let priority_changed = priority.to_bits() != rule.priority().to_bits();
 
     // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
     // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
@@ -484,7 +493,7 @@ fn substitute_constants<'r>(
     let ltr = substituted(&rule.style().ltr);
     let rtl = substituted(&rule.style().rtl);
 
-    if ltr.is_none() && rtl.is_none() && delta == 0.0 {
+    if ltr.is_none() && rtl.is_none() && !priority_changed {
       out.push(Cow::Borrowed(rule));
       continue;
     }
@@ -497,7 +506,7 @@ fn substitute_constants<'r>(
       const_val: style.const_val.clone(),
     };
 
-    out.push(Cow::Owned(rule.rebuilt(style, rule.priority() + delta)));
+    out.push(Cow::Owned(rule.rebuilt(style, priority)));
   }
 
   Ok(out)

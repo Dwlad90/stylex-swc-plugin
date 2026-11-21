@@ -3129,7 +3129,13 @@ impl RegisteredObjects<'_> {
     }
 
     // A key is removed with its last group, so a key that is found has one.
-    group.map(|group| self.placed.extend(group.items)).is_some()
+    // An `if let` would add an empty branch that no input can reach.
+    let found = group.is_some();
+    self
+      .placed
+      .extend(group.into_iter().flat_map(|group| group.items));
+
+    found
   }
 }
 

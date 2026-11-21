@@ -397,9 +397,12 @@ pub(super) struct Reader<'a> {
   /// finds the operator in either tree.
   losing_operands: losing_operand::Recorded,
   /// Whether each expression the walk asked about calls a compiler function,
-  /// by its span. One search fills the answer for every expression under the
-  /// one it was asked about, so a nest of logical operators is searched once
-  /// and not once for each level. See [`Walk::calls_a_compiler_function`].
+  /// by its span. One search fills the answer for each operand under the one
+  /// it was asked about, so a nest of logical operators is searched once and
+  /// not once for each level. See [`Walk::calls_a_compiler_function`].
+  ///
+  /// Two nodes can have the same span, as an optional chain and its base do.
+  /// Such nodes hold the same subtree, so they have the same answer.
   compiler_calls: FxHashMap<Span, bool>,
 }
 
@@ -1368,16 +1371,9 @@ impl<'r> Walk<'_, 'r> {
       ..
     } = &mut *self.reader;
 
-    let mut search = CompilerCalls {
-      traversal_state,
-      functions: &state.functions,
-      answers: compiler_calls,
-      following: Vec::new(),
-      found: false,
-      cut: false,
-    };
+    let mut search = CompilerCalls::new(traversal_state, &state.functions, compiler_calls);
 
-    expr.visit_with(&mut search);
+    search.answer(expr);
 
     search.found
   }
@@ -2223,48 +2219,77 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 /// The walk of [`Walk::calls_a_compiler_function`].
 ///
 /// It does not stop at the first call it finds, so that it can file an answer
-/// for every expression under the one it was asked about. It asks for room at
-/// each level, so a deep operand cannot overflow the stack.
+/// for each operand that the guard can ask about. It asks for room at each
+/// level, so a deep operand cannot overflow the stack.
+///
+/// It walks each declaration it follows one time only, so its cost grows with
+/// the calls in the module and not with the paths through them. Declarations
+/// that call each other in a cycle reach the same declarations, so they get
+/// one answer: the answer of the outermost one, when its walk ends.
 struct CompilerCalls<'s> {
   traversal_state: &'s StateManager,
   functions: &'s FunctionMap,
   /// The answers filed so far, by span.
   answers: &'s mut FxHashMap<Span, bool>,
-  /// The names of the declarations the walk is inside, so a function that
-  /// calls itself is not followed again.
-  following: Vec<Atom>,
+  /// Each declaration the search met, by the address of its initializer. The
+  /// address is a key for this search only, while the state is borrowed.
+  met: FxHashMap<*const Expr, Met>,
+  /// The declarations that are [`Met::Waiting`], in the order their walks
+  /// ended, with the span of each initializer.
+  waiting: Vec<(*const Expr, Span)>,
+  /// How many declarations the walk is inside.
+  depth: usize,
   /// Whether the expression the walk is in calls a compiler function.
   found: bool,
-  /// Whether the walk did not follow a name because it was inside that
-  /// declaration already. An answer under such a cut can be short, so it is
-  /// not filed.
-  cut: bool,
+  /// The smallest depth of a declaration that the walk met again before its
+  /// walk ended, or [`NO_CUT`]. An answer of `false` under a cut can be short,
+  /// so it is not filed.
+  cut: usize,
+  /// How many declarations the search walked.
+  #[cfg(test)]
+  entered: usize,
 }
 
-impl CompilerCalls<'_> {
-  /// Walks the declaration of `ident`, where the module declares one, because
-  /// a call through the name runs its body.
-  fn follow(&mut self, ident: &Ident) {
-    let Some(init) = initializer_in(ident, self.traversal_state) else {
-      return;
-    };
+/// The value of [`CompilerCalls::cut`] when the walk met no declaration again.
+const NO_CUT: usize = usize::MAX;
 
-    if self.following.contains(&ident.sym) {
-      self.cut = true;
+/// What the search knows about a declaration it met.
+#[derive(Clone, Copy)]
+enum Met {
+  /// The walk is inside it, at this depth.
+  Following(usize),
+  /// Its walk ended, and it calls the declaration at this depth, which the
+  /// walk is still inside. The two reach each other, so they get one answer.
+  Waiting(usize),
+  /// Whether it calls a compiler function.
+  Settled(bool),
+}
 
-      return;
+impl<'s> CompilerCalls<'s> {
+  fn new(
+    traversal_state: &'s StateManager,
+    functions: &'s FunctionMap,
+    answers: &'s mut FxHashMap<Span, bool>,
+  ) -> Self {
+    Self {
+      traversal_state,
+      functions,
+      answers,
+      met: FxHashMap::default(),
+      waiting: Vec::new(),
+      depth: 0,
+      found: false,
+      cut: NO_CUT,
+      #[cfg(test)]
+      entered: 0,
     }
-
-    self.following.push(ident.sym.clone());
-    init.visit_with(self);
-    self.following.pop();
   }
-}
 
-impl Visit for CompilerCalls<'_> {
-  fn visit_expr(&mut self, expr: &Expr) {
-    // A tree built without spans has no stable keys, so it is searched each
-    // time.
+  /// Walks `expr` and files its answer where the answer is complete.
+  ///
+  /// A tree built without spans has no stable keys, so it is searched each
+  /// time.
+  fn answer(&mut self, expr: &Expr) {
     let span = expr.span();
     let key = (!span.is_dummy()).then_some(span);
 
@@ -2275,20 +2300,115 @@ impl Visit for CompilerCalls<'_> {
     }
 
     let outer_found = std::mem::take(&mut self.found);
-    let outer_cut = std::mem::take(&mut self.cut);
+    let outer_cut = std::mem::replace(&mut self.cut, NO_CUT);
 
-    grown_per_level(|| expr.visit_children_with(self));
+    expr.visit_with(self);
 
-    if let Some(key) = key.filter(|_| !self.cut) {
+    // A call found is never a short answer.
+    if let Some(key) = key.filter(|_| self.found || self.cut == NO_CUT) {
       self.answers.insert(key, self.found);
     }
 
     self.found |= outer_found;
-    self.cut |= outer_cut;
+    self.cut = self.cut.min(outer_cut);
+  }
+
+  /// Walks the declaration of `ident`, where the module declares one, because
+  /// a call through the name runs its body.
+  fn follow(&mut self, ident: &Ident) {
+    let Some(init) = initializer_in(ident, self.traversal_state) else {
+      return;
+    };
+    let key = std::ptr::from_ref(init);
+
+    match self.met.get(&key) {
+      Some(Met::Settled(found)) => {
+        self.found |= *found;
+
+        return;
+      },
+      Some(Met::Following(depth) | Met::Waiting(depth)) => {
+        self.cut = self.cut.min(*depth);
+
+        return;
+      },
+      None => {},
+    }
+
+    let depth = self.depth;
+    let waiting_from = self.waiting.len();
+    let outer_found = std::mem::take(&mut self.found);
+    let outer_cut = std::mem::replace(&mut self.cut, NO_CUT);
+
+    #[cfg(test)]
+    {
+      self.entered += 1;
+    }
+
+    self.met.insert(key, Met::Following(depth));
+    self.depth += 1;
+    self.answer(init);
+    self.depth -= 1;
+
+    if self.found || self.cut >= depth {
+      // The answer is complete. The declarations that wait on this one get
+      // the same answer.
+      let found = self.found;
+      let settled = self
+        .waiting
+        .drain(waiting_from..)
+        .chain([(key, init.span())]);
+
+      for (declaration, span) in settled {
+        self.met.insert(declaration, Met::Settled(found));
+
+        if !span.is_dummy() {
+          self.answers.insert(span, found);
+        }
+      }
+
+      // A cut back to this declaration ends here.
+      if self.cut >= depth {
+        self.cut = NO_CUT;
+      }
+    } else {
+      // This declaration, and each one that waits on it, waits on the
+      // declaration further out.
+      let cut = self.cut;
+
+      for (declaration, _) in &self.waiting[waiting_from..] {
+        self.met.insert(*declaration, Met::Waiting(cut));
+      }
+
+      self.met.insert(key, Met::Waiting(cut));
+      self.waiting.push((key, init.span()));
+    }
+
+    self.found |= outer_found;
+    self.cut = self.cut.min(outer_cut);
+  }
+}
+
+impl Visit for CompilerCalls<'_> {
+  fn visit_expr(&mut self, expr: &Expr) {
+    grown_per_level(|| expr.visit_children_with(self));
   }
 
   fn visit_stmt(&mut self, stmt: &Stmt) {
     grown_per_level(|| stmt.visit_children_with(self));
+  }
+
+  // The guard asks about the operands of a logical operator and the test of a
+  // conditional, so only those answers are filed.
+  fn visit_bin_expr(&mut self, bin: &BinExpr) {
+    self.answer(&bin.left);
+    self.answer(&bin.right);
+  }
+
+  fn visit_cond_expr(&mut self, cond: &CondExpr) {
+    self.answer(&cond.test);
+    cond.cons.visit_with(self);
+    cond.alt.visit_with(self);
   }
 
   fn visit_call_expr(&mut self, call: &CallExpr) {

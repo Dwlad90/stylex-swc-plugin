@@ -16,6 +16,7 @@
 
 use super::super::*;
 use crate::growable_stack::grown_per_level;
+use smallvec::SmallVec;
 use stylex_state::functions::FunctionConfig;
 use swc_core::ecma::{
   ast::{CallExpr, MemberExpr, Stmt},
@@ -52,7 +53,7 @@ pub(super) fn with_compiler_calls_folded(
     .into_iter()
     .chain(call.args.iter().map(|arg| &*arg.expr))
     .map(|part| holds_a_compiler_call(part, state))
-    .collect::<Vec<_>>();
+    .collect::<SmallVec<[bool; 8]>>();
 
   if !holding.contains(&true) {
     return None;

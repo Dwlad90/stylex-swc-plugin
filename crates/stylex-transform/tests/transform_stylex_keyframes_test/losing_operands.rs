@@ -319,6 +319,47 @@ stylex_test!(
 
 // `.xmqsyqj{animation-name:true}`
 //
+// A function declaration is not followed. The reference declares no keyframes
+// for a call through one on the losing side, and this compiler agrees.
+stylex_test!(
+  a_losing_call_through_a_function_declaration_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    function mk() {
+      return stylex.keyframes({ from: { color: 'red' } });
+    }
+    export const styles = stylex.create({
+      root: {
+        animationName: [true || mk()].join(),
+      },
+    });
+  "#
+);
+
+// The reference declares `.xmqsyqj{animation-name:true}` and no keyframes.
+// Inside a callback the walk cannot leave the losing side, so it reaches the
+// function declaration, which it cannot carry. This refusal does not come from
+// the compiler call: a body with no compiler call refuses the same way.
+stylex_test_panic!(
+  a_losing_call_through_a_function_declaration_in_a_callback_refuses,
+  "root > animationName > Cannot carry the function 'mk' into a fold.",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    function mk() {
+      return stylex.keyframes({ from: { color: 'red' } });
+    }
+    export const styles = stylex.create({
+      root: {
+        animationName: ['a'].map(() => true || mk()).join(),
+      },
+    });
+  "#
+);
+
+// `.xmqsyqj{animation-name:true}`
+//
 // The losing side throws before it reaches the compiler call. The reference
 // stops the build with `Cannot read properties of undefined (reading 'bar')`.
 // This compiler ignores a throw on the side that loses, as it does for a dead

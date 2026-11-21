@@ -3280,6 +3280,7 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "rustc-hash",
+ "smallvec",
  "stacker",
  "stylex_ast",
  "stylex_constants",

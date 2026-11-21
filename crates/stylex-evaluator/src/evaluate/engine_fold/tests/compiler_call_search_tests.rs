@@ -5,64 +5,180 @@ use super::*;
 
 use swc_core::{
   common::{DUMMY_SP, GLOBALS, Globals},
-  ecma::visit::{VisitMut, VisitMutWith},
+  ecma::{
+    ast::VarDeclarator,
+    visit::{VisitMut, VisitMutWith},
+  },
 };
 
 use crate::evaluate::source_evaluation::*;
 use crate::tests::scaffolding::deep_or;
 use stylex_structures::stylex_options::StyleXOptions;
 
-/// Searches `expr` against `fns` and a state holding `declarations`, and
-/// answers whether it calls a compiler function, with the answers it filed.
-fn searched(
-  expr: &Expr,
-  declarations: &[(&str, &str)],
-  fns: &FunctionMap,
-) -> (bool, FxHashMap<Span, bool>) {
+/// Sets every span it visits to the dummy span.
+struct NoSpans;
+
+impl VisitMut for NoSpans {
+  fn visit_mut_span(&mut self, span: &mut Span) {
+    *span = DUMMY_SP;
+  }
+}
+
+/// What one search answered.
+struct Searched {
+  /// Whether the expression calls a compiler function.
+  found: bool,
+  /// The answers the search filed.
+  answers: FxHashMap<Span, bool>,
+  /// How many declarations the search walked.
+  entered: usize,
+}
+
+/// Searches `expr` against `fns` and a state holding `declarations`.
+fn searched_over(expr: &Expr, declarations: Vec<VarDeclarator>, fns: &FunctionMap) -> Searched {
   let mut traversal_state = StateManager::new(StyleXOptions::default());
 
-  for (name, init) in declarations {
-    traversal_state.push_declaration(a_declaration_of(name, init));
+  for declaration in declarations {
+    traversal_state.push_declaration(declaration);
   }
 
   let mut answers = FxHashMap::default();
-  let mut search = CompilerCalls {
-    traversal_state: &traversal_state,
-    functions: fns,
-    answers: &mut answers,
-    following: Vec::new(),
-    found: false,
-    cut: false,
-  };
+  let mut search = CompilerCalls::new(&traversal_state, fns, &mut answers);
 
-  expr.visit_with(&mut search);
+  search.answer(expr);
 
-  let found = search.found;
+  let (found, entered) = (search.found, search.entered);
 
-  (found, answers)
+  Searched {
+    found,
+    answers,
+    entered,
+  }
+}
+
+/// Searches `expr` against `fns` and a state that declares each name with the
+/// source beside it.
+fn searched<N: AsRef<str>, S: AsRef<str>>(
+  expr: &Expr,
+  declarations: &[(N, S)],
+  fns: &FunctionMap,
+) -> Searched {
+  let declarations = declarations
+    .iter()
+    .map(|(name, init)| a_declaration_of(name.as_ref(), init.as_ref()))
+    .collect();
+
+  searched_over(expr, declarations, fns)
+}
+
+/// No declarations.
+const NONE: [(&str, &str); 0] = [];
+
+/// Declarations named `f0` to `f{count - 1}`, each of which calls all the
+/// others.
+fn functions_that_all_call_each_other(count: usize) -> Vec<(String, String)> {
+  (0..count)
+    .map(|own| {
+      let calls = (0..count)
+        .filter(|other| *other != own)
+        .map(|other| format!("f{other}()"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+      (format!("f{own}"), format!("() => [{calls}]"))
+    })
+    .collect()
+}
+
+/// Functions that all call each other are each walked one time. The search
+/// does not walk each path through them, so its cost grows with the calls and
+/// not with the count of paths.
+#[test]
+fn functions_that_all_call_each_other_are_each_entered_once() {
+  GLOBALS.set(&Globals::new(), || {
+    let count = 12;
+    let declarations = functions_that_all_call_each_other(count);
+
+    let search = searched(&parse_expr("f0()"), &declarations, &a_function_fold());
+
+    assert!(!search.found);
+    assert_eq!(search.entered, count);
+
+    // A compiler call in the last one is found from the first one.
+    let mut declarations = declarations;
+    let last = &mut declarations[count - 1].1;
+
+    last.insert_str(last.len() - 1, ", own('a')");
+
+    let search = searched(&parse_expr("f0()"), &declarations, &a_function_fold());
+
+    assert!(search.found);
+    assert_eq!(search.entered, count);
+  });
 }
 
 /// Two functions that call each other are each followed once, and the search
-/// ends. The answer under the cut is not filed, because it can be short.
+/// ends.
 #[test]
 fn functions_that_call_each_other_are_followed_once() {
   GLOBALS.set(&Globals::new(), || {
     let declarations = [("f", "() => g()"), ("g", "() => [f(), own('a')]")];
     let expr = parse_expr("f()");
 
-    let (found, answers) = searched(&expr, &declarations, &a_function_fold());
+    let search = searched(&expr, &declarations, &a_function_fold());
 
-    assert!(found);
-    assert!(!answers.contains_key(&expr.span()));
+    assert!(search.found);
+    assert_eq!(search.entered, 2);
+    assert_eq!(search.answers.get(&expr.span()), Some(&true));
 
-    let (found, _) = searched(&parse_expr("f()"), &declarations, &FunctionMap::default());
+    let search = searched(&parse_expr("f()"), &declarations, &FunctionMap::default());
 
-    assert!(!found);
+    assert!(!search.found);
   });
 }
 
-/// One search files an answer for every expression under the one it was asked
-/// about, so the next question on a part of it is a lookup.
+/// A function in a cycle that the search left before it found the call gets
+/// the answer of the cycle when the search asks about it again.
+#[test]
+fn a_function_in_a_cycle_gets_the_answer_of_the_cycle() {
+  GLOBALS.set(&Globals::new(), || {
+    let declarations = [("f", "() => [g(), own('a')]"), ("g", "() => [f()]")];
+    let Expr::Bin(bin) = parse_expr("f() || g()") else {
+      panic!("the source is not a binary expression");
+    };
+
+    let search = searched(&Expr::Bin(bin.clone()), &declarations, &a_function_fold());
+
+    assert!(search.found);
+    assert_eq!(search.entered, 2);
+    assert_eq!(search.answers.get(&bin.right.span()), Some(&true));
+  });
+}
+
+/// A declaration with no span is walked once in a search too, but its answer
+/// is not filed by span.
+#[test]
+fn a_declaration_with_no_span_is_walked_once() {
+  GLOBALS.set(&Globals::new(), || {
+    let mut declaration = a_declaration_of("f", "() => own('a')");
+
+    declaration.visit_mut_with(&mut NoSpans);
+
+    let search = searched_over(
+      &parse_expr("f() || f()"),
+      vec![declaration],
+      &a_function_fold(),
+    );
+
+    assert!(search.found);
+    assert_eq!(search.entered, 1);
+    assert!(!search.answers.contains_key(&DUMMY_SP));
+  });
+}
+
+/// One search files an answer for each operand under the one it was asked
+/// about, so the next question on a part of it is a lookup. It files nothing
+/// else.
 #[test]
 fn one_search_answers_for_every_part() {
   GLOBALS.set(&Globals::new(), || {
@@ -70,7 +186,7 @@ fn one_search_answers_for_every_part() {
       panic!("the source is not a binary expression");
     };
 
-    let (found, answers) = searched(&bin.right, &[], &a_function_fold());
+    let Searched { found, answers, .. } = searched(&bin.right, &NONE, &a_function_fold());
 
     assert!(found);
 
@@ -83,6 +199,24 @@ fn one_search_answers_for_every_part() {
 
     assert_eq!(answers.get(&inner.left.span()), Some(&false));
     assert_eq!(answers.get(&inner.right.span()), Some(&true));
+    assert_eq!(answers.len(), 3);
+  });
+}
+
+/// The search files the test of a conditional, because the guard asks about
+/// it, and walks both branches.
+#[test]
+fn a_conditional_files_its_test() {
+  GLOBALS.set(&Globals::new(), || {
+    let Expr::Cond(cond) = parse_expr("a ? b : own('c')") else {
+      panic!("the source is not a conditional");
+    };
+
+    let Searched { found, answers, .. } =
+      searched(&Expr::Cond(cond.clone()), &NONE, &a_function_fold());
+
+    assert!(found);
+    assert_eq!(answers.get(&cond.test.span()), Some(&false));
   });
 }
 
@@ -90,7 +224,7 @@ fn one_search_answers_for_every_part() {
 #[test]
 fn a_dynamic_import_calls_no_compiler_function() {
   GLOBALS.set(&Globals::new(), || {
-    assert!(!searched(&parse_expr("import('a')"), &[], &a_function_fold()).0);
+    assert!(!searched(&parse_expr("import('a')"), &NONE, &a_function_fold()).found);
   });
 }
 
@@ -102,7 +236,7 @@ fn a_deep_operand_is_searched_without_overflow() {
     GLOBALS.set(&Globals::new(), || {
       let deep = deep_or(100_000);
 
-      assert!(!searched(&deep, &[], &a_function_fold()).0);
+      assert!(!searched(&deep, &NONE, &a_function_fold()).found);
 
       // A tree this deep drops by recursion too, so it is not dropped here.
       std::mem::forget(deep);
@@ -134,14 +268,6 @@ fn a_refused_losing_side_gives_back_what_it_carried() {
 /// evaluates both operands itself.
 #[test]
 fn an_operator_with_no_span_is_handed_back() {
-  struct NoSpans;
-
-  impl VisitMut for NoSpans {
-    fn visit_mut_span(&mut self, span: &mut Span) {
-      *span = DUMMY_SP;
-    }
-  }
-
   let source = "[true || own('a')].join()";
 
   let result = GLOBALS.set(&Globals::new(), || {

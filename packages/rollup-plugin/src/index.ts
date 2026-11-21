@@ -70,7 +70,10 @@ export default function stylexPlugin({
       }
     },
     shouldTransformCachedModule({ code: _code, id, meta }) {
-      stylexRules[id] = meta.stylex;
+      // A cached module that gave no rules has no `stylex` key in its meta.
+      if (Array.isArray(meta.stylex)) {
+        stylexRules[id] = meta.stylex;
+      }
       return false;
     },
     async transform(
@@ -79,16 +82,18 @@ export default function stylexPlugin({
       id: string
     ): Promise<null | TransformResult> {
       // Check if file should be transformed based on include/exclude patterns
-      const shouldTransform = shouldTransformFile(id, rsOptions?.include, rsOptions?.exclude);
-
-      if (!shouldTransform) {
+      if (!shouldTransformFile(id, rsOptions.include, rsOptions.exclude)) {
         return null;
-      } else {
-        rsOptions.include = undefined;
-        rsOptions.exclude = undefined;
       }
 
-      const normalizedRsOptions = normalizeRsOptions(rsOptions ?? {});
+      // The plugin applied the filter above, so the compiler gets a copy
+      // without it. The options object itself must stay unchanged, because
+      // each later module reads the same filter.
+      const normalizedRsOptions = normalizeRsOptions({
+        ...rsOptions,
+        include: undefined,
+        exclude: undefined,
+      });
 
       if (!shouldProcessSource(inputCode, normalizedRsOptions)) {
         // In rollup, returning null from any plugin phase means

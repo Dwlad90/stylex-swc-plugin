@@ -134,6 +134,43 @@ describe('@stylexswc/rollup-plugin', () => {
     expect(css).toMatch(/display:\s*-webkit-flex/);
   });
 
+  it('applies the include filter to every module, not only the first', async () => {
+    // `index.js` is transformed first and imports `otherStyles.js`. The filter
+    // excludes the second file, so its styles must not reach the sheet.
+    const rsOptions = { include: [/index\.js$/] };
+    const { css } = await runStylex({ fileName: 'stylex.css', rsOptions });
+
+    expect(css).toContain('display: flex;');
+    expect(css).not.toContain('width: 100%;');
+    expect(rsOptions.include).toEqual([/index\.js$/]);
+  });
+
+  it('builds again from the cache when a module gave no rules', async () => {
+    // The second build reads every module from the cache. `plain.js` has no
+    // StyleX, so its cached meta holds no rules.
+    const build = (cache?: rollup.RollupCache) =>
+      rollup.rollup({
+        cache,
+        external: ['stylex'],
+        input: path.resolve(__dirname, '__fixtures__', 'withPlainModule.js'),
+        plugins: [stylexPlugin({ lightningcssOptions: { minify: false } })],
+      });
+
+    const first = await build();
+    await first.close();
+
+    const second = await build(first.cache);
+
+    try {
+      const { output } = await second.generate({ format: 'esm' });
+      const sheet = output.find(file => file.fileName === 'stylex.css');
+
+      expect(sheet?.type === 'asset' && String(sheet.source)).toContain('color: red;');
+    } finally {
+      await second.close();
+    }
+  });
+
   it('declares browserslist as a runtime dependency', () => {
     // `src/index.ts` imports `browserslist` at load time. A package manager does
     // not install a devDependency for a consumer, so

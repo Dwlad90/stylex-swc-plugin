@@ -10,6 +10,16 @@ and
 > instead of depending on it directly; its API may change between minor
 > releases.
 
+> [!IMPORTANT]
+> **Migration: `stylexImports` is no longer a loader option**
+>
+> `StyleXLoaderOptions` does not have a `stylexImports` field now. The
+> loader reads the import sources from `rsOptions.importSources` only, and
+> ignores a `stylexImports` field. If you add `stylex-loader` to a webpack
+> or Rspack config yourself, move the list to `rsOptions.importSources`. The
+> `stylexImports` option of the bundler plugins does not change: the plugin
+> copies it into `rsOptions.importSources` when that option is not set.
+
 ## What lives here
 
 - `StyleXPluginCore` — bundler-agnostic plugin logic: option normalization,

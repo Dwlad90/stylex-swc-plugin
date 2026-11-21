@@ -33,10 +33,8 @@ use stylex_state::state_manager::{BindingWrites, flush_pending_insertions};
 #[cfg(doc)]
 use stylex_state::state_manager::StateManager;
 
-/// Span covering the whole source, used for the module-level scope frame so
-/// top-level bindings enclose every `sx` site. The scope stack is seeded with
-/// this frame and never emptied, so the scope lookups always resolve to a real
-/// frame and fall back to this span only in theory.
+/// Span covering the whole source, recorded as the scope of a module-level
+/// binding so that it encloses every `sx` site.
 const MODULE_SCOPE_SPAN: Span = Span {
   lo: BytePos(0),
   hi: BytePos(u32::MAX),
@@ -119,11 +117,9 @@ struct ModuleBindingsCollector {
   /// [`Self::bound_names`], because the evaluator consumes it whether or not
   /// the `sx` prop is enabled.
   declared_bindings: FxHashSet<Id>,
-  /// The declared bindings that a scope below the module holds. See
-  /// [`StateManager::enclosed_bindings`].
-  enclosed_bindings: FxHashSet<Id>,
-  /// The declared bindings that the module scope holds. Only used to remove
-  /// them from [`Self::enclosed_bindings`] when the sets are taken.
+  /// The declared bindings that the module scope holds. The other declared
+  /// bindings are the enclosed bindings (see
+  /// [`StateManager::enclosed_bindings`]).
   program_bindings: FxHashSet<Id>,
   /// For each name bound by a non-import declaration, the spans of the scopes
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
@@ -139,7 +135,8 @@ struct ModuleBindingsCollector {
   /// than the reference implementation looks. See
   /// [`StateManager::binding_deep_mutations`].
   binding_deep_mutations: FxHashSet<Id>,
-  /// Stack of enclosing lexical scopes, outermost (module) first.
+  /// Stack of the enclosing lexical scopes below the module, outermost first.
+  /// It is empty at module level.
   scope_stack: Vec<ScopeFrame>,
   /// `VarDeclKind` of the `VarDecl` currently being visited, if any — needed
   /// to route `var` bindings to the nearest function scope (hoisting) while
@@ -158,12 +155,12 @@ impl ModuleBindingsCollector {
       reassignments: std::mem::take(&mut self.binding_reassignments),
       mutations: std::mem::take(&mut self.binding_mutations),
       deep_mutations: std::mem::take(&mut self.binding_deep_mutations),
-      declared: std::mem::take(&mut self.declared_bindings),
       enclosed: self.take_enclosed_bindings(),
+      declared: std::mem::take(&mut self.declared_bindings),
     }
   }
 
-  /// The enclosed bindings, less any that the module scope also holds.
+  /// The declared bindings that the module scope does not hold.
   ///
   /// The resolver gives each scope its own syntax context, so one `Id` is
   /// normally bound in one scope only. The TypeScript strip runs first and
@@ -172,10 +169,13 @@ impl ModuleBindingsCollector {
   /// still visible at program level, so it is not enclosed.
   fn take_enclosed_bindings(&mut self) -> FxHashSet<Id> {
     let program_bindings = std::mem::take(&mut self.program_bindings);
-    let mut enclosed = std::mem::take(&mut self.enclosed_bindings);
 
-    enclosed.retain(|id| !program_bindings.contains(id));
-    enclosed
+    self
+      .declared_bindings
+      .iter()
+      .filter(|id| !program_bindings.contains(*id))
+      .cloned()
+      .collect()
   }
 
   /// Collects everything: the `sx` runtime-binding inputs (import sources,
@@ -199,18 +199,12 @@ impl ModuleBindingsCollector {
       import_sources: Vec::new(),
       bound_names: FxHashSet::default(),
       declared_bindings: FxHashSet::default(),
-      enclosed_bindings: FxHashSet::default(),
       program_bindings: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
       binding_reassignments: FxHashSet::default(),
       binding_mutations: FxHashSet::default(),
       binding_deep_mutations: FxHashSet::default(),
-      // Seed a module-level function scope spanning the whole source so
-      // top-level bindings enclose every `sx` site.
-      scope_stack: vec![ScopeFrame {
-        span: MODULE_SCOPE_SPAN,
-        kind: ScopeKind::Function,
-      }],
+      scope_stack: Vec::new(),
       current_var_kind: None,
     }
   }
@@ -226,25 +220,20 @@ impl ModuleBindingsCollector {
   }
 
   /// Span of the innermost enclosing function scope (where `var`/function
-  /// declarations hoist to). Falls back to the module scope, always present.
-  fn nearest_function_scope(&self) -> Span {
+  /// declarations hoist to). `None` for the module scope.
+  fn nearest_function_scope(&self) -> Option<Span> {
     self
       .scope_stack
       .iter()
       .rev()
       .find(|frame| frame.kind == ScopeKind::Function)
       .map(|frame| frame.span)
-      .unwrap_or(MODULE_SCOPE_SPAN)
   }
 
   /// Span of the innermost enclosing scope (where `let`/`const`, params, etc.
-  /// belong). Always present — the module scope sits at the stack bottom.
-  fn innermost_scope(&self) -> Span {
-    self
-      .scope_stack
-      .last()
-      .map(|frame| frame.span)
-      .unwrap_or(MODULE_SCOPE_SPAN)
+  /// belong). `None` for the module scope.
+  fn innermost_scope(&self) -> Option<Span> {
+    self.scope_stack.last().map(|frame| frame.span)
   }
 
   /// Record a binding produced by a non-import declaration in `bindings`
@@ -255,8 +244,8 @@ impl ModuleBindingsCollector {
   /// `bindings` is filled ahead of the mode gate: the two name-keyed maps below
   /// serve the `sx` prop and are collected only where it is enabled, where the
   /// `Id`-keyed sets serve the evaluator and the `$$css` hoist, which run
-  /// either way. A binding also goes into `enclosed_bindings` or
-  /// `program_bindings`, by the scope that holds it.
+  /// either way. A binding that the module scope holds also goes into
+  /// `program_bindings`.
   fn add_local_binding(&mut self, ident: &Ident, hoisted: bool) {
     self.declared_bindings.insert(ident.to_id());
 
@@ -266,12 +255,8 @@ impl ModuleBindingsCollector {
       self.innermost_scope()
     };
 
-    // Only the seeded module frame has this span. Any other scope encloses the
-    // binding below program level.
-    if scope == MODULE_SCOPE_SPAN {
+    if scope.is_none() {
       self.program_bindings.insert(ident.to_id());
-    } else {
-      self.enclosed_bindings.insert(ident.to_id());
     }
 
     if !self.collect_sx_bindings {
@@ -284,7 +269,7 @@ impl ModuleBindingsCollector {
       .local_rebinding_scopes
       .entry(name)
       .or_default()
-      .push(scope);
+      .push(scope.unwrap_or(MODULE_SCOPE_SPAN));
   }
 
   /// Record a write to `ident`'s binding under the kind it is: a rebinding or

@@ -72,11 +72,11 @@ mod test_css_type_alpha_value {
     #[test]
     fn preserves_the_sign_of_negative_alpha_values() {
       assert_eq!(
-        AlphaValue::parser().parse("-0.5").unwrap(),
+        AlphaValue::parser().parse_to_end("-0.5").unwrap(),
         AlphaValue::new(-0.5)
       );
       assert_eq!(
-        AlphaValue::parser().parse("-50%").unwrap(),
+        AlphaValue::parser().parse_to_end("-50%").unwrap(),
         AlphaValue::new(-0.5)
       );
     }

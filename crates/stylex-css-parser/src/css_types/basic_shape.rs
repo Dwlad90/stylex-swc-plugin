@@ -83,6 +83,10 @@ impl fmt::Display for BasicShape {
 
         // Write one value for each side the source gave. A shared side is a
         // side that the source omitted.
+        //
+        // Compare by identity, not by value: `inset(10px 10px)` gives two
+        // equal sides and must keep both. The parser shares one `Rc` only for
+        // a side that the source omitted.
         if Rc::ptr_eq(top, right) && Rc::ptr_eq(right, bottom) && Rc::ptr_eq(bottom, left) {
           write!(f, "inset({}{})", top, round_str)
         } else if Rc::ptr_eq(top, bottom) && Rc::ptr_eq(left, right) {

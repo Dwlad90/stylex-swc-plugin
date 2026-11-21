@@ -89,6 +89,16 @@ pub static PSEUDO_PART_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"::[a-zA-Z-]+|:[a-zA-Z-]+(?:\([^)]*\))?").expect("Pseudo part regex is valid")
 });
 
+/// The pseudo parts of `text`, in order: `:hover::after` gives `:hover` and
+/// `::after`. A match that the regex engine gives up on is left out.
+pub fn pseudo_parts(text: &str) -> Vec<&str> {
+  PSEUDO_PART_REGEX
+    .find_iter(text)
+    .flatten()
+    .map(|part| part.as_str())
+    .collect()
+}
+
 // Matches .stylex or .consts file imports with optional extensions (.ts, .js,
 // .tsx, .jsx)
 pub static STYLEX_CONSTS_IMPORT_REGEX: Lazy<Regex> = Lazy::new(|| {

@@ -10,8 +10,8 @@ use stylex_constants::constants::{
   messages::{LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{
-    DEFAULT_PRIORITY, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY, at_rule_priority,
-    compound_pseudo_priority,
+    DEFAULT_PRIORITY, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
+    UNKNOWN_PSEUDO_CLASS_PRIORITY, compound_pseudo_priority, get_at_rule_priority,
   },
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
   shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
@@ -19,8 +19,8 @@ use stylex_constants::constants::{
 };
 use stylex_macros::stylex_panic;
 use stylex_regex::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, DESCENDANT_SELECTOR, PSEUDO_PART_REGEX,
-  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, DESCENDANT_SELECTOR, SIBLING_AFTER_SELECTOR,
+  SIBLING_BEFORE_SELECTOR, pseudo_parts,
 };
 use stylex_structures::{
   pair::{Pair, PairCow},
@@ -227,21 +227,7 @@ fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
     return None;
   }
 
-  let parts: Vec<&str> = PSEUDO_PART_REGEX
-    .find_iter(key)
-    .flatten()
-    .map(|m| m.as_str())
-    .collect();
-
-  compound_pseudo_priority(&parts)
-}
-
-fn get_at_rule_priority(key: &str) -> Option<f64> {
-  if key.starts_with("--") {
-    return Some(1.0);
-  }
-
-  at_rule_priority(key)
+  compound_pseudo_priority(&pseudo_parts(key))
 }
 
 fn get_pseudo_element_priority(key: &str) -> Option<f64> {
@@ -253,7 +239,12 @@ fn get_pseudo_element_priority(key: &str) -> Option<f64> {
 }
 
 fn get_pseudo_class_priority(key: &str) -> Option<f64> {
-  let pseudo_base = |p: &str| -> f64 { **PSEUDO_CLASS_PRIORITIES.get(p).unwrap_or(&&40.0) / 100.0 };
+  let pseudo_base = |p: &str| -> f64 {
+    **PSEUDO_CLASS_PRIORITIES
+      .get(p)
+      .unwrap_or(&&UNKNOWN_PSEUDO_CLASS_PRIORITY)
+      / 100.0
+  };
 
   // Check ancestor selector
   if let Ok(Some(captures)) = ANCESTOR_SELECTOR.captures(key)
@@ -298,7 +289,11 @@ fn get_pseudo_class_priority(key: &str) -> Option<f64> {
   if is_pseudo_class(key) {
     let prop: &str = key.split('(').next().unwrap_or(key);
 
-    return Some(**PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0));
+    return Some(
+      **PSEUDO_CLASS_PRIORITIES
+        .get(prop)
+        .unwrap_or(&&UNKNOWN_PSEUDO_CLASS_PRIORITY),
+    );
   }
 
   None

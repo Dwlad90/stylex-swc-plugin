@@ -1,17 +1,27 @@
 //! Tests for the priority helpers that the compile step and the stylesheet
 //! step share.
 
-use crate::constants::priorities::{at_rule_priority, compound_pseudo_priority};
+use crate::constants::priorities::{compound_pseudo_priority, get_at_rule_priority};
 
 /// A key that starts with an at-rule of the table gets its priority, by
-/// prefix. Any other key gets none.
+/// prefix. A custom property gets 1. Any other key gets none.
 #[test]
-fn at_rule_priority_reads_the_table_by_prefix() {
-  assert_eq!(at_rule_priority("@supports (display: grid)"), Some(30.0));
-  assert_eq!(at_rule_priority("@media (min-width: 10rem)"), Some(200.0));
-  assert_eq!(at_rule_priority("@container (width > 10rem)"), Some(300.0));
-  assert_eq!(at_rule_priority("@starting-style"), None);
-  assert_eq!(at_rule_priority("color"), None);
+fn get_at_rule_priority_reads_the_table_by_prefix() {
+  assert_eq!(
+    get_at_rule_priority("@supports (display: grid)"),
+    Some(30.0)
+  );
+  assert_eq!(
+    get_at_rule_priority("@media (min-width: 10rem)"),
+    Some(200.0)
+  );
+  assert_eq!(
+    get_at_rule_priority("@container (width > 10rem)"),
+    Some(300.0)
+  );
+  assert_eq!(get_at_rule_priority("@starting-style"), None);
+  assert_eq!(get_at_rule_priority("--x"), Some(1.0));
+  assert_eq!(get_at_rule_priority("color"), None);
 }
 
 /// A chain is the sum of its parts: a pseudo-element is 5000, a known

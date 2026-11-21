@@ -32,12 +32,12 @@ use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_constants::constants::priorities::{
-  DEFAULT_PRIORITY, at_rule_priority, compound_pseudo_priority,
+  DEFAULT_PRIORITY, compound_pseudo_priority, get_at_rule_priority,
 };
 use stylex_js::array_sort::array_tim_sort;
 use stylex_js::string::{js_replace_all, js_replace_all_verbatim};
 use stylex_js::value::{JsValue, MapKey};
-use stylex_regex::regex::{CONSTANT_REFERENCE, PSEUDO_PART_REGEX, THEME_ROOT_SELECTOR};
+use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR, pseudo_parts};
 use stylex_utils::number::is_js_whitespace;
 
 use crate::collation::{Collated, locale_compare, locale_compare_collated};
@@ -393,17 +393,11 @@ const PLACEHOLDER_PRIORITY: f64 = DEFAULT_PRIORITY;
 /// value names no property and starts no pseudo, so the at-rule table answers
 /// first, then a chain of pseudo parts in the text, then the default.
 fn at_rule_value_priority(value: &str) -> f64 {
-  if let Some(priority) = at_rule_priority(value) {
+  if let Some(priority) = get_at_rule_priority(value) {
     return priority;
   }
 
-  let parts: Vec<&str> = PSEUDO_PART_REGEX
-    .find_iter(value)
-    .flatten()
-    .map(|part| part.as_str())
-    .collect();
-
-  compound_pseudo_priority(&parts).unwrap_or(DEFAULT_PRIORITY)
+  compound_pseudo_priority(&pseudo_parts(value)).unwrap_or(DEFAULT_PRIORITY)
 }
 
 /// A rule's priority once its constants are known. A `defineConsts` at-rule

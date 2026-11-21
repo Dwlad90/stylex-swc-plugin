@@ -94,14 +94,16 @@ describe('PostCSS builder file results', () => {
     expect(await build()).toBe('');
   });
 
-  test.each([false, true])('excluded files contribute no CSS (isDev: %s)', async isDev => {
+  // Upstream names these two tests after Babel's `ignore` option. Here the
+  // same files are left out with this package's `exclude` option.
+  test.each([false, true])('Babel-ignored files contribute no CSS (isDev: %s)', async isDev => {
     const { build, attempts } = setup({ isDev, excluded: true });
     put(source('red'));
     expect(await build()).toBe('');
     expect(attempts()).toBe(0);
   });
 
-  test('clears old rules when a changed file becomes excluded', async () => {
+  test('clears old rules when a changed file becomes Babel-ignored', async () => {
     const { reconfigure, build } = setup();
     put(source('red'));
     expect(await build()).toContain('color:red');

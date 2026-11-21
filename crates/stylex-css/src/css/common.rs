@@ -9,7 +9,10 @@ use stylex_constants::constants::{
   long_hand_physical::LONG_HAND_PHYSICAL,
   messages::{LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
-  priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
+  priorities::{
+    DEFAULT_PRIORITY, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY, at_rule_priority,
+    compound_pseudo_priority,
+  },
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
   shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
   unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
@@ -230,24 +233,7 @@ fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
     .map(|m| m.as_str())
     .collect();
 
-  // Only handle chains of simple pseudo-classes and pseudo-elements.
-  // Opt out if there's zero/one part or any functional pseudo-class.
-  if parts.len() <= 1 || parts.iter().any(|p| p.contains('(')) {
-    return None;
-  }
-
-  let total = parts
-    .iter()
-    .map(|part| {
-      if is_pseudo_element(part) {
-        PSEUDO_ELEMENT_PRIORITY
-      } else {
-        **PSEUDO_CLASS_PRIORITIES.get(*part).unwrap_or(&&40.0)
-      }
-    })
-    .sum();
-
-  Some(total)
+  compound_pseudo_priority(&parts)
 }
 
 fn get_at_rule_priority(key: &str) -> Option<f64> {
@@ -255,19 +241,7 @@ fn get_at_rule_priority(key: &str) -> Option<f64> {
     return Some(1.0);
   }
 
-  if key.starts_with("@supports") {
-    return AT_RULE_PRIORITIES.get("@supports").map(|v| **v);
-  }
-
-  if key.starts_with("@media") {
-    return AT_RULE_PRIORITIES.get("@media").map(|v| **v);
-  }
-
-  if key.starts_with("@container") {
-    return AT_RULE_PRIORITIES.get("@container").map(|v| **v);
-  }
-
-  None
+  at_rule_priority(key)
 }
 
 fn get_pseudo_element_priority(key: &str) -> Option<f64> {
@@ -373,7 +347,7 @@ pub fn get_priority(key: &str) -> f64 {
     return default_priority;
   }
 
-  3000.0
+  DEFAULT_PRIORITY
 }
 
 fn is_escaped(value: &[u8], index: usize) -> bool {
@@ -798,9 +772,10 @@ pub fn inline_style_to_css_string(pairs: &[PairCow<'_>]) -> String {
   for pair in pairs {
     // A custom property name is case-sensitive, so a converted name would not
     // match the property that the stylesheet reads.
-    let key = match pair.key.starts_with("--") {
-      true => Cow::Borrowed(pair.key.as_ref()),
-      false => kebab_case(&pair.key),
+    let key = if pair.key.starts_with("--") {
+      Cow::Borrowed(pair.key.as_ref())
+    } else {
+      kebab_case(&pair.key)
     };
 
     push_css_decl(&mut out, key.as_ref(), pair.value.as_ref());

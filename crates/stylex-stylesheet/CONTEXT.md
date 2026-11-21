@@ -7,8 +7,7 @@ function here. The reference is `packages/@stylexjs/babel-plugin/src/index.js`
 at facebook/stylex `d7e6174c5384c64b87bc5fde1f57eedd7c11c5aa`, the commit
 `@stylexjs/babel-plugin` 0.19.2 was published from: upstream changes enter this
 project once they are on npm, so the port follows the published version. The
-output is the string that version writes, byte for byte, but for one input
-class the compile step never emits (the term **At-rule constant key** below).
+output is the string that version writes, byte for byte.
 
 `process::process_stylex_rules` is the assembly; `width_sort_key` holds the order
 it sorts by. [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) exports it
@@ -91,11 +90,11 @@ rule sorted, and was layered, after rules it sorts before when the at-rule is
 written inline. After the constants are resolved, the sheet step adds the
 difference for each such wrapper; a placeholder that is a value, a wrapper
 whose constant is no at-rule, and a constant the sheet does not declare add
-nothing. An at-rule outside the table keeps the placeholder's share
-(`getPriority` falls back to 3000 for it), unless its text holds a `:`, which the
-reference's pseudo-class tables may read: that rule is left to the
-reference. A difference is added only while the priority is at least the
-placeholder's share, checked again before each wrapper: `defineVars` and
+nothing. An at-rule outside the table gets `getPriority` of its text: the
+sum of a chain of pseudo parts in it (`@scope (.a:hover:active)`), or else
+3000, the placeholder's share, so the rule keeps its priority. A difference
+is added only while the priority is at least the placeholder's share, checked
+again before each wrapper: `defineVars` and
 `createTheme` rules count at-rules in their own fractional priorities, below
 that share, and keep them.
 _Avoid_: placeholder priority, media constant

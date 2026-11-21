@@ -2462,40 +2462,45 @@ fn a_rule_whose_ltr_text_is_not_a_string_gains_nothing() {
   ));
 }
 
-/// An at-rule outside the table gets the fallback 3000 from `getPriority`,
-/// the placeholder's own share, so the rule keeps its priority; one whose text
-/// holds a `:` is left to the reference, whose `getPriority` reads such a text
-/// through the pseudo-class tables. Measured on the published plugin.
+/// An at-rule outside the table gets `getPriority` of its text. With no
+/// chain of pseudo parts in it, that is the default 3000, the placeholder's
+/// own share, so the rule keeps its priority: one `:` part is not a chain.
+/// Measured on the published plugin.
 #[test]
-fn an_at_rule_constant_outside_the_table_keeps_its_priority_or_is_left_to_the_reference() {
+fn an_at_rule_constant_outside_the_table_keeps_its_priority() {
+  for at_rule in ["@starting-style", "@starting-style:x"] {
+    let rules = [
+      constant("xu", text(at_rule)),
+      rule("a", ".a{color:red}", None, 3000.0),
+      rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
+    ];
+
+    assert_eq!(
+      sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+      format!(
+        "\n@layer priority1, priority2;\n@layer priority1{{\n.a{{color:red}}\n}}\n\
+         @layer priority2{{\n{at_rule}{{.b.b{{color:red}}}}\n}}"
+      )
+    );
+  }
+}
+
+/// An at-rule outside the table whose text holds a chain of pseudo parts
+/// gets the sum of the parts, as `getPriority` reads such a text:
+/// `:hover:active` is 130 + 170. Measured on the published plugin.
+#[test]
+fn an_at_rule_constant_outside_the_table_with_a_pseudo_chain_gets_the_chain_priority() {
   let rules = [
-    constant("xu", text("@starting-style")),
+    constant("xu", text("@scope (.card:hover:active)")),
     rule("a", ".a{color:red}", None, 3000.0),
+    rule("c", ".c{color:red}", None, 3400.0),
     rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
   ];
 
   assert_eq!(
     sheet(&rules, &ProcessStylexRulesConfig::from(true)),
-    "\n@layer priority1, priority2;\n@layer priority1{\n.a{color:red}\n}\n\
-     @layer priority2{\n@starting-style{.b.b{color:red}}\n}"
-  );
-
-  let rules = [
-    constant("xu", text("@scope (.card:hover)")),
-    rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
-  ];
-
-  let error = ProcessStylexRulesError::AtRuleConstantOutsideTheTable {
-    placeholder: "var(--xu)".to_owned(),
-    at_rule: "@scope".to_owned(),
-  };
-  assert_eq!(
-    process_stylex_rules(&rules, &without_layers()),
-    Err(error.clone())
-  );
-  assert_eq!(
-    error.to_string(),
-    "var(--xu) holds @scope with a `:`, an at-rule the priority table does not give"
+    "\n@layer priority1;\n@layer priority1{\n.a{color:red}\n\
+     @scope (.card:hover:active){.b.b{color:red}}\n.c{color:red}\n}"
   );
 }
 

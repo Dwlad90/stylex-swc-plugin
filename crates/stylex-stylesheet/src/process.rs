@@ -31,11 +31,13 @@ use aho_corasick::AhoCorasick;
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
-use stylex_constants::constants::priorities::AT_RULE_PRIORITIES;
+use stylex_constants::constants::priorities::{
+  DEFAULT_PRIORITY, at_rule_priority, compound_pseudo_priority,
+};
 use stylex_js::array_sort::array_tim_sort;
 use stylex_js::string::{js_replace_all, js_replace_all_verbatim};
 use stylex_js::value::{JsValue, MapKey};
-use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR};
+use stylex_regex::regex::{CONSTANT_REFERENCE, PSEUDO_PART_REGEX, THEME_ROOT_SELECTOR};
 use stylex_utils::number::is_js_whitespace;
 
 use crate::collation::{Collated, locale_compare, locale_compare_collated};
@@ -383,18 +385,25 @@ impl<'c> Substitutions<'c> {
 }
 
 /// `getPriority('var(--x)')`: a constant's placeholder names no at-rule,
-/// pseudo or property, so it gets the fallback, the share an attribute
+/// pseudo or property, so it gets the default, the share an attribute
 /// selector gets.
-const PLACEHOLDER_PRIORITY: f64 = 3000.0;
+const PLACEHOLDER_PRIORITY: f64 = DEFAULT_PRIORITY;
 
-/// `getPriority(value)` for a constant's value that starts with `@`: the
-/// at-rule table, by prefix. `None` for an at-rule outside the table.
-fn at_rule_priority(value: &str) -> Option<f64> {
-  ["@supports", "@media", "@container"]
-    .into_iter()
-    .find(|at_rule| value.starts_with(at_rule))
-    .and_then(|at_rule| AT_RULE_PRIORITIES.get(at_rule))
-    .map(|priority| **priority)
+/// `getPriority(value)` for a constant's value that starts with `@`. Such a
+/// value names no property and starts no pseudo, so the at-rule table answers
+/// first, then a chain of pseudo parts in the text, then the default.
+fn at_rule_value_priority(value: &str) -> f64 {
+  if let Some(priority) = at_rule_priority(value) {
+    return priority;
+  }
+
+  let parts: Vec<&str> = PSEUDO_PART_REGEX
+    .find_iter(value)
+    .flatten()
+    .map(|part| part.as_str())
+    .collect();
+
+  compound_pseudo_priority(&parts).unwrap_or(DEFAULT_PRIORITY)
 }
 
 /// A rule's priority once its constants are known. A `defineConsts` at-rule
@@ -415,9 +424,9 @@ fn adjust_const_at_rule_priority(
   text: &JsValue,
   priority: f64,
   constants: &OrderedConstants,
-) -> Result<f64, ProcessStylexRulesError> {
+) -> f64 {
   let JsValue::String(text) = text else {
-    return Ok(priority);
+    return priority;
   };
 
   let mut adjusted = priority;
@@ -425,8 +434,7 @@ fn adjust_const_at_rule_priority(
     if !text[placeholder.end()..].starts_with('{') {
       continue;
     }
-    let placeholder = placeholder.as_str();
-    let Some(JsValue::String(value)) = constants.get(placeholder) else {
+    let Some(JsValue::String(value)) = constants.get(placeholder.as_str()) else {
       continue;
     };
     // A `NaN` priority is never at least the share, so it is kept.
@@ -434,25 +442,12 @@ fn adjust_const_at_rule_priority(
     if !value.starts_with('@') || !holds_placeholder_share {
       continue;
     }
-    let value_priority = match at_rule_priority(value) {
-      Some(value_priority) => value_priority,
-      // Outside the table, `getPriority` reads the value through the
-      // pseudo-class tables, which live in the compile step's crate and
-      // match on `:`, and then falls back as it does for the placeholder.
-      None if value.contains(':') => {
-        return Err(ProcessStylexRulesError::AtRuleConstantOutsideTheTable {
-          placeholder: placeholder.to_owned(),
-          at_rule: value.split_whitespace().next().unwrap_or(value).to_owned(),
-        });
-      },
-      None => PLACEHOLDER_PRIORITY,
-    };
     // Added one wrapper at a time, in the reference's order, so a fractional
     // priority rounds as it does there.
-    adjusted += value_priority - PLACEHOLDER_PRIORITY;
+    adjusted += at_rule_value_priority(value) - PLACEHOLDER_PRIORITY;
   }
 
-  Ok(adjusted)
+  adjusted
 }
 
 /// Every rule with the constants substituted into its texts and its priority
@@ -462,9 +457,9 @@ fn adjust_const_at_rule_priority(
 fn substitute_constants<'r>(
   rules: Vec<&'r Rule>,
   constants: &OrderedConstants,
-) -> Result<Vec<Cow<'r, Rule>>, ProcessStylexRulesError> {
+) -> Vec<Cow<'r, Rule>> {
   if constants.is_empty() {
-    return Ok(rules.into_iter().map(Cow::Borrowed).collect());
+    return rules.into_iter().map(Cow::Borrowed).collect();
   }
 
   let substitutions = Substitutions::of(constants);
@@ -480,7 +475,7 @@ fn substitute_constants<'r>(
 
     // The priority correction reads the text as the compile step wrote it, before the
     // substitution replaces the placeholders.
-    let priority = adjust_const_at_rule_priority(&rule.style().ltr, rule.priority(), constants)?;
+    let priority = adjust_const_at_rule_priority(&rule.style().ltr, rule.priority(), constants);
     let priority_changed = priority.to_bits() != rule.priority().to_bits();
 
     // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
@@ -509,7 +504,7 @@ fn substitute_constants<'r>(
     out.push(Cow::Owned(rule.rebuilt(style, priority)));
   }
 
-  Ok(out)
+  out
 }
 
 // ==================== the sort ====================
@@ -1034,7 +1029,7 @@ fn assemble(
   let (constants, non_constant_rules) = collect_constants(rules);
   let constants = resolve_constants(constants)?;
   refuse_if_any(late.spread)?;
-  let substituted = substitute_constants(non_constant_rules, &constants)?;
+  let substituted = substitute_constants(non_constant_rules, &constants);
   let sorted_rules = sort_rules(&substituted, config.use_legacy_classnames_sort)?;
   let grouped = group_by_priority_level(&sorted_rules)?;
   refuse_if_any(late.header)?;

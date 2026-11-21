@@ -624,7 +624,7 @@
       "id": "c24ed55b",
       "property": "backgroundPosition",
       "value": "center",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:930"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:954"
     },
     {
       "id": "439f6d8b",

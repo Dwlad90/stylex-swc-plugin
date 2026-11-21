@@ -781,6 +781,30 @@ stylex_test!(
 );
 
 stylex_test!(
+  media_queries_with_a_leading_not_and_last_query_wins,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_enable_media_query_order(true)
+      .with_runtime_injection()
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        filter: {
+          default: 'grayscale(1)',
+          '@media not all and (monochrome)': 'none',
+        },
+        backgroundColor: {
+          default: 'red',
+          '@media not screen and (min-width: 100px)': 'blue',
+          '@media (min-width: 500px)': 'purple',
+        }
+      },
+    });
+  "#
+);
+
+stylex_test!(
   media_queries_without_last_query_wins,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_media_query_order(false)

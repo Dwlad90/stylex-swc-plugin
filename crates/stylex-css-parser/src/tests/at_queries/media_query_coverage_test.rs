@@ -1319,10 +1319,10 @@ fn parser_at_keyword_wrong_then_falls_back() {
 }
 
 #[test]
-fn not_only_combined_in_keyword_parser_drops_the_only() {
+fn not_only_combined_in_keyword_parser_keeps_the_only() {
   // "not only screen" in media_keyword_parser: both modifiers are optional and
-  // independent, as they are upstream, and the serializer reads `not` first --
-  // so the `only` is parsed and then never printed.
+  // independent. The keyword keeps both, and the serializer reads `not` first,
+  // so the `only` is not printed.
   let parsed = MediaQuery::parser()
     .parse_to_end("@media not only screen")
     .expect("both modifiers together are a query the reference implementation compiles");
@@ -1330,7 +1330,7 @@ fn not_only_combined_in_keyword_parser_drops_the_only() {
   match &parsed.queries {
     MediaQueryRule::MediaKeyword(keyword) => {
       assert!(keyword.not);
-      assert!(!keyword.only);
+      assert!(keyword.only);
     },
     other => panic!("Expected a media keyword rule, got {other:?}"),
   }
@@ -2958,10 +2958,11 @@ fn media_types_resolve_to_one_positive_media_type() {
   let cases = [
     // An `all` branch matches everything.
     ("@media screen, print, all", "@media all"),
-    // Every branch never matches.
+    // The first branch never matches. The second has a leading `not`, so it
+    // stays as written.
     (
       "@media print and screen, not all and (color)",
-      "@media not all",
+      "@media not all and (color)",
     ),
     // `all` inside an `and` adds nothing.
     (
@@ -2978,20 +2979,21 @@ fn media_types_resolve_to_one_positive_media_type() {
     ),
     // The positive keyword is the anchor, so `only` stays.
     ("@media only screen and not print", "@media only screen"),
-    // A negated `and` becomes an `or` of the negations.
+    // A negated `and` that starts with a media type is a query with a
+    // leading `not`, so it stays as written.
     (
       "@media not (screen and (min-width: 100px))",
-      "@media not screen, (not (min-width: 100px))",
+      "@media not screen and (min-width: 100px)",
     ),
     (
       "@media not (screen and (not (min-width: 100px)))",
-      "@media not screen, (min-width: 100px)",
+      "@media not screen and (not (min-width: 100px))",
     ),
-    // A media type inside a nested `and` branch is not compared with the
-    // list, so `screen` and `print` both stay.
+    // A nested `and` branch is flattened into the list, so its `print`
+    // contradicts `screen` and the branch is removed.
     (
       "@media screen and ((print and (min-width: 1px)) or (max-width: 2px))",
-      "@media screen and print and (min-width: 1px), screen and (max-width: 2px)",
+      "@media screen and (max-width: 2px)",
     ),
     // A later `or` is split with its branch first, so the anchor of each
     // branch decides about `only` and the order.
@@ -3005,26 +3007,36 @@ fn media_types_resolve_to_one_positive_media_type() {
     ),
     (
       "@media screen and ((color) or (grid)) and (print or (screen and (monochrome)))",
-      "@media screen and screen and (monochrome) and (color), \
-       screen and screen and (monochrome) and (grid)",
+      "@media screen and (monochrome) and (color), screen and (monochrome) and (grid)",
     ),
     // The only media type (`not all`) leaves its `or`, so the rest of the list
-    // has no media type and keeps its shape.
+    // has no media type and keeps its shape. The `or` inside the `and` keeps
+    // its parentheses.
     (
       "@media ((min-width: 500px) and (not ((min-width: 400px) and (max-width: 600px)))) \
        and ((color) or (monochrome)) and ((hover: hover) or not all)",
-      "@media (min-width: 600.01px) and (color) or (monochrome) and (hover: hover)",
+      "@media (min-width: 600.01px) and ((color) or (monochrome)) and (hover: hover)",
     ),
     // A negated `or` becomes an `and` of the negations.
     (
       "@media not ((screen and (min-width: 100px)) or (color))",
       "@media print and (not (color)), (not (min-width: 100px)) and (not (color))",
     ),
-    // An `and` without a media type that is left keeps its `not`.
     (
       "@media not (all and (not (min-width: 100px)))",
-      "@media (not ((not (min-width: 100px))))",
+      "@media not all and (not (min-width: 100px))",
     ),
+    // A negated `not` that holds a media type keeps its `not`, and only the
+    // operand is resolved.
+    (
+      "@media screen and (not ((not (print)) and (min-width: 1px)))",
+      "@media screen and (not (min-width: 1px))",
+    ),
+    (
+      "@media screen and (not ((not (screen)) and (min-width: 1px)))",
+      "@media screen, screen and (not (min-width: 1px))",
+    ),
+    // An `and` without a media type that is left keeps its `not`.
     (
       "@media screen and (not (all and (not (min-width: 100px))))",
       "@media screen and (not ((not (min-width: 100px))))",
@@ -3099,7 +3111,7 @@ fn media_types_resolve_in_built_rules() {
   ]);
   assert_eq!(
     MediaQuery::new(keyword_removed).to_string(),
-    "@media (color) and (monochrome) or (grid) and (hover)"
+    "@media (color) and ((monochrome) or (grid)) and (hover)"
   );
 
   let two_ors = and(vec![

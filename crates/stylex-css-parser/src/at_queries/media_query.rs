@@ -400,6 +400,20 @@ fn contains_media_keyword(node: &MediaQueryRule) -> bool {
   }
 }
 
+/// Whether a rule is a query with a leading `not`, such as
+/// `not screen and (min-width: 1px)`: a negated `and` list that starts with a
+/// positive media type and has no other media type.
+fn is_leading_not_query(node: &MediaQueryRule) -> bool {
+  if let MediaQueryRule::Not(not_rule) = node
+    && let MediaQueryRule::And(and_rules) = not_rule.rule.as_ref()
+    && let Some((MediaQueryRule::MediaKeyword(first), rest)) = and_rules.rules.split_first()
+  {
+    !first.not && !rest.iter().any(contains_media_keyword)
+  } else {
+    false
+  }
+}
+
 /// The media type that a media keyword requires, or `None` when the keyword
 /// never matches (`not all`).
 fn media_type_requirement(keyword: &MediaKeyword) -> Option<&str> {
@@ -498,7 +512,7 @@ fn resolve_media_types_within_budget(node: MediaQueryRule) -> MediaQueryRule {
     return node;
   }
   let mut budget: WorkBudget = Some(MAX_DISTRIBUTION_NODES);
-  let resolved = resolve_media_types(node.clone(), &mut budget);
+  let resolved = resolve_media_types(node.clone(), true, &mut budget);
   if budget.is_some() { resolved } else { node }
 }
 
@@ -506,9 +520,19 @@ fn resolve_media_types_within_budget(node: MediaQueryRule) -> MediaQueryRule {
 /// one positive media type for each query. It splits an `and` that holds an
 /// `or` into one `and` for each branch, and removes the branches that never
 /// match.
-fn resolve_media_types(node: MediaQueryRule, budget: &mut WorkBudget) -> MediaQueryRule {
+///
+/// `is_query_list` is true for the queries of the list itself. A query there
+/// with a leading `not` is already valid CSS, so it stays as written.
+fn resolve_media_types(
+  node: MediaQueryRule,
+  is_query_list: bool,
+  budget: &mut WorkBudget,
+) -> MediaQueryRule {
   // Past the budget, the caller discards the result, so stop the work.
-  if budget.is_none() || !contains_media_keyword(&node) {
+  if budget.is_none()
+    || (is_query_list && is_leading_not_query(&node))
+    || !contains_media_keyword(&node)
+  {
     return node;
   }
   match node {
@@ -516,7 +540,7 @@ fn resolve_media_types(node: MediaQueryRule, budget: &mut WorkBudget) -> MediaQu
       let mut rules: Vec<MediaQueryRule> = Vec::with_capacity(or_rules.rules.len());
       for child in or_rules.rules {
         rules.extend(
-          flatten_or_rule(resolve_media_types(child, budget))
+          flatten_or_rule(resolve_media_types(child, is_query_list, budget))
             .into_iter()
             .filter(|rule| !is_never_rule(rule)),
         );
@@ -529,14 +553,15 @@ fn resolve_media_types(node: MediaQueryRule, budget: &mut WorkBudget) -> MediaQu
       })
     },
     MediaQueryRule::And(and_rules) => resolve_and_rules(and_rules.rules, budget),
-    // A resolved `and` or `or` can become one rule without a media type, such
-    // as `(not (min-width: 1px))`. That rule stays inside the `not`.
-    MediaQueryRule::Not(not_rule) => match resolve_media_types(*not_rule.rule, budget) {
+    // The `not` moves inward before the operand is resolved. Resolving first
+    // splits the operand over each `or` it holds, and the negation of that
+    // split is much larger than the split itself.
+    MediaQueryRule::Not(not_rule) => match *not_rule.rule {
       inner
       @ (MediaQueryRule::MediaKeyword(_) | MediaQueryRule::And(_) | MediaQueryRule::Or(_)) => {
-        resolve_media_types(negate_rule(inner), budget)
+        resolve_media_types(negate_rule(inner), false, budget)
       },
-      inner => MediaQueryRule::Not(MediaNotRule::new(inner)),
+      inner => MediaQueryRule::Not(MediaNotRule::new(resolve_media_types(inner, false, budget))),
     },
     other => other,
   }
@@ -552,10 +577,15 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
     if !spend(budget, rules.len() as u64) {
       return never_rule();
     }
-    let resolved: Vec<MediaQueryRule> = rules
-      .into_iter()
-      .map(|rule| resolve_media_types(rule, budget))
-      .collect();
+    // A nested `and` is flattened, so that a media type in it can move to the
+    // front of the list.
+    let mut resolved: Vec<MediaQueryRule> = Vec::with_capacity(rules.len());
+    for rule in rules {
+      match resolve_media_types(rule, false, budget) {
+        MediaQueryRule::And(and_rules) => resolved.extend(and_rules.rules),
+        other => resolved.push(other),
+      }
+    }
 
     // Contradicting keywords put a contradiction into every branch of the
     // split below, so the list never matches. Stop before the split.
@@ -617,7 +647,11 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
               MediaQueryRule::And(MediaAndRules::new(rules))
             })
             .collect();
-          return resolve_media_types(MediaQueryRule::Or(MediaOrRules::new(branches)), budget);
+          return resolve_media_types(
+            MediaQueryRule::Or(MediaOrRules::new(branches)),
+            false,
+            budget,
+          );
         },
       }
     }
@@ -715,6 +749,14 @@ impl MediaQuery {
           format!("({}: {})", pair.key, to_js_string(*n))
         },
       },
+      // A query with a leading `not` prints as written: the `not` negates
+      // the whole query.
+      MediaQueryRule::Not(not_rule) if is_top_level && is_leading_not_query(queries) => {
+        format!(
+          "not {}",
+          MediaQuery::format_queries(not_rule.rule.as_ref(), false)
+        )
+      },
       MediaQueryRule::Not(not_rule) => match not_rule.rule.as_ref() {
         MediaQueryRule::And(_) | MediaQueryRule::Or(_) | MediaQueryRule::Not(_) => {
           format!(
@@ -730,10 +772,19 @@ impl MediaQuery {
         },
       },
       MediaQueryRule::And(and_rules) => {
+        // An `or` inside an `and` keeps its parentheses, or the query would
+        // mix `and` and `or` at one level.
         let rule_strings: Vec<String> = and_rules
           .rules
           .iter()
-          .map(|rule| MediaQuery::format_queries(rule, false))
+          .map(|rule| match rule {
+            MediaQueryRule::Or(or_rules)
+              if and_rules.rules.len() > 1 && or_rules.rules.len() > 1 =>
+            {
+              format!("({})", MediaQuery::format_queries(rule, false))
+            },
+            _ => MediaQuery::format_queries(rule, false),
+          })
           .collect();
         rule_strings.join(" and ")
       },
@@ -764,7 +815,7 @@ impl MediaQuery {
                 rule_string
               }
             },
-            _ => MediaQuery::format_queries(rule, false),
+            _ => MediaQuery::format_queries(rule, is_top_level),
           })
           .collect();
 
@@ -1509,22 +1560,11 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
         skip_whitespace(tokens);
       }
 
-      // `not only screen` is accepted and prints as `not screen`, matching the
-      // reference implementation. Its `mediaKeywordParser` is
-      // `sequence(string('not').optional, string('only').optional, <type>)`, so
-      // the pair parses, and its serializer reads `not` first and never reaches
-      // the `only`. Refusing the pair turned a build the official compiler
-      // completes into an invalid-media-query-syntax error, which is a
-      // divergence in the one direction ADR 0001 declines to justify: matching
-      // its worse *output* protects a class name, matching its *refusals* only
-      // costs an author a query they are entitled to write.
-      //
-      // Only this spelling. `(not only screen)` and `only not screen` are
-      // refused upstream too, and stay refused here -- they are handled by the
-      // parenthesized and leading `not` parsers, which are left alone.
-      if not_value {
-        only_value = false;
-      }
+      // `not only screen` is accepted. The keyword keeps both flags: a lone
+      // keyword prints its `not` and hides the `only`, but a leading `not`
+      // over an `and` list moves to the list, and the `only` then prints.
+      // `(not only screen)` and `only not screen` stay refused -- they are
+      // handled by the parenthesized and leading `not` parsers.
 
       // Parse the media type (required)
       let media_type = (basic_media_type_parser().run)(tokens)?;
@@ -2588,14 +2628,28 @@ fn parse_and_list(tokens: &mut TokenList) -> Result<AndList, CssParseError> {
 
   // If we only have one rule, return it directly
   Ok(AndList {
-    rule: collapse_single_rule(rules, |rules| {
-      MediaQueryRule::And(MediaAndRules::new(rules))
-    }),
+    rule: collapse_single_rule(rules, and_list_rule),
     combinability: Combinability {
       joined_by_and,
       is_bare_negation,
     },
   })
+}
+
+/// The rule for an `and` list of two or more rules.
+///
+/// A leading `not` negates the whole query, so `not screen and (a)` is
+/// `not (screen and (a))`, and not `(not screen) and (a)`.
+fn and_list_rule(mut rules: Vec<MediaQueryRule>) -> MediaQueryRule {
+  if let Some(MediaQueryRule::MediaKeyword(first)) = rules.first_mut()
+    && first.not
+  {
+    first.not = false;
+    return MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::And(MediaAndRules::new(
+      rules,
+    ))));
+  }
+  MediaQueryRule::And(MediaAndRules::new(rules))
 }
 
 /// Normal rule parser that combines all rule types

@@ -636,6 +636,208 @@ mod media_query_transformer {
     );
   }
 
+  #[test]
+  fn a_leading_not_negates_the_whole_query() {
+    let original_styles = json!({
+      "filter": {
+        "default": "grayscale(1)",
+        "@media not all and (monochrome)": "none"
+      },
+      "color": {
+        "default": "black",
+        "@media not screen and (min-width: 100px)": "red"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not screen and (min-width: 100px)": "red",
+          "default": "black"
+        },
+        "filter": {
+          "@media not all and (monochrome)": "none",
+          "default": "grayscale(1)"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_leading_not_followed_by_a_later_query() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media not all and (monochrome)": "blue",
+        "@media (min-width: 500px)": "red"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media (min-width: 500px)": "red",
+          "@media (not (min-width: 500px)) and (not (monochrome))": "blue",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_later_query_with_a_leading_not() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 500px)": "red",
+        "@media not all and (monochrome)": "blue"
+      },
+      "width": {
+        "default": "100%",
+        "@media (max-width: 900px)": "80%",
+        "@media not print and (min-width: 600px)": "60%"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media (min-width: 500px) and (monochrome)": "red",
+          "@media not all and (monochrome)": "blue",
+          "default": "black"
+        },
+        "width": {
+          "@media not print and (min-width: 600px)": "60%",
+          "@media print and (max-width: 900px) and (min-width: 600px)": "80%",
+          "default": "100%"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_leading_not_over_an_or_condition_stays_linear_in_size() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 10px)": "red",
+        "@media not screen and ((min-width: 100px) or (min-width: 200px) or (min-width: 300px) or (min-width: 400px))":
+          "blue"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not screen and ((min-width: 100px) or (min-width: 200px) or (min-width: 300px) or (min-width: 400px))": "blue",
+          "@media screen and (min-width: 100px) and (min-width: 10px), screen and (min-width: 200px) and (min-width: 10px), screen and (min-width: 300px) and (min-width: 10px), screen and (min-width: 400px) and (min-width: 10px)": "red",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_leading_not_over_mixed_and_or_conditions() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))":
+          "blue"
+      },
+      "width": {
+        "default": "100%",
+        "@media (min-width: 10px)": "80%",
+        "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))":
+          "60%"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))": "blue",
+          "default": "black"
+        },
+        "width": {
+          "@media (max-width: 900px) and (min-width: 10px) and (min-width: 500px), (max-height: 600px) and (min-width: 10px) and (min-width: 500px)": "80%",
+          "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))": "60%",
+          "default": "100%"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn an_or_condition_inside_an_and_keeps_its_parentheses() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 1px) and ((max-width: 200px) or (max-height: 600px))": "blue"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media (min-width: 1px) and ((max-width: 200px) or (max-height: 600px))": "blue",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_media_type_from_a_negated_later_query_is_moved_to_the_front() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (max-width: 900px)": "red",
+        "@media not print, (max-width: 100px)": "blue"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not print, (max-width: 100px)": "blue",
+          "@media print and (max-width: 900px) and (not (max-width: 100px))": "red",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  /// The `only` of a later `not only <type>` stays when that query is negated.
+  #[test]
+  fn a_negated_later_not_only_query_keeps_the_only() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (max-width: 500px)": "blue",
+        "@media not only screen": "red"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "default": "black",
+          "@media only screen and (max-width: 500px)": "blue",
+          "@media not screen": "red"
+        }
+      })
+    );
+  }
+
   /// Test: basic usage: does not modify single queries
   #[test]
   fn basic_usage_does_not_modify_single_queries() {
@@ -2201,8 +2403,6 @@ mod unusual_but_valid_queries {
 /// distributes its negations over whatever the top-level `Or` holds, so getting
 /// that nesting wrong changes the emitted rule text and the class name with it —
 /// which is what these three shapes did before the two were told apart.
-///
-/// Every expectation is quoted from a run of `@stylexjs/babel-plugin` 0.19.0.
 #[cfg(test)]
 mod a_comma_binds_more_loosely_than_or {
   use super::*;
@@ -2215,7 +2415,7 @@ mod a_comma_binds_more_loosely_than_or {
       rewritten_first_key(
         "@media (min-width: 1px) and (min-width: 2px), (min-width: 3px) or (min-width: 1px)"
       ),
-      "@media (min-width: 50.01px), (min-width: 3px) or (min-width: 1px) and (not (max-width: 50px))"
+      "@media (min-width: 50.01px), ((min-width: 3px) or (min-width: 1px)) and (not (max-width: 50px))"
     );
   }
 
@@ -2227,7 +2427,7 @@ mod a_comma_binds_more_loosely_than_or {
       rewritten_first_key(
         "@media (min-width: 1px) or (min-width: 2px), (min-width: 3px) and (min-width: 1px)"
       ),
-      "@media (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px)), (min-width: 50.01px)"
+      "@media ((min-width: 1px) or (min-width: 2px)) and (not (max-width: 50px)), (min-width: 50.01px)"
     );
   }
 
@@ -2250,11 +2450,8 @@ mod a_comma_binds_more_loosely_than_or {
 /// parentheses refused all four of these — including the shape the reference
 /// implementation's own wrapped output is written in.
 ///
-/// Every expectation is quoted from a run of `@stylexjs/babel-plugin` 0.19.0,
-/// and each is worth reading twice: the parentheses that made the query
-/// parseable do not survive into the output. That is the reference
-/// implementation's serialization, precedence loss and all, and matching it is
-/// the point.
+/// An `or` beside an `and` keeps its parentheses in the output, so the
+/// precedence that was written is kept.
 #[cfg(test)]
 mod a_disjunction_inside_parentheses {
   use super::*;
@@ -2268,19 +2465,17 @@ mod a_disjunction_inside_parentheses {
     );
   }
 
-  /// Beside an `and`, on either side. The printed result reads as though the
-  /// `and` bound tighter than the `or`, which is not what was written — the
-  /// parentheses are gone and nothing replaced them.
+  /// Beside an `and`, on either side.
   #[test]
-  fn a_parenthesized_or_beside_an_and_loses_its_parentheses() {
+  fn a_parenthesized_or_beside_an_and_keeps_its_parentheses() {
     assert_eq!(
       rewritten_first_key("@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px)"),
-      "@media (min-width: 1px) or (min-width: 2px) and (min-width: 3px) and (not (max-width: 50px))"
+      "@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px) and (not (max-width: 50px))"
     );
 
     assert_eq!(
       rewritten_first_key("@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px))"),
-      "@media (min-width: 1px) and (min-width: 2px) or (min-width: 3px) and (not (max-width: 50px))"
+      "@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px)) and (not (max-width: 50px))"
     );
   }
 

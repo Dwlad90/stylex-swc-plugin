@@ -190,15 +190,12 @@ fn a_negated_query_has_no_bound() {
   assert_eq!(bound_of("@media (not (min-width: 1000px))"), None);
 }
 
-/// A negated media type beside a bound becomes its complement: `not screen
-/// and (min-width: 1000px)` is `print and (min-width: 1000px)`. The bound is
-/// not negated, so it stays the sort key. A negated media type alone has none.
+/// A leading `not` negates the whole query, the bound too: `not screen and
+/// (min-width: 1000px)` is `not (screen and (min-width: 1000px))`. So it has
+/// no bound, and a negated media type alone has none either.
 #[test]
-fn a_negated_media_type_keeps_the_bound_beside_it() {
-  assert_eq!(
-    bound_of("@media not screen and (min-width: 1000px)"),
-    min(1000.0)
-  );
+fn a_leading_not_negates_the_bound_beside_it() {
+  assert_eq!(bound_of("@media not screen and (min-width: 1000px)"), None);
   assert_eq!(bound_of("@media not screen"), None);
 }
 

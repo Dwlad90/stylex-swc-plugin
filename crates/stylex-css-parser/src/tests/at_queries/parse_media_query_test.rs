@@ -26,6 +26,17 @@ mod rule_assertions {
     }
   }
 
+  /// The operand of a `not` rule.
+  pub(super) fn not_operand(rule: &MediaQueryRule) -> &MediaQueryRule {
+    match rule {
+      MediaQueryRule::Not(not_rule) => {
+        assert_eq!(not_rule.r#type, "not");
+        &not_rule.rule
+      },
+      _ => stylex_panic!("Expected Not rule"),
+    }
+  }
+
   /// The rules of an `and` combinator, asserting its arity.
   pub(super) fn and_branches(rule: &MediaQueryRule, count: usize) -> &[MediaQueryRule] {
     match rule {
@@ -286,15 +297,11 @@ mod style_value_parser_at_queries {
         assert_eq!(parsed.to_string(), "@media not screen");
       }
 
-      /// `not only <type>` is accepted, and the `only` is not printed.
-      ///
-      /// The reference implementation's `mediaKeywordParser` takes both
-      /// modifiers as independently optional, so the pair parses, and its
-      /// serializer reads `not` first and never reaches the `only`. Measured on
-      /// 0.19.0: `@media not only screen` prints `@media not screen`, and
-      /// `@media not only print` prints `@media not print`.
+      /// `not only <type>` is accepted. A lone keyword prints its `not` and
+      /// hides the `only`. With a condition, the leading `not` negates the
+      /// whole query and the query prints as written.
       #[test]
-      fn media_accepts_not_only_and_drops_the_only() {
+      fn media_accepts_not_only() {
         let parsed = MediaQuery::parser()
           .parse_to_end("@media not only screen")
           .expect("`not only screen` is a query the reference implementation compiles");
@@ -307,7 +314,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           with_condition.to_string(),
-          "@media print and (min-width: 100px)"
+          "@media not only screen and (min-width: 100px)"
         );
       }
 
@@ -338,16 +345,11 @@ mod style_value_parser_at_queries {
           .parse_to_end("@media not all and (monochrome)")
           .unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-            assert_eq!(keyword.r#type, "media-keyword");
-            assert_eq!(keyword.key, "all");
-            assert!(keyword.not);
-          },
-          _ => stylex_panic!("Expected MediaKeyword rule for not all"),
-        }
+        let rules = and_branches(not_operand(&parsed.queries), 2);
+        assert_media_keyword(&rules[0], "all", false, false);
+        assert_word_rule(&rules[1], "monochrome");
 
-        assert_eq!(parsed.to_string(), "@media not all");
+        assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
       }
     }
 
@@ -1391,16 +1393,11 @@ mod style_value_parser_at_queries {
         let input = "@media not all and (monochrome)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-            assert_eq!(keyword.r#type, "media-keyword");
-            assert_eq!(keyword.key, "all");
-            assert!(keyword.not);
-          },
-          _ => stylex_panic!("Expected MediaKeyword rule for not all"),
-        }
+        let rules = and_branches(not_operand(&parsed.queries), 2);
+        assert_media_keyword(&rules[0], "all", false, false);
+        assert_word_rule(&rules[1], "monochrome");
 
-        assert_eq!(parsed.to_string(), "@media not all");
+        assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
       }
 
       #[test]
@@ -2674,16 +2671,15 @@ mod style_value_parser_at_queries {
         let input = "@media not all and (monochrome) and (min-width: 600px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-            assert_eq!(keyword.r#type, "media-keyword");
-            assert_eq!(keyword.key, "all");
-            assert!(keyword.not);
-          },
-          _ => stylex_panic!("Expected MediaKeyword rule for not all"),
-        }
+        let rules = and_branches(not_operand(&parsed.queries), 3);
+        assert_media_keyword(&rules[0], "all", false, false);
+        assert_word_rule(&rules[1], "monochrome");
+        assert_length_pair(&rules[2], "min-width", 600.0, "px");
 
-        assert_eq!(parsed.to_string(), "@media not all");
+        assert_eq!(
+          parsed.to_string(),
+          "@media not all and (monochrome) and (min-width: 600px)"
+        );
       }
 
       #[test]

@@ -20,7 +20,7 @@ _inject2({
 export const styles = {
     a: (backgroundColor, backgroundColorHover)=>[
             {
-                kWkggS: (backgroundColor != null ? "x1fvhpy6 " : backgroundColor) + (backgroundColorHover != null ? "x1j2k28p" : backgroundColorHover),
+                kWkggS: (backgroundColor != null ? "x1fvhpy6 " : "") + (backgroundColorHover != null ? "x1j2k28p" : ""),
                 $$css: true
             },
             {

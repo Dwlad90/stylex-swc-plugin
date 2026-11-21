@@ -11,8 +11,8 @@ export const styles = {
     },
     dyn: (width)=>[
             _temp,
-            {
-                "width-kzqmXN": width != null ? "x5lhr3w" : width,
+            width !== undefined && {
+                "width-kzqmXN": width != null ? "x5lhr3w" : "",
                 $$css: "MyComponent.js:5"
             },
             {

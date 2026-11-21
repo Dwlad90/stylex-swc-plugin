@@ -29,7 +29,7 @@ _inject2({
 export const styles = {
     bare: (zIndex)=>[
             {
-                kY2c9j: (zIndex != null ? "xkrcnwa " : zIndex) + (zIndex != null ? "x1xt2tkc" : zIndex),
+                kY2c9j: (zIndex != null ? "xkrcnwa " : "") + (zIndex != null ? "x1xt2tkc" : ""),
                 $$css: true
             },
             {
@@ -39,7 +39,7 @@ export const styles = {
         ],
     conditionless: (zIndex)=>[
             {
-                kY2c9j: (zIndex != null ? "xkrcnwa " : zIndex) + (zIndex != null ? "xhjt48w" : zIndex),
+                kY2c9j: (zIndex != null ? "xkrcnwa " : "") + (zIndex != null ? "xhjt48w" : ""),
                 $$css: true
             },
             {

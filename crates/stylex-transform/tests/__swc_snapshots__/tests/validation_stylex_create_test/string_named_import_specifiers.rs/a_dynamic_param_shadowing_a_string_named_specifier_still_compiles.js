@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     dyn: (c)=>[
-            {
-                kMwMTN: c != null ? "x14rh7hd" : c,
+            c !== undefined && {
+                kMwMTN: c != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

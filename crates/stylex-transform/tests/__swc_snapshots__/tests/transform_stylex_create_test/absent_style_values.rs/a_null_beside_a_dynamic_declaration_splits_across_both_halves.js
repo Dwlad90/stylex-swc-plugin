@@ -16,8 +16,8 @@ _inject2({
 export const styles = {
     dyn: (h)=>[
             _temp,
-            {
-                kzqmXN: h != null ? "x5lhr3w" : h,
+            h !== undefined && {
+                kzqmXN: h != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

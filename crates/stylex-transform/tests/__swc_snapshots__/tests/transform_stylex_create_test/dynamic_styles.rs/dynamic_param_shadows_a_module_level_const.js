@@ -19,8 +19,8 @@ export const styles = {
         $$css: true
     },
     dyn: (gap)=>[
-            {
-                khm7nJ: gap != null ? "x1r8uycs" : gap,
+            gap !== undefined && {
+                khm7nJ: gap != null ? "x1r8uycs" : "",
                 $$css: true
             },
             {

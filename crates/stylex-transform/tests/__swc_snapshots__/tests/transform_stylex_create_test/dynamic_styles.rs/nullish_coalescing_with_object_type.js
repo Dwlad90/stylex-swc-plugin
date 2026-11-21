@@ -3,8 +3,8 @@ export const styles = {
     fn: (opt: {
         height?: number;
     })=>[
-            {
-                kZKoxP: (opt.height ?? null) != null ? "x16ye13r" : opt.height ?? null,
+            (opt.height ?? null) !== undefined && {
+                kZKoxP: (opt.height ?? null) != null ? "x16ye13r" : "",
                 $$css: true
             },
             {

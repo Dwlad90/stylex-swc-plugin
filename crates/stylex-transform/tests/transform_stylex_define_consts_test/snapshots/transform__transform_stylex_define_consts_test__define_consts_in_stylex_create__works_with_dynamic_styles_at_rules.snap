@@ -7,7 +7,7 @@ import { breakpoints } from './constants.stylex';
 export const styles = {
     node: (color)=>[
             {
-                kMwMTN: "x1pitq50 " + (color != null ? "x3d248p" : color),
+                kMwMTN: "x1pitq50 " + (color != null ? "x3d248p" : ""),
                 $$css: true
             },
             {

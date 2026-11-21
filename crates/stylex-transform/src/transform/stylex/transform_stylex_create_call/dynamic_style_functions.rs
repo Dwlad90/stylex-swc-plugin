@@ -3,23 +3,37 @@ use crate::shared::utils::core::js_to_ast::{
   CompiledNamespaces, CompiledValues, NamedProp, named_props_to_object, namespaces_to_object,
 };
 use std::borrow::Cow;
-use stylex_ast::ast::factories::create_arrow_expression_with_params;
+use stylex_ast::ast::{
+  convertors::create_ident_expr, factories::create_arrow_expression_with_params,
+};
 use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_state::types::{ClassPathsInNamespace, ClassPathsMap, DynamicFns, TInlineStyles};
 use swc_core::ecma::ast::BindingIdent;
 
-/// The class-name expression one compiled property contributes, and whether it
-/// stayed static.
+/// The object a compiled property is emitted on.
+enum Placement {
+  /// No class name depends on an argument. The property goes on the hoisted
+  /// object.
+  Static,
+  /// The property has one class name, and this argument decides it. The
+  /// property gets its own object, which applies only when the argument is not
+  /// undefined.
+  Guarded(Expr),
+  /// More than one class name, and at least one depends on an argument. The
+  /// property goes on the shared conditional object.
+  Conditional,
+}
+
+/// The class-name expression one compiled property contributes, and the object
+/// it is emitted on.
 struct PropClassNames {
   /// The concatenation the property's value becomes.
   joined: Expr,
-  /// False once any class name in the list became conditional, which is what
-  /// decides whether the property is emitted on the static object or the
-  /// conditional one.
-  is_static: bool,
+  placement: Placement,
 }
 
-/// Assemble one compiled property's class names into the expression it emits.
+/// Assemble one compiled property's class names into the expression it emits,
+/// and find the object the property goes on.
 ///
 /// Lifted out of `apply_dynamic_style_functions`, which reached about thirty
 /// columns deep by the time it got here. The inputs are what the question
@@ -34,7 +48,7 @@ fn class_names_for_prop(
   nullish_var_expressions: &FxHashMap<String, Expr>,
   injected_styles: &InjectableStylesMap,
 ) -> PropClassNames {
-  let mut is_static = true;
+  let mut placement = Placement::Static;
   let mut expr_list = Vec::with_capacity(class_list.len());
 
   for (index, cls) in class_list.iter().enumerate() {
@@ -66,11 +80,18 @@ fn class_names_for_prop(
     };
 
     if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e)) {
-      is_static = false;
+      placement = if class_list.len() == 1 {
+        Placement::Guarded(expr.clone())
+      } else {
+        Placement::Conditional
+      };
+
+      // A null or undefined argument adds an empty string. The argument itself
+      // would become the text "null" or "undefined" when joined to a class name.
       expr_list.push(create_cond_expr(
-        create_bin_expr(BinaryOp::NotEq, expr.clone(), create_null_expr()),
+        create_bin_expr(BinaryOp::NotEq, expr, create_null_expr()),
         create_string_expr(&cls_with_space),
-        expr,
+        create_string_expr(""),
       ));
     } else {
       expr_list.push(create_string_expr(&cls_with_space));
@@ -85,7 +106,7 @@ fn class_names_for_prop(
     .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
     .unwrap_or_else(|| create_string_expr(""));
 
-  PropClassNames { joined, is_static }
+  PropClassNames { joined, placement }
 }
 
 /// The dynamic styles one namespace declares, keyed by the path each claims.
@@ -192,6 +213,7 @@ fn dynamic_namespace_fn(
 
   let mut static_props = Vec::with_capacity(values.len());
   let mut conditional_props = Vec::with_capacity(values.len());
+  let mut guarded_props = Vec::new();
 
   for NamedProp { key, value } in values {
     if key == COMPILED_KEY {
@@ -215,7 +237,7 @@ fn dynamic_namespace_fn(
     // declaration of the same property when two styles merge -- still owns its
     // key, and the `joined` fallback spells it `""`. Skipping the property
     // instead dropped the key, and a key that is not there unsets nothing.
-    let PropClassNames { joined, is_static } = class_names_for_prop(
+    let PropClassNames { joined, placement } = class_names_for_prop(
       &class_list,
       &dynamic_styles,
       orig_class_paths,
@@ -225,10 +247,10 @@ fn dynamic_namespace_fn(
 
     let prop = create_key_value_prop(key, joined);
 
-    if is_static {
-      static_props.push(prop);
-    } else {
-      conditional_props.push(prop);
+    match placement {
+      Placement::Static => static_props.push(prop),
+      Placement::Guarded(expr) => guarded_props.push((prop, expr)),
+      Placement::Conditional => conditional_props.push(prop),
     }
   }
 
@@ -256,6 +278,23 @@ fn dynamic_namespace_fn(
     ));
 
     array_elements.push(Some(create_expr_or_spread(Expr::Ident(hoisted))));
+  }
+
+  // Each guarded property is its own object, which applies only when its
+  // argument is not undefined. An undefined argument gives false, which the
+  // merge skips, so the earlier value of the property stays. A null argument
+  // sets the property to an empty string, which unsets it.
+  for (prop, expr) in guarded_props {
+    let guarded = create_bin_expr(
+      BinaryOp::LogicalAnd,
+      create_bin_expr(BinaryOp::NotEqEq, expr, create_ident_expr("undefined")),
+      create_object_expression(vec![
+        prop,
+        create_key_value_prop(COMPILED_KEY, css_tag_value.clone()),
+      ]),
+    );
+
+    array_elements.push(Some(create_expr_or_spread(guarded)));
   }
 
   if !conditional_props.is_empty() {

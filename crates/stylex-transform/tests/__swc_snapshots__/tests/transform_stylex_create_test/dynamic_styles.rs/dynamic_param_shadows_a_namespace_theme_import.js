@@ -12,8 +12,8 @@ _inject2({
 });
 export const styles = {
     dyn: (tokens)=>[
-            {
-                kMwMTN: tokens != null ? "x14rh7hd" : tokens,
+            tokens !== undefined && {
+                kMwMTN: tokens != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

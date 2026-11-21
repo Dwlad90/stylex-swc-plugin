@@ -28,7 +28,7 @@ _inject2({
 export const styles = {
     root: (a, b, c)=>[
             {
-                kGuDYH: (a != null ? "xww4jgc " : a) + (b != null ? "xfqys7t " : b) + (c != null ? "x13w7uki" : c),
+                kGuDYH: (a != null ? "xww4jgc " : "") + (b != null ? "xfqys7t " : "") + (c != null ? "x13w7uki" : ""),
                 $$css: true
             },
             {

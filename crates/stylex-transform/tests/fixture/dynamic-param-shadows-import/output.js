@@ -27,8 +27,8 @@ export const styles = {
     },
     zIndex: (zIndex)=>[
             _temp,
-            {
-                zIndex: zIndex != null ? "xr3buco" : zIndex,
+            zIndex !== undefined && {
+                zIndex: zIndex != null ? "xr3buco" : "",
                 $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:6"
             },
             {

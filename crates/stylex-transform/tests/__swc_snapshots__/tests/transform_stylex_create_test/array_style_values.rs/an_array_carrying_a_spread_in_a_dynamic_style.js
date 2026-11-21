@@ -14,14 +14,14 @@ _inject2({
 });
 export const styles = {
     dyn: (h)=>[
-            {
+            [
+                ...xs,
+                '2px'
+            ] !== undefined && {
                 kZKoxP: [
                     ...xs,
                     '2px'
-                ] != null ? "x16ye13r" : [
-                    ...xs,
-                    '2px'
-                ],
+                ] != null ? "x16ye13r" : "",
                 $$css: true
             },
             {

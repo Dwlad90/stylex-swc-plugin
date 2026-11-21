@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     root: (width)=>[
-            {
-                kzqmXN: width != null ? "x5lhr3w" : width,
+            width !== undefined && {
+                kzqmXN: width != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

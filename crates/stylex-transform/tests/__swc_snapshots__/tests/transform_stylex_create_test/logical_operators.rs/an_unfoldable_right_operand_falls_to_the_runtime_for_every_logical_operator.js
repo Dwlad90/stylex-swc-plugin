@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     a: (props)=>[
-            {
-                kMwMTN: (props.flag && "documentation".startsWith(props.q)) != null ? "x14rh7hd" : props.flag && "documentation".startsWith(props.q),
+            (props.flag && "documentation".startsWith(props.q)) !== undefined && {
+                kMwMTN: (props.flag && "documentation".startsWith(props.q)) != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {
@@ -20,8 +20,8 @@ export const styles = {
             }
         ],
     b: (props)=>[
-            {
-                kMwMTN: (props.flag || "documentation".startsWith(props.q)) != null ? "x14rh7hd" : props.flag || "documentation".startsWith(props.q),
+            (props.flag || "documentation".startsWith(props.q)) !== undefined && {
+                kMwMTN: (props.flag || "documentation".startsWith(props.q)) != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {
@@ -29,8 +29,8 @@ export const styles = {
             }
         ],
     c: (props)=>[
-            {
-                kMwMTN: (props.flag ?? "documentation".startsWith(props.q)) != null ? "x14rh7hd" : props.flag ?? "documentation".startsWith(props.q),
+            (props.flag ?? "documentation".startsWith(props.q)) !== undefined && {
+                kMwMTN: (props.flag ?? "documentation".startsWith(props.q)) != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

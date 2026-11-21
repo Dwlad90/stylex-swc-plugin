@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     root: (size)=>[
-            {
-                kzqmXN: Number(size) != null ? "x5lhr3w" : Number(size),
+            Number(size) !== undefined && {
+                kzqmXN: Number(size) != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

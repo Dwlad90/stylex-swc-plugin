@@ -14,14 +14,14 @@ _inject2({
 });
 export const styles = {
     a: (props)=>[
-            {
+            [
+                zero ?? colors.glow,
+                props.x
+            ].join('') !== undefined && {
                 kMwMTN: [
                     zero ?? colors.glow,
                     props.x
-                ].join('') != null ? "x14rh7hd" : [
-                    zero ?? colors.glow,
-                    props.x
-                ].join(''),
+                ].join('') != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

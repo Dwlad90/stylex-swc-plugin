@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     repro: (color)=>[
-            {
-                kDPRdz: color != null ? "xadwnm5" : color,
+            color !== undefined && {
+                kDPRdz: color != null ? "xadwnm5" : "",
                 $$css: true
             },
             {

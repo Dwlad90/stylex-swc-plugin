@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     escaped: (ünïcödé)=>[
-            {
-                kmVPX3: ünïcödé != null ? "x1fozly0" : ünïcödé,
+            ünïcödé !== undefined && {
+                kmVPX3: ünïcödé != null ? "x1fozly0" : "",
                 $$css: true
             },
             {

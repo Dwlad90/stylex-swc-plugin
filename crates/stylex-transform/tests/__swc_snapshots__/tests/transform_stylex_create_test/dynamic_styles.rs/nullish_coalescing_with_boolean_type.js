@@ -4,13 +4,13 @@ export const styles = {
         isPressed: boolean;
     })=>[
             {
-                kI3sdo: {
+                true: 'red',
+                false: 'blue'
+            }[String(!!opt?.isPressed)] !== undefined && {
+                kI3sdo: ({
                     true: 'red',
                     false: 'blue'
-                }[String(!!opt?.isPressed)] != null ? "xem5pho" : ({
-                    true: 'red',
-                    false: 'blue'
-                })[String(!!opt?.isPressed)],
+                })[String(!!opt?.isPressed)] != null ? "xem5pho" : "",
                 $$css: true
             },
             {

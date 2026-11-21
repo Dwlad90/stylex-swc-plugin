@@ -6,8 +6,8 @@ const _temp = {
 export const styles = {
     root: (color, isDark)=>[
             _temp,
-            {
-                kMwMTN: (isDark ? color : 'black') != null ? "x14rh7hd" : isDark ? color : 'black',
+            (isDark ? color : 'black') !== undefined && {
+                kMwMTN: (isDark ? color : 'black') != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

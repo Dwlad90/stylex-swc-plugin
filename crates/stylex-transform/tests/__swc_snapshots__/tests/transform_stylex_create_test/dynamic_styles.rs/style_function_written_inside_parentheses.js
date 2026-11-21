@@ -20,8 +20,8 @@ _inject2({
 export const styles = {
     root: (color)=>[
             _temp,
-            {
-                kMwMTN: color != null ? "x14rh7hd" : color,
+            color !== undefined && {
+                kMwMTN: color != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

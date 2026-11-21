@@ -16,7 +16,7 @@ _inject2({
 export const styles = {
     a: (undefined)=>[
             {
-                kMwMTN: (undefined != null ? "x3d248p " : undefined) + "x1dgwipm",
+                kMwMTN: (undefined != null ? "x3d248p " : "") + "x1dgwipm",
                 $$css: true
             },
             {

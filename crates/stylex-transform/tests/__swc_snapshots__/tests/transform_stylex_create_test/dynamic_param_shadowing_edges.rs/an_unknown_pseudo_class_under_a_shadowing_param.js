@@ -30,7 +30,7 @@ export const styles = {
     },
     dyn: (zIndex)=>[
             {
-                kY2c9j: (zIndex != null ? "xkrcnwa " : zIndex) + (zIndex != null ? "x1ytmd8f" : zIndex),
+                kY2c9j: (zIndex != null ? "xkrcnwa " : "") + (zIndex != null ? "x1ytmd8f" : ""),
                 $$css: true
             },
             {

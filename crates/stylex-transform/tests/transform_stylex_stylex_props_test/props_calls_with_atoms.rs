@@ -87,6 +87,18 @@ stylex_test!(
 );
 
 stylex_test!(
+  dynamic_style_local,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      color: (c) => ({ color: c }),
+    });
+    stylex.props(styles.color(color));
+  "#
+);
+
+stylex_test!(
   inline_static_inline_dynamic_coexist,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"

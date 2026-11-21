@@ -1,8 +1,8 @@
 import * as stylex from '@stylexjs/stylex';
 const _styles = {
     color: (value)=>[
-            {
-                kMwMTN: value != null ? "x14rh7hd" : value,
+            value !== undefined && {
+                kMwMTN: value != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

@@ -20,8 +20,8 @@ _inject2({
 const _styles = {
     color: (value: string)=>[
             _temp,
-            {
-                "color-kMwMTN": value != null ? "x14rh7hd" : value,
+            value !== undefined && {
+                "color-kMwMTN": value != null ? "x14rh7hd" : "",
                 $$css: "MyComponent.tsx:5"
             },
             {

@@ -28,7 +28,7 @@ _inject2({
 export const styles = {
     root: (a, b, c)=>[
             {
-                kzqmXN: "x11ymkkh " + "xwr9iet " + (c != null ? "x1bai16n" : c),
+                kzqmXN: "x11ymkkh " + "xwr9iet " + (c != null ? "x1bai16n" : ""),
                 $$css: true
             },
             {

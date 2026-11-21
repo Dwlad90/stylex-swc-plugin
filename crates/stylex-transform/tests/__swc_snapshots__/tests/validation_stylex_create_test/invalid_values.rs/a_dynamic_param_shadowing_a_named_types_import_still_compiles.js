@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     dyn: (types)=>[
-            {
-                kZKoxP: types != null ? "x16ye13r" : types,
+            types !== undefined && {
+                kZKoxP: types != null ? "x16ye13r" : "",
                 $$css: true
             },
             {

@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     a: (undefined)=>[
-            {
-                kzqmXN: undefined != null ? "x5lhr3w" : undefined,
+            undefined !== undefined && {
+                kzqmXN: undefined != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

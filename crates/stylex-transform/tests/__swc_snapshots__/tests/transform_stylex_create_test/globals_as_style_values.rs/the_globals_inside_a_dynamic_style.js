@@ -28,8 +28,8 @@ _inject2({
 export const styles = {
     notANumber: (h)=>[
             _temp,
-            {
-                kzqmXN: h != null ? "x5lhr3w" : h,
+            h !== undefined && {
+                kzqmXN: h != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {
@@ -38,8 +38,8 @@ export const styles = {
         ],
     infinite: (h)=>[
             _temp2,
-            {
-                kzqmXN: h != null ? "x5lhr3w" : h,
+            h !== undefined && {
+                kzqmXN: h != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

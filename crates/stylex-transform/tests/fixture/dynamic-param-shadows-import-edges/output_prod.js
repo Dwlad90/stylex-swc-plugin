@@ -15,8 +15,8 @@ export const styles = {
         $$css: true
     },
     unicodeParam: (ünïcödé)=>[
-            {
-                kmVPX3: ünïcödé != null ? "x1fozly0" : ünïcödé,
+            ünïcödé !== undefined && {
+                kmVPX3: ünïcödé != null ? "x1fozly0" : "",
                 $$css: true
             },
             {
@@ -24,8 +24,8 @@ export const styles = {
             }
         ],
     escapedParam: (ünïcödé)=>[
-            {
-                kogj98: ünïcödé != null ? "xb9ncqk" : ünïcödé,
+            ünïcödé !== undefined && {
+                kogj98: ünïcödé != null ? "xb9ncqk" : "",
                 $$css: true
             },
             {
@@ -33,8 +33,8 @@ export const styles = {
             }
         ],
     helperName: (firstThatWorks)=>[
-            {
-                kMv6JI: firstThatWorks != null ? "xk2v41j" : firstThatWorks,
+            firstThatWorks !== undefined && {
+                kMv6JI: firstThatWorks != null ? "xk2v41j" : "",
                 $$css: true
             },
             {
@@ -42,9 +42,12 @@ export const styles = {
             }
         ],
     shorthand: (zIndex)=>[
-            {
-                kpwlN0: zIndex != null ? "xccw97s" : zIndex,
-                kUOVxO: zIndex != null ? "xvlecxo" : zIndex,
+            zIndex !== undefined && {
+                kpwlN0: zIndex != null ? "xccw97s" : "",
+                $$css: true
+            },
+            zIndex !== undefined && {
+                kUOVxO: zIndex != null ? "xvlecxo" : "",
                 $$css: true
             },
             {
@@ -53,9 +56,12 @@ export const styles = {
             }
         ],
     customProperty: (zIndex)=>[
-            {
-                "--depth": zIndex != null ? "x5h8hlk" : zIndex,
-                "--nested-depth": zIndex != null ? "x91d7kb" : zIndex,
+            zIndex !== undefined && {
+                "--depth": zIndex != null ? "x5h8hlk" : "",
+                $$css: true
+            },
+            zIndex !== undefined && {
+                "--nested-depth": zIndex != null ? "x91d7kb" : "",
                 $$css: true
             },
             {
@@ -64,9 +70,12 @@ export const styles = {
             }
         ],
     prefixed: (zIndex)=>[
-            {
-                kfSwDN: zIndex != null ? "x9pkiyq" : zIndex,
-                kysU6D: zIndex != null ? "xafmcc1" : zIndex,
+            zIndex !== undefined && {
+                kfSwDN: zIndex != null ? "x9pkiyq" : "",
+                $$css: true
+            },
+            zIndex !== undefined && {
+                kysU6D: zIndex != null ? "xafmcc1" : "",
                 $$css: true
             },
             {
@@ -76,7 +85,7 @@ export const styles = {
         ],
     deeplyNested: (zIndex)=>[
             {
-                kY2c9j: (zIndex != null ? "xkrcnwa " : zIndex) + (zIndex != null ? "x141uv47 " : zIndex) + (zIndex != null ? "x140siia " : zIndex) + (zIndex != null ? "xlzq18l " : zIndex) + (zIndex != null ? "x103ewrf " : zIndex) + (zIndex != null ? "x1gxqx9w " : zIndex) + (zIndex != null ? "xqw1h1y " : zIndex) + (zIndex != null ? "x15stwyu" : zIndex),
+                kY2c9j: (zIndex != null ? "xkrcnwa " : "") + (zIndex != null ? "x141uv47 " : "") + (zIndex != null ? "x140siia " : "") + (zIndex != null ? "xlzq18l " : "") + (zIndex != null ? "x103ewrf " : "") + (zIndex != null ? "x1gxqx9w " : "") + (zIndex != null ? "xqw1h1y " : "") + (zIndex != null ? "x15stwyu" : ""),
                 $$css: true
             },
             {
@@ -99,9 +108,12 @@ export const styles = {
             }
         ],
     mixedParams: (zIndex, level)=>[
-            {
-                kY2c9j: zIndex != null ? "xr3buco" : zIndex,
-                kayTVb: level != null ? "xuwbzjh" : level,
+            zIndex !== undefined && {
+                kY2c9j: zIndex != null ? "xr3buco" : "",
+                $$css: true
+            },
+            level !== undefined && {
+                kayTVb: level != null ? "xuwbzjh" : "",
                 $$css: true
             },
             {

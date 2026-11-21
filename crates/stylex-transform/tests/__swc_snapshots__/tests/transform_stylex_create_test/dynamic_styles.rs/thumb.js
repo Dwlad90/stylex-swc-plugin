@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     foo: (width)=>[
-            {
-                k8pbKx: width != null ? "x18fgbt0" : width,
+            width !== undefined && {
+                k8pbKx: width != null ? "x18fgbt0" : "",
                 $$css: true
             },
             {

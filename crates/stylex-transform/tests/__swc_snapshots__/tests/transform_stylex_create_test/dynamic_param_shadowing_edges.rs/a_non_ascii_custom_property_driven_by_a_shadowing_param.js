@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     dyn: (zIndex)=>[
-            {
-                "--dépth": zIndex != null ? "x1xmayp6" : zIndex,
+            zIndex !== undefined && {
+                "--dépth": zIndex != null ? "x1xmayp6" : "",
                 $$css: true
             },
             {

@@ -19,8 +19,8 @@ _inject2({
 });
 export const styles = {
     shadowed: (NaN)=>[
-            {
-                kZKoxP: NaN != null ? "x16ye13r" : NaN,
+            NaN !== undefined && {
+                kZKoxP: NaN != null ? "x16ye13r" : "",
                 $$css: true
             },
             {
@@ -28,8 +28,8 @@ export const styles = {
             }
         ],
     alsoShadowed: (Infinity)=>[
-            {
-                kzqmXN: Infinity != null ? "x5lhr3w" : Infinity,
+            Infinity !== undefined && {
+                kzqmXN: Infinity != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

@@ -1,9 +1,12 @@
 import * as stylex from '@stylexjs/stylex';
 const _styles = {
     box: (value)=>[
-            {
-                kzqmXN: value != null ? "x5lhr3w" : value,
-                kogj98: gap != null ? "xb9ncqk" : gap,
+            value !== undefined && {
+                kzqmXN: value != null ? "x5lhr3w" : "",
+                $$css: true
+            },
+            gap !== undefined && {
+                kogj98: gap != null ? "xb9ncqk" : "",
                 $$css: true
             },
             {

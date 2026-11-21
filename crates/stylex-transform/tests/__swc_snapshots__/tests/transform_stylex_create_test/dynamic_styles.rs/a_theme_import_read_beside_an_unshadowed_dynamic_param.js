@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     dyn: (level)=>[
-            {
-                kY2c9j: level != null ? "xr3buco" : level,
+            level !== undefined && {
+                kY2c9j: level != null ? "xr3buco" : "",
                 $$css: true
             },
             {

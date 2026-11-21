@@ -371,17 +371,12 @@ stylex_test!(
   "#
 );
 
-// A value that reads as empty declares nothing, so the atom compiles to a
-// namespace holding no class and injects no rule. `_` is the leading underscore
-// the value reader strips, which leaves the empty string.
-//
-// Answering nothing is intended rather than merely what happens. A declaration
-// with no value is what `stylex.create({ root: { display: "" } })` answers here
-// too -- the property is compiled to `null` and no rule is injected -- and
-// `@stylexjs/babel-plugin` 0.19.0 has no answer of its own to compare with: the
-// same source stops it with `Cannot read properties of undefined`.
-stylex_test!(
-  inline_static_with_an_empty_value_declares_nothing,
+// `_` is the leading underscore the value reader strips, which leaves the empty
+// string. An empty value has nothing to normalize, so the build fails, as the
+// reference does, and as `stylex.create({ root: { display: "" } })` does.
+stylex_test_panic!(
+  inline_static_with_an_empty_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';

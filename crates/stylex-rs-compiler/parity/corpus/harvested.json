@@ -606,7 +606,7 @@
       "id": "0912fd45",
       "property": "backgroundPosition",
       "value": "50% bottom",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:577"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:569"
     },
     {
       "id": "9c56c85f",
@@ -894,7 +894,7 @@
       "id": "fddca2b8",
       "property": "borderTop",
       "value": "none",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:329"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:327"
     },
     {
       "id": "fba22abf",
@@ -1110,7 +1110,7 @@
       "id": "0b0c0199",
       "property": "color",
       "value": "#ffffff",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:621"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:613"
     },
     {
       "id": "eece2dfa",
@@ -1224,19 +1224,19 @@
       "id": "0f0b8122",
       "property": "color",
       "value": "\\u00a0",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:410"
     },
     {
       "id": "fc5abd93",
       "property": "color",
       "value": "\\u2028",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:410"
     },
     {
       "id": "654fe3e8",
       "property": "color",
       "value": "\\u3000",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:410"
     },
     {
       "id": "a964decb",
@@ -2748,7 +2748,7 @@
       "id": "7c68fc4c",
       "property": "gridTemplateAreas",
       "value": "'sidebar content'",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:637"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:629"
     },
     {
       "id": "880b29d9",
@@ -3090,7 +3090,7 @@
       "id": "163db9aa",
       "property": "left",
       "value": "-10000px",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:668"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:660"
     },
     {
       "id": "be487320",
@@ -3324,7 +3324,7 @@
       "id": "c02472d6",
       "property": "margin",
       "value": "calc(var(--b) * var(--c)) 0",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:603"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:595"
     },
     {
       "id": "00f2d028",
@@ -3864,7 +3864,7 @@
       "id": "9830d610",
       "property": "transform",
       "value": "translateX(-50%) translateY(-50%)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:653"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:645"
     },
     {
       "id": "ebcd1cd7",
@@ -3894,7 +3894,7 @@
       "id": "deb4e2fb",
       "property": "transition",
       "value": "opacity 0.2s ease-in-out",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:577"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:569"
     },
     {
       "id": "dc778c35",
@@ -4086,7 +4086,7 @@
       "id": "bb7fad1d",
       "property": "translate",
       "value": "-50% -120%",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:577"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:569"
     },
     {
       "id": "384f5174",
@@ -4356,7 +4356,7 @@
       "id": "1927f6b2",
       "property": "width",
       "value": "1px\\u30002px",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:410"
     },
     {
       "id": "d80ecbb1",
@@ -4416,7 +4416,7 @@
       "id": "5539aed4",
       "property": "width",
       "value": "calc(-1 * var(--spacing))",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:603"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:595"
     },
     {
       "id": "5b8a0e8f",

@@ -4,7 +4,7 @@ use stylex_css::css::common::{get_number_suffix, normalize_css_property_value};
 use stylex_css::values::content::transform_content_value;
 use stylex_state::state_manager::StateManager;
 use stylex_structures::raw_value::TRawValue;
-use stylex_utils::{math::round_f64, number::to_js_string, string::is_blank_css_text};
+use stylex_utils::{math::round_f64, number::to_js_string};
 
 /// Converts a CSS value in JS to the final CSS string value.
 ///
@@ -25,20 +25,9 @@ pub(crate) fn transform_value(key: &str, raw_value: &TRawValue, state: &StateMan
     return transform_content_value(value.trim());
   }
 
-  // A value with no CSS text in it has nothing to normalize, and normalization
-  // says so rather than inventing an answer. Whether that leaves the property
-  // undeclared or fails the build is a decision above normalization, and this
-  // compiler leaves it undeclared: `convert_style_to_class_name` reads the
-  // blank back and emits no declaration for it.
-  //
-  // Checked here rather than on the authored text, since `content: ' '`
-  // acquires its text from the quoting above and so never reaches this line.
-  // Skipping normalization also skips its custom-property validation, which
-  // costs nothing: a blank carries no `var()` to validate.
-  if is_blank_css_text(&value) {
-    return value;
-  }
-
+  // A blank value has nothing to normalize, so normalization fails the build,
+  // as the reference does. The `content` path above quotes its value first, so
+  // `content: ' '` is not blank when it gets there.
   normalize_css_property_value(key, value.as_ref(), &state.options)
 }
 

@@ -117,23 +117,41 @@ stylex_test!(
   "#
 );
 
-// A value that spells no CSS text declares nothing, so `top:` never reaches the
-// at-rule body. `null` means nothing anywhere; a blank string normalizes to the
-// same nothing.
+// A `null` value declares nothing, so `top:` never reaches the at-rule body.
 //
-// The body is what the name is hashed from, so `--x1rdsnup` recurring is the
+// The body is what the name is hashed from, so `--xsgi8eb` recurring is the
 // claim that the declaration is really gone rather than emitted empty: it is the
-// name a body with only the anchor produces. Measured output of
-// `@stylexjs/babel-plugin` 0.19.0 for each input.
+// name a body with only the anchor produces.
 stylex_test!(
-  a_value_that_spells_nothing_declares_nothing,
+  a_null_value_declares_nothing,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const nullish = stylex.positionTry({ positionAnchor: '--a', top: null });
-    export const empty = stylex.positionTry({ positionAnchor: '--a', top: '' });
-    export const blank = stylex.positionTry({ positionAnchor: '--a', top: ' ' });
     export const anchorOnly = stylex.positionTry({ positionAnchor: '--a' });
+  "#
+);
+
+// An empty value has nothing to normalize, so the build fails, as the reference
+// does.
+stylex_test_panic!(
+  an_empty_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const empty = stylex.positionTry({ positionAnchor: '--a', top: '' });
+  "#
+);
+
+// A value of only spaces is blank too, so the build fails for the same reason.
+stylex_test_panic!(
+  a_blank_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const blank = stylex.positionTry({ positionAnchor: '--a', top: ' ' });
   "#
 );
 

@@ -72,7 +72,8 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
 /// The body of one `@position-try` rule, its declarations written in the order
 /// their property names sort in, which is the UTF-16 order JavaScript sorts by.
 ///
-/// A declaration whose value spells no CSS text contributes nothing.
+/// A pair with a blank half contributes nothing. A blank value fails the build
+/// before it gets here.
 fn construct_position_try_obj(mut styles: Vec<PairCow>) -> String {
   // Each name is held once, so the order of the sort is total.
   styles.sort_unstable_by(|left, right| js_string_cmp(&left.key, &right.key));

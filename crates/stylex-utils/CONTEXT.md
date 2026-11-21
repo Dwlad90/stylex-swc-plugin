@@ -29,9 +29,9 @@ _Avoid_: style hash, namespace hash
 
 **Blank CSS text**:
 A string that spells no CSS value at all, via `is_blank_css_text`. The test is
-every byte at or below 32, so a C0 control is blank as well as a space. A
-property whose value is blank CSS text is left undeclared, because `color:` is
-not something a browser accepts. Named against
+every byte at or below 32, so a C0 control is blank as well as a space. A pair
+of CSS text with a blank half declares nothing, because `color:` is not
+something a browser accepts. Named against
 [CSS text](../stylex-structures/CONTEXT.md), which is what a value spells when
 it is not blank.
 _Avoid_: empty value, blank string, whitespace check

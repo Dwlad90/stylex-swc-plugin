@@ -389,17 +389,14 @@ stylex_test!(
   "#
 );
 
-// Whitespace the *scanner* does not recognise. `is_blank_css_text` decides
-// whether a value spells anything at all, and deciding it with `str::trim`
-// answered for Unicode whitespace too — so a value of U+3000 or U+00A0 was
-// dropped and the property left undeclared, where the reference compiler emits
-// it. The scanner calls a character whitespace only when its code is at most
-// 32, which makes each of these a word token carrying a value.
+// Whitespace the *scanner* does not recognise. The scanner calls a character
+// whitespace only when its code is at most 32, so each of these is a word
+// token carrying a value. The value is not blank, so the build does not fail,
+// and the reference compiler emits it too.
 //
 // Written as JS escapes so the invisible characters survive review: `　` is
 // an ideographic space, ` ` a no-break space, ` ` a line separator.
-// The array forms reach the same predicate down the fallback path, where a
-// dropped value changes the composed `var()` rather than the declaration.
+// The array forms take the same values down the fallback path.
 //
 // Upstream: .xxdme56{color:　}
 //           .xmqzhnh{color: }

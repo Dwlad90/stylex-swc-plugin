@@ -293,7 +293,7 @@ mod is_blank_css_text_tests {
     // The value scanner reads whitespace as "char code <= 32" and nothing
     // else, so each of these is a *word token* to it, not a gap. The
     // reference compiler emits them: `transformValue("color", "\u{3000}")`
-    // produces the declaration rather than dropping the property.
+    // produces the declaration.
     assert!(!is_blank_css_text("\u{3000}")); // ideographic space
     assert!(!is_blank_css_text("\u{00a0}")); // no-break space
     assert!(!is_blank_css_text("\u{2028}")); // line separator
@@ -301,14 +301,10 @@ mod is_blank_css_text_tests {
     assert!(!is_blank_css_text(" \u{00a0} "));
   }
 
-  /// The other side of the same divergence from `str::trim`, and the side that
-  /// changed an answer rather than fixing one.
+  /// The other side of the same divergence from `str::trim`.
   ///
-  /// A C0 control is not Unicode whitespace, so `trim` used to leave it in
-  /// place and the value was rejected downstream by `trim_edges`. Reading the
-  /// scanner's rule instead makes it blank, so the property is dropped the way
-  /// it already was for `""` and `" "`. Pinned so that undoing it has to be a
-  /// decision.
+  /// A C0 control is not Unicode whitespace, but the scanner reads it as
+  /// whitespace, so it is blank, the same as `""` and `" "`.
   #[test]
   fn c0_controls_that_are_not_unicode_whitespace_are_blank() {
     assert!(is_blank_css_text("\u{0}")); // NUL

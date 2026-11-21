@@ -101,30 +101,19 @@ pub fn kebab_case(s: &str) -> Cow<'_, str> {
 /// Whether a value spells no CSS text at all — empty, or nothing but
 /// characters the value scanner reads as whitespace.
 ///
-/// A declaration built from one of these is `color:`, which no browser accepts,
-/// so the property is left undeclared instead. Asked of both an authored value
-/// and the value it transforms to, which is why it lives here rather than on
-/// either type.
+/// A declaration built from one of these is `color:`, which no browser accepts.
+/// The transform fails the build for a blank value, as the reference does, and
+/// a pair of CSS text asks this to omit a blank half.
 ///
 /// Deliberately narrower than `str::trim`. The scanner calls a character
 /// whitespace when its code is at most 32 and nothing else, so U+00A0 or
 /// U+3000 is a *word token* to it, not a gap — and the reference compiler
-/// emits such a value verbatim rather than dropping the property. Testing
-/// bytes is exact here: every byte of a multi-byte character is at least 0x80.
+/// emits such a value verbatim. Testing bytes is exact here: every byte of a
+/// multi-byte character is at least 0x80.
 ///
-/// Wider than `str::trim` in the other direction, which is the half that
-/// changes an answer rather than fixing one. A C0 control is not Unicode
-/// whitespace, so `trim` left `"\u{1}"` in place and the value reached
-/// `normalize_whitespace`, whose `trim_edges` emptied the token list and
-/// rejected with `LINT_VALUE_HAS_NO_TOKENS` — which happens to match the
-/// `TypeError` the reference throws at the same point. Reading it as blank
-/// drops the property silently instead.
-///
-/// That is the answer this seam already gave for `""` and `" "`, which the
-/// reference also throws on and which the parity corpus already carries as
-/// acceptance divergences. Chosen for that consistency: the alternative is a
-/// rule under which `"\t"` is dropped and `"\u{1}"` is a hard error, which no
-/// author could predict from the value they wrote. Pinned by
+/// Wider than `str::trim` in the other direction: a C0 control such as
+/// `"\u{1}"` is not Unicode whitespace, but the scanner reads it as
+/// whitespace, so it is blank too. Pinned by
 /// `c0_controls_that_are_not_unicode_whitespace_are_blank`.
 pub fn is_blank_css_text(s: &str) -> bool {
   s.bytes().all(|byte| byte <= 32)

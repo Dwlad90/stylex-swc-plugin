@@ -21,8 +21,8 @@ impl Pair {
   /// A half that is [blank CSS text](is_blank_css_text) leaves nothing to
   /// declare: `top:` is not valid CSS and a browser discards it, so the text is
   /// omitted rather than emitted empty. Every at-rule body assembled from pairs
-  /// asks this, so that a blank value drops before the body is hashed and the
-  /// name is the one a body without it produces.
+  /// asks this, so that a blank half drops before the body is hashed. The
+  /// transform fails the build for a blank value before it makes a pair.
   pub fn as_css_text(&self) -> Option<String> {
     css_text_of(&self.key, &self.value)
   }

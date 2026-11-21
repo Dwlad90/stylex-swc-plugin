@@ -124,17 +124,12 @@ mod stylex_position_try {
     assert_eq!(style.rtl, None);
   }
 
-  /// A value that spells no CSS text declares nothing, so the body is the one
-  /// the other declarations write alone.
+  /// A blank value has nothing to normalize, so the build fails, as the
+  /// reference does.
   #[test]
-  fn drops_a_declaration_whose_value_spells_nothing() {
-    let (name, style) = compile("{ positionAnchor: '--a', top: ' ' }");
-
-    assert_eq!(name, "--xsgi8eb");
-    assert_eq!(
-      style.ltr,
-      format!("@position-try {name} {{position-anchor:--a;}}")
-    );
+  #[should_panic(expected = "Rule contains a value with nothing to normalize")]
+  fn fails_the_build_for_a_blank_value() {
+    compile("{ positionAnchor: '--a', top: ' ' }");
   }
 
   /// The declarations are written in the order their property names sort in,

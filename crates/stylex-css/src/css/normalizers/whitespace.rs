@@ -91,13 +91,9 @@ pub fn normalize_whitespace(ast: &mut ValueParser, _key: &str) {
 /// one that is nothing but characters the scanner reads as whitespace — throws
 /// a `TypeError` here.
 ///
-/// [`LINT_VALUE_HAS_NO_TOKENS`] *replaces* that `TypeError` rather than
-/// reproducing a failure the production seam can reach: `transform_value`
-/// short-circuits a blank value before normalization is entered at all, so
-/// nothing outside this crate's own tests arrives here with an empty list. The
-/// rejection stays because the alternative is a panic from indexing, and a
-/// named message is the better thing to fail with if that ever stops being
-/// true.
+/// [`LINT_VALUE_HAS_NO_TOKENS`] *replaces* that `TypeError` with a named
+/// message. The build fails for a blank value, as the reference does, and this
+/// is the place where it fails.
 fn trim_edges(nodes: &mut Vec<Node>) {
   match nodes.first() {
     Some(first) if first.kind == NodeKind::Space => {

@@ -10,19 +10,14 @@ use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_V
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 use stylex_state::state_manager::StateManager;
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::{
-  hash::create_hash,
-  string::{dashify, is_blank_css_text},
-};
+use stylex_utils::{hash::create_hash, string::dashify};
 
 /// Compiles a resolved property/value pair into the class name that carries it
 /// and the rule that class name injects.
 ///
-/// `None` when the transformed value carries no CSS text: the declaration would
-/// be `color:`, which is invalid CSS a browser discards, so the property is left
-/// undeclared instead. The test is on the *transformed* value rather than the
-/// authored one, because transformation is what decides whether a blank value
-/// spells anything -- a blank `content` is quoted into `""`, which does.
+/// `None` for a fallback array with no entries left, which is an array whose
+/// entries were all `null`. A blank value fails the build in the value
+/// normalizer before it gets here.
 pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
   pseudos: &mut [String],
@@ -66,15 +61,9 @@ pub(crate) fn convert_style_to_class_name(
   let value: Vec<String> = match raw_value {
     PreRuleValue::Raw(raw_value) => vec![transform_value_cached(key, raw_value, state)],
     PreRuleValue::Vec(values) => {
-      // A blank entry drops before the fallback chain is built, so the class
-      // name is hashed from the entries that survive: a blank beside `red`
-      // yields the class name a lone `red` yields. It also has to go before
-      // `variable_fallbacks`, which requires the `var()` entries it composes to
-      // be contiguous.
       let values: Vec<String> = values
         .iter()
         .map(|each_value| transform_value_cached(key, each_value, state))
-        .filter(|value| !is_blank_css_text(value))
         .collect();
 
       // The position is what the composer needs, and asking for it answers the
@@ -89,10 +78,7 @@ pub(crate) fn convert_style_to_class_name(
     PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
-  // A lone value is judged here; a fallback array arrives with its blank
-  // entries already gone, so `all` over no values -- also `true` -- is what
-  // answers for an array that emptied.
-  if value.iter().all(|text| is_blank_css_text(text)) {
+  if value.is_empty() {
     return None;
   }
 

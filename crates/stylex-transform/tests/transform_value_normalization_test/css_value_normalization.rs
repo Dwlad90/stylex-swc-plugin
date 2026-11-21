@@ -447,18 +447,11 @@ stylex_test!(
   "#
 );
 
-// A value with no CSS text emits no declaration. `.x1tfe9bt{color:}` is not
-// valid CSS and a browser discards the whole declaration, so the property is
-// reverted the way an explicit `null` reverts it — the neighbouring property
-// still compiles. Measured against `@stylexjs/babel-plugin@0.19.0` for
-// `color: null`, which is the case it handles deliberately; a blank string
-// reaches a null dereference inside its value normaliser instead.
-//
-// The styles are exported so the compiled object is pinned too: the property
-// survives as `null`, which is what lets a later namespace revert it. Dropping
-// the key instead would compile the same CSS and merge differently.
-stylex_test!(
-  empty_value_emits_no_declaration,
+// A value with no CSS text has nothing to normalize, so the build fails, as
+// the reference does. Use `null` to leave a property undeclared.
+stylex_test_panic!(
+  an_empty_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
@@ -466,10 +459,10 @@ stylex_test!(
   "#
 );
 
-// Whitespace normalization leaves a space-only value empty, so it drops for the
-// same reason — including every longhand a shorthand expands to.
-stylex_test!(
-  whitespace_only_value_emits_no_declaration,
+// A value of only spaces is blank too, so the build fails for the same reason.
+stylex_test_panic!(
+  a_whitespace_only_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
@@ -480,10 +473,11 @@ stylex_test!(
   "#
 );
 
-// A blank entry drops out of a fallback array, leaving the class name of the
-// values that remain — the same one a lone `'red'` produces.
-stylex_test!(
-  blank_value_in_a_fallback_array_is_dropped,
+// A blank entry in a fallback array fails the build, as the reference does.
+// Only `null` can be an empty entry.
+stylex_test_panic!(
+  a_blank_value_in_a_fallback_array_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
@@ -509,10 +503,10 @@ stylex_test!(
   "#
 );
 
-// Only the blank branch of a nested value drops; the conditions around it are
-// untouched.
-stylex_test!(
-  blank_value_in_a_nested_value_drops_only_that_branch,
+// A blank branch of a nested value fails the build, as the reference does.
+stylex_test_panic!(
+  a_blank_value_in_a_nested_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
@@ -522,14 +516,12 @@ stylex_test!(
   "#
 );
 
-// `content` is the exception, and the reason a lone value is judged after
-// transformation rather than before: a blank `content` is quoted into `""`,
-// which is CSS text and a meaningful declaration.
+// `content` is the exception: a blank `content` is quoted into `""` before
+// normalization, and `""` is CSS text and a meaningful declaration.
 //
 // `content_property_values_are_wrapped_in_quotes` above already covers the
-// empty string. This case is the whitespace-only one, which reaches the same
-// declaration only because the drop reads the quoted text rather than the
-// authored space.
+// empty string. This case is the whitespace-only one, which compiles only
+// because the quoting comes before the blank check.
 stylex_test!(
   blank_content_value_still_emits_its_empty_quotes,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

@@ -195,7 +195,8 @@ impl PreRule for StylesPreRule {
       &mut self.const_rules,
       state,
     ) else {
-      // The value carries no CSS text, so there is no declaration to name.
+      // The fallback array has no entries left, so there is no declaration to
+      // name.
       return CompiledResult::Null;
     };
 

@@ -768,6 +768,21 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     }, 50);
   }
 
+  // Drops the rules of a module that no longer mentions StyleX. The transform
+  // returns early for such a module, so its old rules would stay in the sheet.
+  // A dev server also gets a refresh, because the sheet changed.
+  function clearCollectedRulesForId(id: string): void {
+    if (!Object.hasOwn(stylexRules, id)) return;
+
+    Reflect.deleteProperty(stylexRules, id);
+
+    if (normalizedOptions.useCssPlaceholder && viteDevServer) {
+      rulesRevision += 1;
+      cssRefreshFailures = 0;
+      scheduleCssRefresh();
+    }
+  }
+
   // Only the Vite load hook can tell that the marker really is part of this
   // build, which is what separates a broken configuration from a build that
   // legitimately produces no CSS, such as an SSR bundle.
@@ -835,6 +850,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
     async transform(inputCode, id) {
       if (!hasStyleXCode(normalizedOptions, inputCode)) {
+        clearCollectedRulesForId(id);
         return null;
       }
 
@@ -1199,6 +1215,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         const inputCode = await read();
 
         if (!hasStyleXCode(normalizedOptions, inputCode)) {
+          clearCollectedRulesForId(id);
           return undefined;
         }
 

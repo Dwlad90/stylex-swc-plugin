@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 969 values: the differential harness's whole corpus, plus
+/// 973 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -776,6 +776,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "spin 1s",
     output: "spin 1s",
     ast: "word \"spin\" 0..4\nspace \" \" 4..5\nword \"1s\" 5..7",
+  },
+  ParserCase {
+    input: "0S",
+    output: "0S",
+    ast: "word \"0S\" 0..2",
   },
   ParserCase {
     input: "ignore",
@@ -2388,6 +2393,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "string \"\\\"content\\\"\" 0..11 quote=\"'\"",
   },
   ParserCase {
+    input: "0FR 1fr",
+    output: "0FR 1fr",
+    ast: "word \"0FR\" 0..3\nspace \" \" 3..4\nword \"1fr\" 4..7",
+  },
+  ParserCase {
     input: "0fr",
     output: "0fr",
     ast: "word \"0fr\" 0..3",
@@ -2858,6 +2868,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"0turn\" 0..5",
   },
   ParserCase {
+    input: "rotate(0DEG)",
+    output: "rotate(0DEG)",
+    ast: "function \"rotate\" 0..12 before=\"\" after=\"\" nodes=1\n  word \"0DEG\" 7..11",
+  },
+  ParserCase {
     input: "rotate(0rad)",
     output: "rotate(0rad)",
     ast: "function \"rotate\" 0..12 before=\"\" after=\"\" nodes=1\n  word \"0rad\" 7..11",
@@ -2966,6 +2981,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "0.01s",
     output: "0.01s",
     ast: "word \"0.01s\" 0..5",
+  },
+  ParserCase {
+    input: "0MS",
+    output: "0MS",
+    ast: "word \"0MS\" 0..3",
   },
   ParserCase {
     input: "0ms",
@@ -4979,7 +4999,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 686 words paired with their number/unit split, `None` standing for a
+/// 690 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5164,6 +5184,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("anim", None),
   ("1s", Some(("1", "s"))),
   ("spin", None),
+  ("0S", Some(("0", "S"))),
   ("ignore", None),
   ("y", None),
   ("circle", None),
@@ -5386,6 +5407,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("content", None),
   ("sidebar", None),
   ("column", None),
+  ("0FR", Some(("0", "FR"))),
   ("auto", None),
   ("fr", None),
   ("100px", Some(("100", "px"))),
@@ -5442,6 +5464,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("underline", None),
   ("0grad", Some(("0", "grad"))),
   ("0turn", Some(("0", "turn"))),
+  ("0DEG", Some(("0", "DEG"))),
   ("45deg", Some(("45", "deg"))),
   ("grad", None),
   ("rad", None),
@@ -5451,6 +5474,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-300px", Some(("-300", "px"))),
   ("-.9s", Some(("-.9", "s"))),
   ("0.01s", Some(("0.01", "s"))),
+  ("0MS", Some(("0", "MS"))),
   ("0ms", Some(("0", "ms"))),
   ("1000ms", Some(("1000", "ms"))),
   ("10ms", Some(("10", "ms"))),

@@ -34,8 +34,10 @@
 //! ## What is not here
 //!
 //! No pass understands hex colours, letter case or quote characters, so none of
-//! them can alter those. Read the absence as deliberate: it is what makes two
-//! compilers agree on a value neither of them has an opinion about.
+//! them can alter those. The one exception is the case of a zero's unit, which
+//! the zero pass reads to choose `0deg`, `0s` or `0fr`. Read the absence as
+//! deliberate: it is what makes two compilers agree on a value neither of them
+//! has an opinion about.
 //!
 //! Exponent notation is not in that list. Every pass that re-spells a number
 //! goes through `to_js_string`, which spells it the way JavaScript's

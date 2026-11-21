@@ -115,6 +115,20 @@ stylex_test!(
 );
 
 stylex_test!(
+  zero_dimensions_keep_their_unit_category_whatever_its_case,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: { transitionDuration: '0MS' },
+      y: { animationDelay: '0S' },
+      z: { transform: 'rotate(0DEG)' },
+      w: { gridTemplateColumns: '0FR 1fr' }
+    });
+  "#
+);
+
+stylex_test!(
   calc_preserves_spaces_around_plus_and_minus,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"

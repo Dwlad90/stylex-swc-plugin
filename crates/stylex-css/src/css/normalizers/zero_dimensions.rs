@@ -10,10 +10,10 @@ const TIMINGS: [&str; 2] = ["ms", "s"];
 const FRACTION: &str = "fr";
 const PERCENTAGE: &str = "%";
 
-/// Canonicalizes a zero written with a unit: every zero angle becomes `0deg`,
-/// every zero duration `0s`, and a zero with any other unit loses its unit
-/// entirely — but only outside a function, where dropping the unit would change
-/// what the function computes.
+/// Canonicalizes a zero written with a unit: every zero angle becomes `0deg`
+/// and every zero duration `0s`. A zero flex value or percentage keeps its
+/// unit. A zero with any other unit loses its unit — but only outside a
+/// function, where dropping the unit would change what the function computes.
 ///
 /// Whether a token is inside a function is decided by comparing source offsets
 /// against the furthest function end seen so far. The walk visits a function
@@ -62,11 +62,13 @@ pub fn normalize_zero_dimensions(ast: &mut ValueParser, key: &str) {
         return true;
       }
 
-      if ANGLES.contains(&dimension.unit) {
+      // CSS units are ASCII case-insensitive: `0MS` is a time and `0FR` a flex
+      // value, and dropping their unit would change what the value means.
+      if is_any_unit(dimension.unit, &ANGLES) {
         node.value = "0deg".to_owned();
-      } else if TIMINGS.contains(&dimension.unit) {
+      } else if is_any_unit(dimension.unit, &TIMINGS) {
         node.value = "0s".to_owned();
-      } else if dimension.unit == FRACTION {
+      } else if dimension.unit.eq_ignore_ascii_case(FRACTION) {
         node.value = "0fr".to_owned();
       } else if dimension.unit == PERCENTAGE {
         node.value = "0%".to_owned();
@@ -78,4 +80,9 @@ pub fn normalize_zero_dimensions(ast: &mut ValueParser, key: &str) {
     },
     false,
   );
+}
+
+/// Whether `unit` is one of `names`, ignoring ASCII case.
+fn is_any_unit(unit: &str, names: &[&str]) -> bool {
+  names.iter().any(|name| unit.eq_ignore_ascii_case(name))
 }

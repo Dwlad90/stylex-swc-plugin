@@ -84,7 +84,8 @@ fn rejects(value: &str, key: &str, expected: &str) {
 /// The heart of the parity contract. No normalizer understands hex colours,
 /// letter case, quote characters or exponent notation, so none of them can
 /// alter those — and a value made only of things nobody has an opinion about
-/// comes back byte for byte.
+/// comes back byte for byte. The case of a zero's unit is the one exception,
+/// pinned by `zero_keeps_its_unit_category_whatever_its_case`.
 #[test]
 fn leaves_spellings_no_normalizer_has_an_opinion_about_alone() {
   check(&[
@@ -133,12 +134,12 @@ fn leaves_spellings_no_normalizer_has_an_opinion_about_alone() {
 }
 
 /// Letter case is never folded, including in units — which is why the
-/// unit-sensitive normalizers below all miss their upper-case spellings.
+/// unit-sensitive normalizers below miss their upper-case spellings. The zero
+/// normalizer is the one exception: it reads a unit in any case to pick the
+/// zero's category, as `zero_keeps_its_unit_category_whatever_its_case` shows.
 #[test]
 fn never_folds_letter_case_in_a_unit() {
   check(&[
-    ("0PX", "width", "0"),
-    ("0DEG", "transform", "0"),
     ("10MS", "transitionDuration", "10MS"),
     ("10Ms", "transitionDuration", "10Ms"),
     ("1E3px", "width", "1E3px"),
@@ -364,6 +365,21 @@ fn canonicalizes_a_zero_written_with_a_unit() {
     ("0fr", "gridTemplateColumns", "0fr"),
     ("0%", "width", "0%"),
     ("0zz", "width", "0"),
+  ]);
+}
+
+/// Units match in any case, so an uppercase zero keeps its unit category.
+#[test]
+fn zero_keeps_its_unit_category_whatever_its_case() {
+  check(&[
+    ("0MS", "transitionDuration", "0s"),
+    ("0S", "animationDelay", "0s"),
+    ("0Ms", "transitionDuration", "0s"),
+    ("0DEG", "transform", "0deg"),
+    ("rotate(0DEG)", "transform", "rotate(0deg)"),
+    ("0Turn", "transform", "0deg"),
+    ("0FR 1fr", "gridTemplateColumns", "0fr 1fr"),
+    ("0PX", "width", "0"),
   ]);
 }
 

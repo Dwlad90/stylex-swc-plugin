@@ -300,7 +300,10 @@ fn queued_state(fixture: &Fixture) -> StateManager {
   for (index, key) in fixture.keys.iter().enumerate() {
     // Each item is its own registration, as each call registers its own.
     state.queue_insertion(
-      InsertionSlot::BeforeDecl(*key, index as u64),
+      InsertionSlot::BeforeDecl {
+        object_hash: *key,
+        registration: index as u64,
+      },
       injected_item(index),
     );
   }

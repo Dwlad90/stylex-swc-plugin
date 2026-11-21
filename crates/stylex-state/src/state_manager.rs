@@ -1,6 +1,6 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, hash_map::Entry};
 use std::{borrow::Cow, env, option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
@@ -129,7 +129,12 @@ pub enum InsertionSlot {
   /// the items of one registration, in the order they were registered, so two
   /// calls that leave the same object each inject in front of their own
   /// statement. Replaces the legacy `styles_to_inject` map.
-  BeforeDecl(u128, u64),
+  BeforeDecl {
+    /// The stable hash of the object that the call was replaced by.
+    object_hash: u128,
+    /// The registration that queued the items.
+    registration: u64,
+  },
 }
 
 #[derive(Debug, Clone)]
@@ -683,7 +688,7 @@ pub(crate) struct StyleInjectionState {
   /// `pending_module_items`.
   queued_theme_imports: Vec<ModuleItem>,
   /// Which rules are already queued under which
-  /// `InsertionSlot::BeforeDecl(key, registration)`, so a rule one call
+  /// `InsertionSlot::BeforeDecl`, so a rule one call
   /// registered twice against one statement is injected once. Replaces the
   /// legacy `styles_to_inject` field's dual role.
   ///
@@ -703,7 +708,7 @@ impl StyleInjectionState {
 
   /// The number of the next registration.
   fn next_registration(&mut self) -> u64 {
-    self.registrations = self.registrations.wrapping_add(1);
+    self.registrations += 1;
     self.registrations
   }
 }
@@ -2692,12 +2697,16 @@ impl StateManager {
   }
 
   fn add_style(&mut self, metadata: &MetaData) {
-    self
-      .injection
-      .metadata
-      .entry("stylex".to_string())
-      .or_default()
-      .push(metadata.clone());
+    // Look up first, so that only the first rule allocates the key.
+    match self.injection.metadata.get_mut("stylex") {
+      Some(styles) => styles.push(metadata.clone()),
+      None => {
+        self
+          .injection
+          .metadata
+          .insert("stylex".to_owned(), vec![metadata.clone()]);
+      },
+    }
   }
 
   /// Queues the injection call for one rule before each statement it belongs
@@ -2774,7 +2783,13 @@ impl StateManager {
         .queued_decl_rules
         .insert((*key, rule_key, registration))
       {
-        self.queue_insertion(InsertionSlot::BeforeDecl(*key, registration), item.clone());
+        self.queue_insertion(
+          InsertionSlot::BeforeDecl {
+            object_hash: *key,
+            registration,
+          },
+          item.clone(),
+        );
       }
     }
   }
@@ -2889,9 +2904,12 @@ pub fn flush_pending_insertions(
         }
       },
       InsertionSlot::AfterImports => after_imports.push(item),
-      InsertionSlot::BeforeDecl(hash, registration) => {
+      InsertionSlot::BeforeDecl {
+        object_hash,
+        registration,
+      } => {
         if runtime_injection {
-          let groups = before_decl.entry(hash).or_default();
+          let groups = before_decl.entry(object_hash).or_default();
 
           // The items of one registration are queued together, so a new group
           // starts where the registration changes.
@@ -3101,17 +3119,17 @@ impl RegisteredObjects<'_> {
   fn place_metadata_of(&mut self, expr: &Expr) -> bool {
     let hash = stable_hash_unspanned(expr);
 
-    let Some(group) = self.queued.get_mut(&hash).and_then(VecDeque::pop_front) else {
+    let Entry::Occupied(mut groups) = self.queued.entry(hash) else {
       return false;
     };
 
-    self.placed.extend(group.items);
-
-    if self.queued.get(&hash).is_some_and(VecDeque::is_empty) {
-      self.queued.remove(&hash);
+    let group = groups.get_mut().pop_front();
+    if groups.get().is_empty() {
+      groups.remove();
     }
 
-    true
+    // A key is removed with its last group, so a key that is found has one.
+    group.map(|group| self.placed.extend(group.items)).is_some()
   }
 }
 

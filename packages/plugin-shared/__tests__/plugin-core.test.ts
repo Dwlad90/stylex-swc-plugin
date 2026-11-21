@@ -301,6 +301,17 @@ describe('StyleXPluginCore.loaderOption', () => {
     expect(core.loaderOption.rsOptions.importSources).toEqual(['custom-stylex']);
   });
 
+  test('falls back to stylexImports when rsOptions.importSources is undefined', () => {
+    // An explicit `undefined` is the same as a missing option. It must not
+    // clear the import sources that stylexImports gives.
+    const core = createCore({
+      stylexImports: ['design-system'],
+      rsOptions: { importSources: undefined },
+    });
+
+    expect(core.loaderOption.rsOptions.importSources).toEqual(['design-system']);
+  });
+
   test('uses the default stylexImports when neither option is set', () => {
     expect(createCore().loaderOption.rsOptions.importSources).toEqual([
       'stylex',

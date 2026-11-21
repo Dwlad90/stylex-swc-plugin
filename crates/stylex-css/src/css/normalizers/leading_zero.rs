@@ -5,6 +5,8 @@
 use postcss_value_parser::{NodeKind, ValueParser, unit};
 use stylex_utils::number::{parse_js_float, to_js_string};
 
+use super::is_url_function;
+
 /// Strips the zero in front of a decimal point: `0.5px` becomes `.5px`.
 ///
 /// The number is re-spelled through JavaScript's own number-to-string rules
@@ -14,10 +16,14 @@ use stylex_utils::number::{parse_js_float, to_js_string};
 ///
 /// Only a value in `0 ..= 1`, exclusive at the top, is touched, and only the
 /// first `0.` in the spelling — which is the sole one a number in that range
-/// can have.
+/// can have. The contents of a `url()` are never touched.
 pub fn normalize_leading_zero(ast: &mut ValueParser, _key: &str) {
   ast.walk(
     |node, _| {
+      if is_url_function(node) {
+        return false;
+      }
+
       if node.kind != NodeKind::Word {
         return true;
       }

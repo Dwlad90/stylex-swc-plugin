@@ -6,7 +6,7 @@ use postcss_value_parser::ValueParser;
 use stylex_constants::constants::common::ROOT_FONT_SIZE;
 use stylex_utils::number::{parse_js_float, to_js_string};
 
-use super::dimensions::walk_dimensions;
+use super::dimensions::{UrlContents, walk_dimensions};
 
 /// Restates a font size given in pixels as a multiple of the root font size.
 ///
@@ -19,7 +19,7 @@ pub fn convert_font_size_to_rem(ast: &mut ValueParser, key: &str) {
     return;
   }
 
-  walk_dimensions(ast, |_word, dimension| {
+  walk_dimensions(ast, UrlContents::Visit, |_word, dimension| {
     if dimension.unit != "px" {
       return None;
     }

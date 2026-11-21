@@ -73,6 +73,26 @@ stylex_test!(
 );
 
 stylex_test!(
+  preserves_resource_paths_inside_url,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      leadingZero: { backgroundImage: 'url(0.5x.png)' },
+      uppercase: { backgroundImage: 'URL(/img/logo.png)' },
+      mixedCase: {
+        backgroundImage: 'Url(https://cdn.example.com/v0.5/hero.jpg)'
+      },
+      withFallback: { cursor: 'URL(/cursors/grab.cur), pointer' },
+      imageSet: {
+        backgroundImage: 'image-set(url(0.5x.png) 1x, url(1x.png) 2x)'
+      },
+      withSiblings: { mask: 'url(0.5x.svg) 0px 0.5em' }
+    });
+  "#
+);
+
+stylex_test!(
   zero_timings_are_all_zero_s,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"

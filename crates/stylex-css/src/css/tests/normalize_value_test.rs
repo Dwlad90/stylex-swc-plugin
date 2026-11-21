@@ -770,6 +770,90 @@ fn leaves_a_url_body_opaque() {
   ]);
 }
 
+/// The contents of a `url()` are a resource path in any letter case, so no
+/// pass rewrites them. The scanner splits the contents of a `URL(` that is not
+/// lowercase into words and separators, and none of them are re-spaced. Only
+/// the padding inside the parentheses is stripped, as for any function.
+#[test]
+fn leaves_the_path_inside_a_url_of_any_case_alone() {
+  check(&[
+    ("url(0.5x.png)", "backgroundImage", "url(0.5x.png)"),
+    ("uRl(0.5x.png)", "backgroundImage", "uRl(0.5x.png)"),
+    (
+      "URL(/img/logo.png)",
+      "backgroundImage",
+      "URL(/img/logo.png)",
+    ),
+    ("URL( 0.5x.png )", "backgroundImage", "URL(0.5x.png)"),
+    ("url(  0.5x.png  )", "backgroundImage", "url(0.5x.png)"),
+    ("URL( a , b ) ", "backgroundImage", "URL(a , b)"),
+    ("URL(a/b , c)", "width", "URL(a/b , c)"),
+    (
+      "URL(\"0.5x.png\") 0.5px",
+      "backgroundImage",
+      "URL(\"0.5x.png\") .5px",
+    ),
+  ]);
+}
+
+/// Values next to a `url()` are still shortened, and a `url()` inside another
+/// function shields only its own contents.
+#[test]
+fn normalizes_the_values_around_a_url() {
+  check(&[
+    ("url(0.5x.svg) 0px 0.5em", "mask", "url(0.5x.svg) 0 .5em"),
+    ("url(100ms) 100ms", "transitionDuration", "url(100ms) .1s"),
+    ("URL(100ms) 100ms", "transitionDuration", "URL(100ms) .1s"),
+    (
+      "calc(url(10ms))  100ms",
+      "transitionDuration",
+      "calc(url(10ms)) .1s",
+    ),
+    ("URL(0px) 0px", "width", "URL(0px) 0"),
+    (
+      "calc(URL(0px) + 0px) 0px",
+      "width",
+      "calc(URL(0px) + 0px) 0",
+    ),
+    (
+      "image-set(url(0.5x.png) 1x, url(1x.png) 2x)",
+      "backgroundImage",
+      "image-set(url(0.5x.png) 1x,url(1x.png) 2x)",
+    ),
+  ]);
+}
+
+/// An importance annotation inside a `url()` is part of the path, so it neither
+/// removes a node nor counts as an annotation that is not last.
+#[test]
+fn ignores_an_importance_annotation_inside_a_url() {
+  check(&[
+    ("a b URL(x !important)", "color", "a b URL(x !important)"),
+    ("URL(x !important) a b", "color", "URL(x !important) a b"),
+    (
+      "a b calc(URL(x !important))",
+      "color",
+      "a b calc(URL(x !important))",
+    ),
+    (
+      "URL(a !important) !important",
+      "backgroundImage",
+      "URL(a !important)!important",
+    ),
+  ]);
+}
+
+/// The font-size conversion is the one pass that still reads inside a `url()`.
+/// This is the expected output, not a defect to correct: changing it would
+/// change class names.
+#[test]
+fn converts_a_pixel_font_size_inside_a_url() {
+  check_with(
+    &[("URL(16px) 16px", "fontSize", "URL(1rem) 1rem")],
+    &rem_enabled_options(),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------

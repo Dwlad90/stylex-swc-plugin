@@ -6,6 +6,8 @@ use postcss_value_parser::{Node, NodeKind, ValueParser};
 use stylex_constants::constants::messages::{LINT_IMPORTANT_NOT_LAST, LINT_VALUE_HAS_NO_TOKENS};
 use stylex_macros::stylex_panic;
 
+use super::is_url_function;
+
 /// The importance annotation, which the scanner hands over as one word token.
 const IMPORTANT: &str = "!important";
 
@@ -16,6 +18,9 @@ const IMPORTANT: &str = "!important";
 /// stays between those two words, and the only node this ever removes is the
 /// one before an importance annotation. That is what keeps a value the author
 /// spelled unusually from being re-spelled.
+///
+/// The walk does not enter a `url()`. The scanner splits the path of a `URL(`
+/// not spelled in lowercase at each `/`, and spacing those would break it.
 pub fn normalize_whitespace(ast: &mut ValueParser, _key: &str) {
   trim_edges(&mut ast.nodes);
 
@@ -63,6 +68,8 @@ pub fn normalize_whitespace(ast: &mut ValueParser, _key: &str) {
         NodeKind::Function => {
           node.before = Some(String::new());
           node.after = Some(String::new());
+
+          return descends_into(node);
         },
         _ => {},
       }
@@ -210,17 +217,26 @@ fn names_importance(node: &Node) -> bool {
   node.kind == NodeKind::Word && node.value == IMPORTANT
 }
 
+/// Whether the walk visits a node's children: those of every function except
+/// a `url()`.
+///
+/// Shared by the walk itself, [`carries_importance`] and [`plan_node`], so the
+/// three agree about which annotations are reached.
+fn descends_into(node: &Node) -> bool {
+  node.kind == NodeKind::Function && !is_url_function(node)
+}
+
 /// Whether an annotation appears anywhere the plan walk would reach it.
 ///
-/// Descends exactly where [`plan_node`] descends — into functions, and only
-/// into functions — so the two agree about which values have nothing to plan.
+/// Descends exactly where [`plan_node`] descends, so the two agree about which
+/// values have nothing to plan.
 fn carries_importance(nodes: &[Node]) -> bool {
   nodes.iter().any(|node| {
     if names_importance(node) {
       return true;
     }
 
-    match node.kind == NodeKind::Function {
+    match descends_into(node) {
       true => node.nodes.as_deref().is_some_and(carries_importance),
       false => false,
     }
@@ -233,7 +249,7 @@ fn plan_node(node: &Node, index: usize, top_level: &mut TopLevelList) {
     top_level.take_space_before(index);
   }
 
-  if node.kind == NodeKind::Function
+  if descends_into(node)
     && let Some(children) = node.nodes.as_deref()
   {
     for (child_index, child) in children.iter().enumerate() {

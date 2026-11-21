@@ -3,6 +3,8 @@
 
 use postcss_value_parser::{NodeKind, ValueParser, unit};
 
+use super::is_url_function;
+
 const ANGLES: [&str; 4] = ["deg", "grad", "turn", "rad"];
 const TIMINGS: [&str; 2] = ["ms", "s"];
 const FRACTION: &str = "fr";
@@ -22,6 +24,8 @@ const PERCENTAGE: &str = "%";
 /// A custom property is exempt outright. Its value has no grammar the compiler
 /// can reason about, so `0px` there may well be read back as text by something
 /// that needs the unit.
+///
+/// The contents of a `url()` are never touched.
 pub fn normalize_zero_dimensions(ast: &mut ValueParser, key: &str) {
   if key.starts_with("--") {
     return;
@@ -37,6 +41,12 @@ pub fn normalize_zero_dimensions(ast: &mut ValueParser, key: &str) {
 
       if end_function > 0 && node.source_index > end_function {
         end_function = 0;
+      }
+
+      // After the window update, so a `url()` widens the window like any other
+      // function. Its contents are skipped, so this changes no output.
+      if is_url_function(node) {
+        return false;
       }
 
       if node.kind != NodeKind::Word {

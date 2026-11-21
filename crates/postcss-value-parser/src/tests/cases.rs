@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 963 values: the differential harness's whole corpus, plus
+/// 969 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -853,6 +853,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"{body}\" 1..7",
   },
   ParserCase {
+    input: "URL(/img/logo.png)",
+    output: "URL(/img/logo.png)",
+    ast: "function \"URL\" 0..18 before=\"\" after=\"\" nodes=4\n  div \"/\" 4..5 before=\"\" after=\"\"\n  word \"img\" 5..8\n  div \"/\" 8..9 before=\"\" after=\"\"\n  word \"logo.png\" 9..17",
+  },
+  ParserCase {
     input: "URL(a}b)",
     output: "URL(a}b)",
     ast: "function \"URL\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"a}b\" 4..7",
@@ -861,6 +866,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "Url(a}b)",
     output: "Url(a}b)",
     ast: "function \"Url\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"a}b\" 4..7",
+  },
+  ParserCase {
+    input: "Url(https://cdn.example.com/v0.5/hero.jpg)",
+    output: "Url(https://cdn.example.com/v0.5/hero.jpg)",
+    ast: "function \"Url\" 0..42 before=\"\" after=\"\" nodes=9\n  word \"https\" 4..9\n  div \":\" 9..10 before=\"\" after=\"\"\n  div \"/\" 10..11 before=\"\" after=\"\"\n  div \"/\" 11..12 before=\"\" after=\"\"\n  word \"cdn.example.com\" 12..27\n  div \"/\" 27..28 before=\"\" after=\"\"\n  word \"v0.5\" 28..32\n  div \"/\" 32..33 before=\"\" after=\"\"\n  word \"hero.jpg\" 33..41",
   },
   ParserCase {
     input: "\\url(a}b)",
@@ -876,6 +886,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "blurl(a}b)",
     output: "blurl(a}b)",
     ast: "function \"blurl\" 0..10 before=\"\" after=\"\" nodes=1\n  word \"a}b\" 6..9",
+  },
+  ParserCase {
+    input: "image-set(url(0.5x.png) 1x, url(1x.png) 2x)",
+    output: "image-set(url(0.5x.png) 1x, url(1x.png) 2x)",
+    ast: "function \"image-set\" 0..43 before=\"\" after=\"\" nodes=7\n  function \"url\" 10..23 before=\"\" after=\"\" nodes=1\n    word \"0.5x.png\" 14..22\n  space \" \" 23..24\n  word \"1x\" 24..26\n  div \",\" 26..28 before=\"\" after=\" \"\n  function \"url\" 28..39 before=\"\" after=\"\" nodes=1\n    word \"1x.png\" 32..38\n  space \" \" 39..40\n  word \"2x\" 40..42",
   },
   ParserCase {
     input: "linear-gradient(red,blue),url(http://example.com/a.png)",
@@ -946,6 +961,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "url('a)b.png')calc(1px)",
     output: "url('a)b.png')calc(1px)",
     ast: "function \"url\" 0..14 before=\"\" after=\"\" nodes=1\n  string \"a)b.png\" 4..13 quote=\"'\"\nfunction \"calc\" 14..23 before=\"\" after=\"\" nodes=1\n  word \"1px\" 19..22",
+  },
+  ParserCase {
+    input: "url(0.5x.png)",
+    output: "url(0.5x.png)",
+    ast: "function \"url\" 0..13 before=\"\" after=\"\" nodes=1\n  word \"0.5x.png\" 4..12",
   },
   ParserCase {
     input: "url(a(b(c)).png) 10px",
@@ -1953,6 +1973,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"notch\" 0..5",
   },
   ParserCase {
+    input: "URL(/cursors/grab.cur), pointer",
+    output: "URL(/cursors/grab.cur), pointer",
+    ast: "function \"URL\" 0..22 before=\"\" after=\"\" nodes=4\n  div \"/\" 4..5 before=\"\" after=\"\"\n  word \"cursors\" 5..12\n  div \"/\" 12..13 before=\"\" after=\"\"\n  word \"grab.cur\" 13..21\ndiv \",\" 22..24 before=\"\" after=\" \"\nword \"pointer\" 24..31",
+  },
+  ParserCase {
     input: "e-resize",
     output: "e-resize",
     ast: "word \"e-resize\" 0..8",
@@ -2696,6 +2721,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "calc((100% - 50px) * 0.5)",
     output: "calc((100% - 50px) * 0.5)",
     ast: "function \"calc\" 0..25 before=\"\" after=\"\" nodes=5\n  function \"\" 5..18 before=\"\" after=\"\" nodes=5\n    word \"100%\" 6..10\n    space \" \" 10..11\n    word \"-\" 11..12\n    space \" \" 12..13\n    word \"50px\" 13..17\n  space \" \" 18..19\n  word \"*\" 19..20\n  space \" \" 20..21\n  word \"0.5\" 21..24",
+  },
+  ParserCase {
+    input: "url(0.5x.svg) 0px 0.5em",
+    output: "url(0.5x.svg) 0px 0.5em",
+    ast: "function \"url\" 0..13 before=\"\" after=\"\" nodes=1\n  word \"0.5x.svg\" 4..12\nspace \" \" 13..14\nword \"0px\" 14..17\nspace \" \" 17..18\nword \"0.5em\" 18..23",
   },
   ParserCase {
     input: "calc(100dvh - var(--header-height, 0px))",
@@ -4949,7 +4979,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 673 words paired with their number/unit split, `None` standing for a
+/// 686 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5147,7 +5177,17 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--background-color", None),
   ("white", None),
   ("{body}", None),
+  ("img", None),
+  ("logo.png", None),
   ("a}b", None),
+  ("https", None),
+  ("cdn.example.com", None),
+  ("v0.5", None),
+  ("hero.jpg", None),
+  ("0.5x.png", Some(("0.5", "x.png"))),
+  ("1x", Some(("1", "x"))),
+  ("1x.png", Some(("1", "x.png"))),
+  ("2x", Some(("2", "x"))),
   ("http://example.com/a.png", None),
   ("right", None),
   ("no-repeat", None),
@@ -5295,6 +5335,9 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("squircle", None),
   ("bevel", None),
   ("notch", None),
+  ("cursors", None),
+  ("grab.cur", None),
+  ("pointer", None),
   ("e-resize", None),
   ("ne-resize", None),
   ("nw-resize", None),
@@ -5379,6 +5422,8 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--x16dnrjz", None),
   ("-.24px", Some(("-.24", "px"))),
   ("-0.5px", Some(("-0.5", "px"))),
+  ("0.5x.svg", Some(("0.5", "x.svg"))),
+  ("0.5em", Some(("0.5", "em"))),
   ("100dvh", Some(("100", "dvh"))),
   ("--header-height", None),
   ("-.5", Some(("-.5", ""))),
@@ -5510,9 +5555,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-WEBKIT-BOX", None),
   ("linear", None),
   ("--webkit-not-a-prefix", None),
-  ("1x", Some(("1", "x"))),
   ("b.png", None),
-  ("2x", Some(("2", "x"))),
   ("progid", None),
   ("startColorstr=#FF000000", None),
   ("1px!important", Some(("1", "px!important"))),

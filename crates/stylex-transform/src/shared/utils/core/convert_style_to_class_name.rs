@@ -15,16 +15,17 @@ use stylex_utils::{hash::create_hash, string::dashify};
 /// Compiles a resolved property/value pair into the class name that carries it
 /// and the rule that class name injects.
 ///
-/// `None` for a fallback array with no entries left, which is an array whose
-/// entries were all `null`. A blank value fails the build in the value
-/// normalizer before it gets here.
+/// The value always has at least one entry. A fallback array comes from the
+/// flattener with two or more entries, because it removes the `null` entries
+/// and makes one entry a single value. The `var()` composer always returns one
+/// entry or more. A blank value fails the build in the value normalizer.
 pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
   pseudos: &mut [String],
   at_rules: &mut [String],
   const_rules: &mut [String],
   state: &mut StateManager,
-) -> Option<(RuleKey, ClassName, InjectableStyle)> {
+) -> (RuleKey, ClassName, InjectableStyle) {
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
@@ -78,10 +79,6 @@ pub(crate) fn convert_style_to_class_name(
     PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   };
 
-  if value.is_empty() {
-    return None;
-  }
-
   let string_to_hash = format!(
     "<>{}{}{}",
     dashed_key.as_ref(),
@@ -103,11 +100,11 @@ pub(crate) fn convert_style_to_class_name(
     &state.options,
   );
 
-  Some((
+  (
     RuleKey::from(key),
     ClassName::from(class_name_hashed),
     css_rules,
-  ))
+  )
 }
 
 /// Whether a value is one whole `var()` reference.

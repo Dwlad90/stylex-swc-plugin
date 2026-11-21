@@ -269,3 +269,62 @@ stylex_test!(
     }
   "#
 );
+
+stylex_test!(
+  does_not_hoist_css_objects_that_reference_an_anonymous_default_function_parameter,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: { display: 'flex' },
+    });
+    export default function ({c}) {
+      return stylex.props(styles.root, c && {$$css: true, __: c});
+    }
+  "#
+);
+
+stylex_test!(
+  hoists_css_objects_that_reference_a_default_exported_class,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: { display: 'flex' },
+    });
+    export default class Foo {
+      render(c) {
+        return stylex.props(styles.root, c && {$$css: true, __: Foo});
+      }
+    }
+  "#
+);
+
+stylex_test!(
+  does_not_hoist_css_objects_that_reference_an_anonymous_default_class_binding,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: { display: 'flex' },
+    });
+    export default class {
+      constructor(className) {
+        this.props = stylex.props(styles.root, className && {$$css: true, __: className});
+      }
+    }
+  "#
+);
+
+// The transform reads TypeScript syntax that is not stripped yet. A default
+// exported interface binds no value, so the module compiles as it does without
+// it.
+stylex_test!(
+  compiles_a_module_with_a_default_exported_interface,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export default interface Props {
+      c: string;
+    }
+    export const styles = stylex.create({
+      root: { display: 'flex' },
+    });
+  "#
+);

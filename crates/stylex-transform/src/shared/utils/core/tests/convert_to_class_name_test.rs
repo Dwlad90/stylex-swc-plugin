@@ -7,32 +7,24 @@ mod convert_style_to_class_name {
   use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
   use stylex_types::structures::style_key::ClassName;
-  /// The declaration text, for a pair that compiles to one.
+  /// The declaration text a pair compiles to.
   fn convert(styles: (&str, &PreRuleValue)) -> String {
-    match try_convert(styles) {
-      Some(declaration) => declaration,
-      None => panic!("expected `{}` to compile to a declaration", styles.0),
-    }
-  }
-
-  /// The declaration text, or `None` when the pair is left undeclared.
-  fn try_convert(styles: (&str, &PreRuleValue)) -> Option<String> {
-    convert_style_to_class_name(
+    let (_, _, rule) = convert_style_to_class_name(
       styles,
       &mut [],
       &mut [],
       &mut [],
       &mut StateManager::default(),
-    )
-    .map(|(_, _, rule)| extract_body(rule.ltr))
+    );
+
+    extract_body(rule.ltr)
   }
 
   /// The class name a pair compiles to, under the given options.
   fn class_name_of(styles: (&str, &PreRuleValue), state: &mut StateManager) -> ClassName {
-    match convert_style_to_class_name(styles, &mut [], &mut [], &mut [], state) {
-      Some((_, class_name, _)) => class_name,
-      None => panic!("expected `{}` to compile to a declaration", styles.0),
-    }
+    let (_, class_name, _) = convert_style_to_class_name(styles, &mut [], &mut [], &mut [], state);
+
+    class_name
   }
 
   fn extract_body(s: String) -> String {
@@ -112,21 +104,21 @@ mod convert_style_to_class_name {
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_an_empty_value() {
-    try_convert(("color", &PreRuleValue::string("")));
+    convert(("color", &PreRuleValue::string("")));
   }
 
   /// A value of only spaces is blank too.
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_a_space_only_value() {
-    try_convert(("color", &PreRuleValue::string(" ")));
+    convert(("color", &PreRuleValue::string(" ")));
   }
 
   /// A mix of spaces and tabs is blank too.
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_a_value_of_spaces_and_tabs() {
-    try_convert(("color", &PreRuleValue::string("  \t ")));
+    convert(("color", &PreRuleValue::string("  \t ")));
   }
 
   /// A character that *looks* blank but is not one the trim reads is a value
@@ -140,8 +132,8 @@ mod convert_style_to_class_name {
   fn declares_a_value_that_only_looks_blank() {
     for text in ["\u{3000}", "\u{a0}"] {
       assert_eq!(
-        try_convert(("color", &PreRuleValue::string(text))),
-        Some(format!("color:{text}")),
+        convert(("color", &PreRuleValue::string(text))),
+        format!("color:{text}"),
         "value {text:?}"
       );
     }
@@ -152,7 +144,7 @@ mod convert_style_to_class_name {
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_a_control_character() {
-    try_convert(("color", &PreRuleValue::string("\u{1}")));
+    convert(("color", &PreRuleValue::string("\u{1}")));
   }
 
   /// The test is on the transformed value, not the authored one: quoting is what
@@ -165,15 +157,15 @@ mod convert_style_to_class_name {
   fn declares_a_blank_content_value_as_empty_quotes() {
     for blank in [" ", "   ", "\t", ""] {
       assert_eq!(
-        try_convert(("content", &PreRuleValue::string(blank))),
-        Some("content:\"\"".to_string()),
+        convert(("content", &PreRuleValue::string(blank))),
+        "content:\"\"".to_string(),
         "blank content value {blank:?}"
       );
     }
 
     assert_eq!(
-      try_convert(("hyphenateCharacter", &PreRuleValue::string("   "))),
-      Some("hyphenate-character:\"\"".to_string())
+      convert(("hyphenateCharacter", &PreRuleValue::string("   "))),
+      "hyphenate-character:\"\"".to_string()
     );
   }
 
@@ -187,8 +179,8 @@ mod convert_style_to_class_name {
   fn keeps_a_hyphenate_character_value_as_it_was_written() {
     for key in ["hyphenateCharacter", "hyphenate-character"] {
       assert_eq!(
-        try_convert((key, &PreRuleValue::string("fooBar"))),
-        Some("hyphenate-character:\"fooBar\"".to_string()),
+        convert((key, &PreRuleValue::string("fooBar"))),
+        "hyphenate-character:\"fooBar\"".to_string(),
         "key {key:?}"
       );
     }
@@ -198,7 +190,7 @@ mod convert_style_to_class_name {
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_a_blank_entry_in_a_fallback_array() {
-    try_convert((
+    convert((
       "color",
       &PreRuleValue::Vec(vec![" ".into(), "red".into(), "".into()]),
     ));
@@ -208,7 +200,7 @@ mod convert_style_to_class_name {
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_a_blank_entry_between_variable_fallbacks() {
-    try_convert((
+    convert((
       "height",
       &PreRuleValue::Vec(vec!["var(--x)".into(), " ".into(), "var(--y)".into()]),
     ));
@@ -219,15 +211,15 @@ mod convert_style_to_class_name {
   #[test]
   #[should_panic(expected = "Rule contains a value with nothing to normalize")]
   fn fails_the_build_for_a_fallback_array_of_blanks() {
-    try_convert(("color", &PreRuleValue::Vec(vec![" ".into(), "".into()])));
+    convert(("color", &PreRuleValue::Vec(vec![" ".into(), "".into()])));
   }
 
   /// `0` carries text even though JS calls it falsy.
   #[test]
   fn declares_a_zero_value() {
     assert_eq!(
-      try_convert(("zIndex", &PreRuleValue::number(0.0))),
-      Some("z-index:0".to_string())
+      convert(("zIndex", &PreRuleValue::number(0.0))),
+      "z-index:0".to_string()
     );
   }
 

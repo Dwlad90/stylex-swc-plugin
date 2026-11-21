@@ -402,3 +402,31 @@ stylex_test!(
     stylex.props(css.display.flex);
   "#
 );
+
+// `animation` is a shorthand that the default style resolution does not
+// expand. The default validation mode drops it without a message, so the atom
+// declares no property and injects no rule. The reference does the same.
+stylex_test!(
+  inline_static_with_an_unsupported_shorthand_injects_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.animation.none, css.color.red);
+  "#
+);
+
+// Under `application-order`, a shorthand sets each of its longhands to `null`,
+// so the compiled atom holds `null` values beside the class name. The reference
+// does the same.
+stylex_test!(
+  inline_static_shorthand_under_application_order_keeps_null_longhands,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::ApplicationOrder)
+  }),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.margin['10px']);
+  "#
+);

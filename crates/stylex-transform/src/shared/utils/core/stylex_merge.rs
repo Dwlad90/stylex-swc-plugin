@@ -364,12 +364,8 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
 /// template literal or a name that is visible at program level. A global is
 /// visible everywhere, so it passes.
 fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
-  // `None` when the expression is not a name. Otherwise, whether the name is
-  // visible at program level.
-  let name_is_visible = |expr: &Expr| match normalize_expr(expr) {
-    Expr::Ident(ident) => Some(!state.is_enclosed_binding(ident)),
-    _ => None,
-  };
+  // Whether the expression is a name that is not visible at program level.
+  let is_enclosed_name = |expr: &Expr| matches!(normalize_expr(expr), Expr::Ident(ident) if state.is_enclosed_binding(ident));
 
   object.props.iter().all(|prop| {
     let PropOrSpread::Prop(prop) = prop else {
@@ -380,15 +376,13 @@ fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
       Prop::Shorthand(ident) => !state.is_enclosed_binding(ident),
       Prop::KeyValue(key_value) => {
         let key_is_visible = match &key_value.key {
-          PropName::Computed(computed) => name_is_visible(&computed.expr).unwrap_or(true),
+          PropName::Computed(computed) => !is_enclosed_name(&computed.expr),
           _ => true,
         };
-        let value_is_visible = name_is_visible(&key_value.value).unwrap_or_else(|| {
-          matches!(
-            normalize_expr(&key_value.value),
-            Expr::Lit(_) | Expr::Tpl(_)
-          )
-        });
+        let value_is_visible = match normalize_expr(&key_value.value) {
+          Expr::Ident(ident) => !state.is_enclosed_binding(ident),
+          value => matches!(value, Expr::Lit(_) | Expr::Tpl(_)),
+        };
 
         key_is_visible && value_is_visible
       },

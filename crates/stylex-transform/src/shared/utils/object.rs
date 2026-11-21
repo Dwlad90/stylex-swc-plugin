@@ -72,7 +72,7 @@ pub(crate) fn obj_map_keys_and_transform_values(
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
 ) -> Vec<Pair> {
-  map_keys_and_build_declarations(entries, state, mapper, false)
+  map_keys_and_build_declarations(entries, state, mapper, ValueKey::Mapped)
 }
 
 /// Converts each raw value with its original key, then maps each key.
@@ -84,12 +84,19 @@ pub(crate) fn obj_transform_values_and_map_keys(
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
 ) -> Vec<Pair> {
-  map_keys_and_build_declarations(entries, state, mapper, true)
+  map_keys_and_build_declarations(entries, state, mapper, ValueKey::Original)
 }
 
-/// Maps each key and converts each raw value to CSS text. When
-/// `transform_with_original_key` is set, the value is converted with the
-/// original key. When it is not set, the value is converted with the mapped key.
+/// The key that [`map_keys_and_build_declarations`] converts a value with.
+enum ValueKey {
+  /// The key as the source gives it.
+  Original,
+  /// The key after the mapper.
+  Mapped,
+}
+
+/// Maps each key and converts each raw value to CSS text, with the key that
+/// `value_key` selects.
 ///
 /// Two keys can map to the same name. They make one declaration: it keeps the
 /// position of the first key and the value of the last key.
@@ -97,16 +104,15 @@ fn map_keys_and_build_declarations(
   entries: &IndexMap<String, TRawValue>,
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
-  transform_with_original_key: bool,
+  value_key: ValueKey,
 ) -> Vec<Pair> {
   let mut map: IndexMap<String, String> = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
     let mapped_key = mapper(key);
-    let transform_key = if transform_with_original_key {
-      key.as_str()
-    } else {
-      mapped_key.as_str()
+    let transform_key = match value_key {
+      ValueKey::Original => key.as_str(),
+      ValueKey::Mapped => mapped_key.as_str(),
     };
     let value = transform_value_cached(transform_key, value, state);
 

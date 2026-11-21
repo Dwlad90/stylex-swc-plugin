@@ -379,10 +379,9 @@ fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
           PropName::Computed(computed) => !is_enclosed_name(&computed.expr),
           _ => true,
         };
-        let value_is_visible = match normalize_expr(&key_value.value) {
-          Expr::Ident(ident) => !state.is_enclosed_binding(ident),
-          value => matches!(value, Expr::Lit(_) | Expr::Tpl(_)),
-        };
+        let value = normalize_expr(&key_value.value);
+        let value_is_visible =
+          matches!(value, Expr::Ident(_) | Expr::Lit(_) | Expr::Tpl(_)) && !is_enclosed_name(value);
 
         key_is_visible && value_is_visible
       },

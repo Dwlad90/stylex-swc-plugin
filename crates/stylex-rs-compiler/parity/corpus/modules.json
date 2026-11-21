@@ -2096,9 +2096,9 @@
       "id": "modules-09-string-of-the-environment-object",
       "label": "`String()` of the environment object",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: String(stylex.env) },\n});\n",
-      "expected": "acceptance-divergent",
+      "expected": "identical",
       "origin": "ticket 09, the globals that fold by being called",
-      "note": "Acceptance divergent, and no longer about the conversion. The environment object is this compiler's own value, so the engine never sees it and the conversion behind the fold answers for it — with `[object Object]`, as upstream does. What this row still reads is the subject compiling with no `env` option set, where there is no environment object to convert at all and the refusal names the missing configuration. Configured, the two agree, which `string_of_the_environment_object` pins."
+      "note": "Identical. An unset `env` option reads as an empty object, as upstream does, so the conversion answers `[object Object]` with or without the option. `string_of_the_environment_object` pins the configured case."
     },
     {
       "id": "modules-09-string-of-a-token-group",

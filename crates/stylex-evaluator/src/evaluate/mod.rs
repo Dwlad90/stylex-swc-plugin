@@ -84,7 +84,6 @@ use stylex_state::{
   seen_value::{SeenKey, SeenValue},
   state_manager::{StateManager, add_import_expression},
   theme_ref::ThemeRef,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use stylex_structures::named_import_source::ImportSources;
 use stylex_utils::string::utf16_length;

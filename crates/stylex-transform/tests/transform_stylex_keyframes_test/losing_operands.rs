@@ -184,3 +184,155 @@ stylex_test!(
     });
   "#
 );
+
+// A left operand of `??` that is falsy and not nullish decides nothing in the
+// logical node, so the fold refuses, as the reference does.
+stylex_test_panic!(
+  a_falsy_left_operand_of_nullish_refuses,
+  "unknown error",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const A = { from: { color: 'red' } };
+    export const styles = stylex.create({
+      root: {
+        animationName: [0 ?? stylex.keyframes(A)].join(),
+      },
+    });
+  "#
+);
+
+// The same rule inside a callback, where only the engine knows the left value.
+stylex_test_panic!(
+  a_falsy_left_operand_of_nullish_in_a_callback_refuses,
+  "unknown error",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const A = { from: { color: 'red' } };
+    export const styles = stylex.create({
+      root: {
+        animationName: [false].map((v) => v ?? stylex.keyframes(A)).join(),
+      },
+    });
+  "#
+);
+
+// The same rule where the right operand calls no compiler function.
+stylex_test_panic!(
+  a_falsy_left_operand_of_nullish_refuses_with_no_compiler_call,
+  "unknown error",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        animationName: [0 ?? 5].join(),
+      },
+    });
+  "#
+);
+
+// The same, inside a callback.
+stylex_test_panic!(
+  a_falsy_left_operand_of_nullish_in_a_callback_refuses_with_no_compiler_call,
+  "unknown error",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        animationName: ['a'].map(() => 0 ?? 5).join(),
+      },
+    });
+  "#
+);
+
+// `@keyframes xbjjx1r-B{from{color:red;}}`, `.xmqsyqj{animation-name:true}`
+//
+// A call through a local function whose body calls a compiler function runs on
+// the losing side too.
+stylex_test!(
+  a_losing_call_through_a_local_function_declares_its_rule,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const A = { from: { color: 'red' } };
+    const mk = () => stylex.keyframes(A);
+    export const styles = stylex.create({
+      root: {
+        animationName: [true || mk()].join(),
+      },
+    });
+  "#
+);
+
+// `@keyframes xbjjx1r-B{from{color:red;}}`, `.xmqsyqj{animation-name:true}`
+stylex_test!(
+  a_losing_call_through_a_local_function_in_a_callback_declares_its_rule,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const A = { from: { color: 'red' } };
+    const mk = () => stylex.keyframes(A);
+    export const styles = stylex.create({
+      root: {
+        animationName: ['a'].map(() => true || mk()).join(),
+      },
+    });
+  "#
+);
+
+// `@keyframes xbjjx1r-B{from{color:red;}}`, `.x1wt5zd5{animation-name:x}`
+//
+// The search follows a chain of local functions.
+stylex_test!(
+  a_losing_call_through_two_local_functions_declares_its_rule,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const A = { from: { color: 'red' } };
+    const mk = () => stylex.keyframes(A);
+    const mk2 = () => mk();
+    export const styles = stylex.create({
+      root: {
+        animationName: ['a'].map(() => 'x' || mk2()).join(),
+      },
+    });
+  "#
+);
+
+// `@keyframes xl7tn2a-B{from{color:blue;}}`, `.x1wt5zd5{animation-name:x}`
+stylex_test!(
+  a_losing_call_through_a_local_function_with_an_argument_declares_its_rule,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const mk = (c) => stylex.keyframes({ from: { color: c } });
+    export const styles = stylex.create({
+      root: {
+        animationName: ['a'].map(() => 'x' || mk('blue')).join(),
+      },
+    });
+  "#
+);
+
+// `.xmqsyqj{animation-name:true}`
+//
+// The losing side throws before it reaches the compiler call. The reference
+// stops the build with `Cannot read properties of undefined (reading 'bar')`.
+// This compiler ignores a throw on the side that loses, as it does for a dead
+// operand that would throw, so no rule is declared.
+stylex_test!(
+  a_losing_side_that_throws_first_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const A = { from: { color: 'red' } };
+    export const styles = stylex.create({
+      root: {
+        animationName: ['a'].map((x) => true || (x.foo.bar || stylex.keyframes(A))).join(),
+      },
+    });
+  "#
+);

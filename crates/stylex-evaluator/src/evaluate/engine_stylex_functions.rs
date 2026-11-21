@@ -38,7 +38,7 @@ use boa_engine::{
 use indexmap::IndexMap;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, MemberExpr, MemberProp},
+  ecma::ast::{Expr, Ident, IdentName, MemberExpr, MemberProp},
 };
 
 use stylex_ast::ast::convertors::normalize_expr;
@@ -155,62 +155,117 @@ pub(super) fn engine_callable(
   traversal_state: &StateManager,
   functions: &FunctionMap,
 ) -> Option<EngineCallable> {
-  // A parenthesis is not a different callee, at either level: `(stylex.types)`
-  // and `(stylex).types` name what `stylex.types` names. Only names are read
-  // here, so nothing is printed back and unwrapping costs no spelling.
-  match normalize_expr(callee) {
-    Expr::Ident(ident) => {
-      let native = CALLABLE
-        .iter()
-        .find(|callable| {
-          traversal_state.any_stylex_api_import_contains(&[callable.kind], &ident.sym)
-        })
-        .map(|callable| {
-          (
-            Carried::Native(callable.call),
-            callable.property.into(),
-            false,
-          )
+  match callee_name(callee)? {
+    CalleeName::Bare(ident) => {
+      if let Some(callable) = native_by_name(&ident.sym, traversal_state) {
+        return Some(EngineCallable {
+          name: ident.sym.clone(),
+          carried: Carried::Native(callable.call),
+          function_name: callable.property.into(),
+          needs_an_argument: false,
         });
+      }
 
-      let (carried, function_name, needs_an_argument) = native.or_else(|| {
-        let call = compiler_function(functions.identifiers.get(&ident.sym)?)?;
-
-        Some((Carried::Compiler(call), ident.sym.clone(), true))
-      })?;
+      let call = compiler_by_name(&ident.sym, functions)?;
 
       Some(EngineCallable {
         name: ident.sym.clone(),
-        carried,
-        function_name,
-        needs_an_argument,
+        carried: Carried::Compiler(call),
+        function_name: ident.sym.clone(),
+        needs_an_argument: true,
       })
     },
+    CalleeName::Member(namespace, property) => {
+      let native = is_native_member(&namespace.sym, &property.sym, traversal_state);
+
+      (native || is_compiler_member(&namespace.sym, &property.sym, functions)).then(|| {
+        EngineCallable {
+          name: namespace.sym.clone(),
+          carried: Carried::Namespace(namespace_members(functions, &namespace.sym)),
+          function_name: property.sym.clone(),
+          needs_an_argument: !native,
+        }
+      })
+    },
+  }
+}
+
+/// Whether `callee` names a compiler function, as [`engine_callable`] reads
+/// it.
+///
+/// The same answer as an [`EngineCallable`] that needs an argument, but it
+/// builds nothing. The guard asks it of every call it searches, and most of
+/// them name no StyleX function at all.
+pub(super) fn is_compiler_callable(
+  callee: &Expr,
+  traversal_state: &StateManager,
+  functions: &FunctionMap,
+) -> bool {
+  callee_name(callee).is_some_and(|name| match name {
+    CalleeName::Bare(ident) => {
+      native_by_name(&ident.sym, traversal_state).is_none()
+        && compiler_by_name(&ident.sym, functions).is_some()
+    },
+    CalleeName::Member(namespace, property) => {
+      !is_native_member(&namespace.sym, &property.sym, traversal_state)
+        && is_compiler_member(&namespace.sym, &property.sym, functions)
+    },
+  })
+}
+
+/// The two ways a callee can name a StyleX function.
+enum CalleeName<'e> {
+  /// `keyframes(…)`: the name the function was imported under.
+  Bare(&'e Ident),
+  /// `stylex.keyframes(…)`: the namespace, and the property read off it.
+  Member(&'e Ident, &'e IdentName),
+}
+
+/// How `callee` names a StyleX function, or `None` where its shape cannot.
+///
+/// A parenthesis is not a different callee, at either level: `(stylex.types)`
+/// and `(stylex).types` name what `stylex.types` names. Only names are read
+/// here, so nothing is printed back and unwrapping costs no spelling.
+fn callee_name(callee: &Expr) -> Option<CalleeName<'_>> {
+  match normalize_expr(callee) {
+    Expr::Ident(ident) => Some(CalleeName::Bare(ident)),
     Expr::Member(MemberExpr {
       obj,
-      prop: MemberProp::Ident(prop),
+      prop: MemberProp::Ident(property),
       ..
-    }) => {
-      let namespace = normalize_expr(obj).as_ident()?;
-
-      let native = traversal_state.is_regular_stylex_import(&namespace.sym)
-        && CALLABLE
-          .iter()
-          .any(|callable| prop.sym == callable.property);
-      let compiler = || {
-        namespace_entries(functions, &namespace.sym)
-          .any(|(name, entry)| *name == prop.sym && compiler_function(entry).is_some())
-      };
-
-      (native || compiler()).then(|| EngineCallable {
-        name: namespace.sym.clone(),
-        carried: Carried::Namespace(namespace_members(functions, &namespace.sym)),
-        function_name: prop.sym.clone(),
-        needs_an_argument: !native,
-      })
-    },
+    }) => Some(CalleeName::Member(
+      normalize_expr(obj).as_ident()?,
+      property,
+    )),
     _ => None,
   }
+}
+
+/// The function of [`CALLABLE`] that the module imported as `name`.
+fn native_by_name(name: &Atom, traversal_state: &StateManager) -> Option<&'static Callable> {
+  CALLABLE
+    .iter()
+    .find(|callable| traversal_state.any_stylex_api_import_contains(&[callable.kind], name))
+}
+
+/// The compiler function the function map holds under `name`.
+fn compiler_by_name(name: &Atom, functions: &FunctionMap) -> Option<StylexExprFn> {
+  compiler_function(functions.identifiers.get(name)?)
+}
+
+/// Whether `namespace.property` is a function of [`CALLABLE`] read off a
+/// StyleX import.
+fn is_native_member(namespace: &Atom, property: &Atom, traversal_state: &StateManager) -> bool {
+  traversal_state.is_regular_stylex_import(namespace)
+    && CALLABLE
+      .iter()
+      .any(|callable| *property == callable.property)
+}
+
+/// Whether `namespace.property` is a compiler function of the namespace.
+fn is_compiler_member(namespace: &Atom, property: &Atom, functions: &FunctionMap) -> bool {
+  namespace_entries(functions, namespace)
+    .any(|(name, entry)| name == property && compiler_function(entry).is_some())
 }
 
 /// The compiler functions and the `env` object a namespace holds, under the

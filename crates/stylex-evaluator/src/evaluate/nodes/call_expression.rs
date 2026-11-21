@@ -33,8 +33,10 @@ pub(in super::super) fn evaluate(
   // run. Each part that holds one is evaluated here and written in as its
   // value, and the call is offered to the engine again. A part that refused is
   // the refusal.
-  if let Some(folded) = with_compiler_calls_folded(call, state, traversal_state, fns) {
-    match super::super::engine_fold::try_fold(&folded, state, traversal_state, fns) {
+  let folded = with_compiler_calls_folded(call, state, traversal_state, fns);
+
+  if let Some(folded) = &folded {
+    match super::super::engine_fold::try_fold(folded, state, traversal_state, fns) {
       Some(Ok(value)) => return Some(value),
       Some(Err(reason)) => return deopt(&Expr::Call(call.clone()), state, &reason),
       None => {},
@@ -45,8 +47,13 @@ pub(in super::super) fn evaluate(
     return None;
   }
 
+  // A refusal names the call as written.
   let path = Expr::Call(call.clone());
   let path = &path;
+
+  // Where the parts were written in as values, the rest of the dispatch reads
+  // them, so a StyleX call in a part does not run a second time.
+  let call = folded.as_ref().unwrap_or(call);
 
   // A conversion the engine handed back, because what it was applied to is one
   // of this compiler's own values rather than a JavaScript one.

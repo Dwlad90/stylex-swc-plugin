@@ -14,6 +14,7 @@ use boa_engine::{Context, JsString, JsValue, object::builtins::JsFunction};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
+  common::{Span, Spanned},
   ecma::ast::{
     ArrayLit, ArrowExpr, ArrowFunctionBody, BinExpr, CallExpr, Callee, CondExpr, Decl, Expr,
     ExprOrSpread, ExprStmt, Ident, IdentName, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
@@ -38,7 +39,7 @@ use super::amplification::EntryAmplifier;
 use super::backstop::is_a_reserved_name;
 use super::engine::read;
 use super::losing_operand;
-use super::transport::{Crossing, Transport};
+use super::transport::{Crossing, Transport, TransportMark};
 use super::{
   Ceilings, Decline, Depth, lists, refusal_for_a_property_name, refusal_for_a_property_read,
 };
@@ -52,7 +53,7 @@ use stylex_state::{
 
 use super::super::{
   engine_stylex_functions::{
-    Carried, EngineCallable, NamespaceMembers, an_env_read, engine_callable,
+    Carried, EngineCallable, NamespaceMembers, an_env_read, engine_callable, is_compiler_callable,
   },
   evaluate_cached,
   helpers::evaluate_result_to_js_boolean,
@@ -388,9 +389,26 @@ pub(super) struct Reader<'a> {
   /// that kept its own answer could only report the branch it happened to be on.
   unentered_nesting: usize,
   /// The logical operators whose right operand the engine runs even where the
-  /// left one decides, by their address in the source tree. See
-  /// [`losing_operand`](super::losing_operand).
-  losing_operands: FxHashSet<*const BinExpr>,
+  /// left one decides, by their span. See [`losing_operand`](super::losing_operand).
+  ///
+  /// A span, and not an address, because the walk also reads copies of
+  /// declarations, and a copy that a refused walk drops frees its address. The
+  /// copy of a declaration has the spans of the declaration, so the printer
+  /// finds the operator in either tree.
+  losing_operands: losing_operand::Recorded,
+  /// Whether each expression the walk asked about calls a compiler function,
+  /// by its span. One search fills the answer for every expression under the
+  /// one it was asked about, so a nest of logical operators is searched once
+  /// and not once for each level. See [`Walk::calls_a_compiler_function`].
+  compiler_calls: FxHashMap<Span, bool>,
+}
+
+/// Where a [`Reader`] stands, so a walk that refuses can put back what it
+/// carried and recorded. See [`Reader::roll_back`].
+struct ReaderMark {
+  transport: TransportMark,
+  losing_operands: usize,
+  dotted_prefixes: FxHashMap<Atom, FxHashSet<Atom>>,
 }
 
 impl<'a> Reader<'a> {
@@ -414,8 +432,29 @@ impl<'a> Reader<'a> {
       transport: Transport::new(ceilings),
       dotted_prefixes: FxHashMap::default(),
       unentered_nesting: 0,
-      losing_operands: FxHashSet::default(),
+      losing_operands: losing_operand::Recorded::default(),
+      compiler_calls: FxHashMap::default(),
     }
+  }
+
+  /// Where the reader stands now.
+  ///
+  /// The theme imports a resolution queued are not part of it. The logical
+  /// node evaluates a losing side too, and its theme reads queue their imports
+  /// whether or not the side folds.
+  fn mark(&self) -> ReaderMark {
+    ReaderMark {
+      transport: self.transport.mark(),
+      losing_operands: self.losing_operands.len(),
+      dotted_prefixes: self.dotted_prefixes.clone(),
+    }
+  }
+
+  /// Puts back what the walk carried and recorded since `mark`.
+  fn roll_back(&mut self, mark: ReaderMark) {
+    self.transport.roll_back(mark.transport);
+    self.losing_operands.truncate(mark.losing_operands);
+    self.dotted_prefixes = mark.dotted_prefixes;
   }
 
   /// The value `expr` resolves to, or `None` where it resolves to nothing.
@@ -717,12 +756,6 @@ impl<'a, 'r> Walk<'a, 'r> {
     Self { guard, reader }
   }
 
-  /// Whether a theme reference crossed inward under any of the names this walk
-  /// resolved.
-  pub(super) fn carried_a_theme_reference(&self) -> bool {
-    self.reader.transport.read_a_theme_reference
-  }
-
   /// How deep the source about to be printed nests.
   ///
   /// The ceiling, which every level the walk entered was spent under, or the
@@ -759,21 +792,54 @@ impl<'a, 'r> Walk<'a, 'r> {
     losing_operand::ordinals(call, defaults, &self.reader.losing_operands)
   }
 
-  /// The names the walk resolved, as the parameters of the printed arrow.
-  pub(super) fn parameters(&self) -> Vec<Pat> {
-    self.reader.transport.parameters()
-  }
-
-  /// The build state of the evaluation, for the scope a compiler function reads
-  /// it through while the engine runs.
-  pub(super) fn traversal_state(&mut self) -> &mut StateManager {
-    self.reader.traversal_state
-  }
-
   /// The same parameters as the hash the fold memo is keyed on, answered
   /// without printing them.
   pub(super) fn parameters_key(&self) -> u128 {
     self.reader.transport.parameters_key()
+  }
+
+  /// The build state of the evaluation, for the scope a compiler function reads
+  /// it through while the engine runs, and apart from it what the walk
+  /// collected for the engine.
+  ///
+  /// Two borrows of separate fields, so the scope can hold the state while the
+  /// fold reads what it collected.
+  pub(super) fn for_the_engine(&mut self) -> (&mut StateManager, Collected<'_>) {
+    let Reader {
+      traversal_state,
+      transport,
+      dotted_prefixes,
+      ..
+    } = &mut *self.reader;
+
+    let collected = Collected {
+      transport,
+      dotted_prefixes,
+      depth: self.guard.depth,
+    };
+
+    (traversal_state, collected)
+  }
+}
+
+/// What a walk collected for the engine, read while the build state is in the
+/// scope a compiler function reads it through.
+pub(super) struct Collected<'w> {
+  transport: &'w Transport,
+  dotted_prefixes: &'w FxHashMap<Atom, FxHashSet<Atom>>,
+  depth: Depth,
+}
+
+impl Collected<'_> {
+  /// Whether a theme reference crossed inward under any of the names the walk
+  /// resolved.
+  pub(super) fn carried_a_theme_reference(&self) -> bool {
+    self.transport.read_a_theme_reference
+  }
+
+  /// The names the walk resolved, as the parameters of the printed arrow.
+  pub(super) fn parameters(&self) -> Vec<Pat> {
+    self.transport.parameters()
   }
 
   /// The values it resolved, as the arguments that arrow is called with.
@@ -787,13 +853,9 @@ impl<'a, 'r> Walk<'a, 'r> {
     method: &Atom,
     var_group: &JsFunction,
   ) -> Result<Vec<JsValue>, Decline> {
-    self.reader.transport.arguments(
-      engine,
-      method,
-      self.guard.depth,
-      var_group,
-      &self.reader.dotted_prefixes,
-    )
+    self
+      .transport
+      .arguments(engine, method, self.depth, var_group, self.dotted_prefixes)
   }
 }
 
@@ -960,27 +1022,41 @@ impl<'r> Walk<'_, 'r> {
       // runs it always — see [`losing_operand`](super::losing_operand). Where the
       // walk refuses it and the left operand decides, the refusal is ignored, as
       // the evaluator ignores it, and the operand stays unentered.
+      //
+      // A `??` whose left operand the walk cannot show to decide is printed the
+      // same way, because only the printed helper applies the rule of the
+      // logical node to it: a left operand that is falsy and not nullish
+      // decides nothing.
       Expr::Bin(bin) => {
         self.under(inner).admit_value(&bin.left)?;
 
         let runs = self.right_operand_runs(bin);
-        let runs_when_it_loses =
-          LogicalOp::of(bin.op).is_some() && self.calls_a_compiler_function(&bin.right);
+        let runs_when_it_loses = LogicalOp::of(bin.op).is_some_and(|op| {
+          (runs && op == LogicalOp::Nullish) || self.calls_a_compiler_function(&bin.right)
+        });
 
         match (runs, runs_when_it_loses) {
           (true, false) => self.under(inner).admit_value(&bin.right),
           (true, true) => {
             self.under(inner).admit_value(&bin.right)?;
-            self.reader.losing_operands.insert(std::ptr::from_ref(bin));
-
-            Ok(())
+            self.record_a_losing_operand(bin)
           },
-          (false, true) if self.under(inner).admit_value(&bin.right).is_ok() => {
-            self.reader.losing_operands.insert(std::ptr::from_ref(bin));
+          // The walk of a side the language does not run may refuse. Then
+          // what it carried and recorded goes back, and the side stays dead.
+          (false, true) => {
+            let mark = self.reader.mark();
 
-            Ok(())
+            match self.under(inner).admit_value(&bin.right) {
+              Ok(()) => self.record_a_losing_operand(bin),
+              Err(_) => {
+                self.reader.roll_back(mark);
+                self.under(inner).never_entered(&bin.right);
+
+                Ok(())
+              },
+            }
           },
-          (false, _) => {
+          (false, false) => {
             self.under(inner).never_entered(&bin.right);
 
             Ok(())
@@ -1278,22 +1354,47 @@ impl<'r> Walk<'_, 'r> {
   }
 
   /// Whether `expr` calls a compiler function anywhere in it, a callback body
-  /// included.
+  /// included, or calls a function the module declares whose body does.
   ///
   /// A name a callback binds is not told apart here. Such a call makes the
   /// walk enter an operand it could leave, which costs a walk and changes no
   /// answer, because the operand is printed and run only where the walk admits
   /// it.
-  fn calls_a_compiler_function(&self, expr: &Expr) -> bool {
+  fn calls_a_compiler_function(&mut self, expr: &Expr) -> bool {
+    let Reader {
+      state,
+      traversal_state,
+      compiler_calls,
+      ..
+    } = &mut *self.reader;
+
     let mut search = CompilerCalls {
-      traversal_state: self.reader.traversal_state,
-      functions: &self.reader.state.functions,
+      traversal_state,
+      functions: &state.functions,
+      answers: compiler_calls,
+      following: Vec::new(),
       found: false,
+      cut: false,
     };
 
     expr.visit_with(&mut search);
 
     search.found
+  }
+
+  /// Records `bin` as an operator whose right operand runs where it loses.
+  ///
+  /// An operator with no span has no stable name for the printer to find it
+  /// by. Such a tree is built by a transform and not parsed, and the dispatch
+  /// below answers for it.
+  fn record_a_losing_operand(&mut self, bin: &BinExpr) -> Result<(), Decline> {
+    if bin.span.is_dummy() {
+      return Err(Decline::NotACandidate);
+    }
+
+    self.reader.losing_operands.insert(bin.span);
+
+    Ok(())
   }
 
   /// Admits a name the module declared a function under, by crossing the
@@ -2029,10 +2130,7 @@ fn a_global_written_as_a_value(ident: &Ident, state: &StateManager) -> bool {
 /// [`a_global_written_as_a_value`] is: the walk unwraps a parenthesis before it
 /// dispatches, so every caller already holds the name it would have read.
 fn initializer_of<'a>(ident: &Ident, reader: &'a Reader) -> Option<&'a Expr> {
-  reader
-    .traversal_state
-    .declaration_of(ident)
-    .and_then(|declarator| declarator.init.as_deref())
+  initializer_in(ident, reader.traversal_state)
 }
 
 /// Whether the module declares `ident` as a function, which is what makes a name
@@ -2123,23 +2221,94 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 }
 
 /// The walk of [`Walk::calls_a_compiler_function`].
+///
+/// It does not stop at the first call it finds, so that it can file an answer
+/// for every expression under the one it was asked about. It asks for room at
+/// each level, so a deep operand cannot overflow the stack.
 struct CompilerCalls<'s> {
   traversal_state: &'s StateManager,
   functions: &'s FunctionMap,
+  /// The answers filed so far, by span.
+  answers: &'s mut FxHashMap<Span, bool>,
+  /// The names of the declarations the walk is inside, so a function that
+  /// calls itself is not followed again.
+  following: Vec<Atom>,
+  /// Whether the expression the walk is in calls a compiler function.
   found: bool,
+  /// Whether the walk did not follow a name because it was inside that
+  /// declaration already. An answer under such a cut can be short, so it is
+  /// not filed.
+  cut: bool,
+}
+
+impl CompilerCalls<'_> {
+  /// Walks the declaration of `ident`, where the module declares one, because
+  /// a call through the name runs its body.
+  fn follow(&mut self, ident: &Ident) {
+    let Some(init) = initializer_in(ident, self.traversal_state) else {
+      return;
+    };
+
+    if self.following.contains(&ident.sym) {
+      self.cut = true;
+
+      return;
+    }
+
+    self.following.push(ident.sym.clone());
+    init.visit_with(self);
+    self.following.pop();
+  }
 }
 
 impl Visit for CompilerCalls<'_> {
-  fn visit_call_expr(&mut self, call: &CallExpr) {
-    self.found |= call.callee.as_expr().is_some_and(|callee| {
-      engine_callable(callee, self.traversal_state, self.functions)
-        .is_some_and(|callable| callable.needs_an_argument)
-    });
+  fn visit_expr(&mut self, expr: &Expr) {
+    // A tree built without spans has no stable keys, so it is searched each
+    // time.
+    let span = expr.span();
+    let key = (!span.is_dummy()).then_some(span);
 
-    if !self.found {
-      call.visit_children_with(self);
+    if let Some(found) = key.and_then(|key| self.answers.get(&key)) {
+      self.found |= *found;
+
+      return;
     }
+
+    let outer_found = std::mem::take(&mut self.found);
+    let outer_cut = std::mem::take(&mut self.cut);
+
+    grown_per_level(|| expr.visit_children_with(self));
+
+    if let Some(key) = key.filter(|_| !self.cut) {
+      self.answers.insert(key, self.found);
+    }
+
+    self.found |= outer_found;
+    self.cut |= outer_cut;
   }
+
+  fn visit_stmt(&mut self, stmt: &Stmt) {
+    grown_per_level(|| stmt.visit_children_with(self));
+  }
+
+  fn visit_call_expr(&mut self, call: &CallExpr) {
+    if let Some(callee) = call.callee.as_expr() {
+      self.found |= is_compiler_callable(callee, self.traversal_state, self.functions);
+
+      if let Expr::Ident(ident) = normalize_expr(callee) {
+        self.follow(ident);
+      }
+    }
+
+    call.visit_children_with(self);
+  }
+}
+
+/// The initializer the module declared `ident` with, where it declared one.
+fn initializer_in<'s>(ident: &Ident, state: &'s StateManager) -> Option<&'s Expr> {
+  state
+    .declaration_of(ident)
+    .and_then(|declarator| declarator.init.as_deref())
 }
 
 /// Whether a *name* may hold this value — a question of its own, and narrower
@@ -2186,3 +2355,7 @@ mod speculation_tests;
 #[cfg(test)]
 #[path = "tests/shadowed_names_tests.rs"]
 mod shadowed_names_tests;
+
+#[cfg(test)]
+#[path = "tests/compiler_call_search_tests.rs"]
+mod compiler_call_search_tests;

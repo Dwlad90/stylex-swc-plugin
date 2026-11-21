@@ -12,16 +12,23 @@
 //! operand has no effect, because the evaluator also ignores a refusal on the
 //! side it does not use.
 //!
+//! A `??` is changed too where the guard cannot show that its left operand
+//! decides. The helper then applies the rule of the logical node: a left
+//! operand that is falsy and not nullish decides nothing, and the fold
+//! refuses.
+//!
 //! Only an operator whose right operand the guard walked is changed, and only
-//! when that operand calls a compiler function. The engine runs no source that
-//! the guard did not walk. The guard records each such operator, and the
-//! printer finds it again by its position in the tree (see [`ordinals`]).
+//! when that operand calls a compiler function or the operator is such a `??`.
+//! The engine runs no source that the guard did not walk. The guard records
+//! each such operator, and the printer finds it again by its position in the
+//! tree (see [`ordinals`]).
 
-use rustc_hash::FxHashSet;
+use indexmap::IndexSet;
+use rustc_hash::FxBuildHasher;
 use swc_core::{
-  common::util::take::Take,
+  common::{Span, util::take::Take},
   ecma::{
-    ast::{BinExpr, CallExpr, Expr},
+    ast::{BinExpr, CallExpr, Expr, Stmt},
     visit::{Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
@@ -32,6 +39,12 @@ use stylex_ast::ast::factories::{
 };
 
 use super::super::nodes::logical_expression::LogicalOp;
+use crate::growable_stack::grown_per_level;
+
+/// The operators the guard recorded, by span, in the order it recorded them.
+///
+/// Ordered, so a walk that refuses can drop what it recorded by a length.
+pub(super) type Recorded = IndexSet<Span, FxBuildHasher>;
 
 /// The name of the global that runs both operands of a logical operator.
 pub(super) const EITHER: &str = "__sxEither";
@@ -43,7 +56,9 @@ pub(super) const EITHER: &str = "__sxEither";
 /// spelling, so no binding can hide it.
 ///
 /// The operator travels as its own text. `??` takes the right operand only for
-/// `null` and `undefined`, as the language does.
+/// `null` and `undefined`, as the language does. A left operand of `??` that is
+/// falsy and not nullish throws with the reason the logical node gives, because
+/// that node does not fold it.
 pub(super) const EITHER_SOURCE: &str = r#"
 Object.defineProperty(globalThis, "__sxEither", {
   value: (left, right, operator) => {
@@ -62,6 +77,10 @@ Object.defineProperty(globalThis, "__sxEither", {
       operator === "||" ? !!left : operator === "&&" ? !left : left !== null && left !== undefined;
 
     if (leftDecides) {
+      if (operator === "??" && !left) {
+        throw new TypeError("unknown error");
+      }
+
       return left;
     }
 
@@ -78,15 +97,15 @@ Object.defineProperty(globalThis, "__sxEither", {
 /// printed trees, in the order the printer visits them: the call first, and
 /// then each parameter default in its order.
 ///
-/// The guard records an operator by its address in the source tree. The
-/// printer works on a copy, so it cannot use that address. A position in the
-/// visit order is the same in both trees. It is also part of the fold memo key,
+/// The guard records an operator by its span. The printer works on a copy, and
+/// it changes the operator at a position. A position in the visit order is the
+/// same in both trees. It is also part of the fold memo key,
 /// so two folds that print the same call but change different operators do not
 /// share one compiled script.
 pub(super) fn ordinals<'e>(
   call: &CallExpr,
   defaults: impl Iterator<Item = &'e Expr>,
-  recorded: &FxHashSet<*const BinExpr>,
+  recorded: &Recorded,
 ) -> Vec<usize> {
   let mut count = Ordinals {
     recorded,
@@ -104,16 +123,26 @@ pub(super) fn ordinals<'e>(
 }
 
 /// The walk of [`ordinals`].
+///
+/// It asks for room at each level, so a deep tree cannot overflow the stack.
 struct Ordinals<'r> {
-  recorded: &'r FxHashSet<*const BinExpr>,
+  recorded: &'r Recorded,
   next: usize,
   found: Vec<usize>,
 }
 
 impl Visit for Ordinals<'_> {
+  fn visit_expr(&mut self, expr: &Expr) {
+    grown_per_level(|| expr.visit_children_with(self));
+  }
+
+  fn visit_stmt(&mut self, stmt: &Stmt) {
+    grown_per_level(|| stmt.visit_children_with(self));
+  }
+
   fn visit_bin_expr(&mut self, bin: &BinExpr) {
     if LogicalOp::of(bin.op).is_some() {
-      if self.recorded.contains(&std::ptr::from_ref(bin)) {
+      if self.recorded.contains(&bin.span) {
         self.found.push(self.next);
       }
 

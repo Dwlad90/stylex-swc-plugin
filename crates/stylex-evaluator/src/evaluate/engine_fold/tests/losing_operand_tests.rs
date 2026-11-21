@@ -3,13 +3,14 @@
 
 use super::*;
 
-use swc_core::common::{GLOBALS, Globals};
+use swc_core::common::{DUMMY_SP, GLOBALS, Globals};
+use swc_core::ecma::ast::{ArrayLit, ExprOrSpread};
 
 use stylex_constants::constants::evaluation_errors::reserved_compiler_name;
 
 use super::super::engine::{FoldKey, print_fold};
 use crate::evaluate::source_evaluation::assert_deopt_reason_contains;
-use crate::tests::scaffolding::parse_expr;
+use crate::tests::scaffolding::{SMALL_THREAD, deep_or, on_a_thread_of, parse_expr};
 
 /// The source `print_fold` writes for `expression` when the operators at
 /// `positions` run their losing operand.
@@ -79,4 +80,33 @@ fn a_binding_that_spells_the_global_refuses() {
     "[1].map((__sxEither) => __sxEither)",
     &reserved_compiler_name(EITHER),
   );
+}
+
+/// A call nested far deeper than a test thread can recurse is counted on a
+/// stack that grows, so counting cannot overflow.
+#[test]
+fn a_deep_call_is_counted_without_overflow() {
+  on_a_thread_of(SMALL_THREAD, || {
+    GLOBALS.set(&Globals::new(), || {
+      let Expr::Call(mut call) = parse_expr("[].join()") else {
+        panic!("the source is not a call");
+      };
+      let Some(Expr::Member(member)) = call.callee.as_mut_expr().map(|callee| &mut **callee) else {
+        panic!("the callee is not a member read");
+      };
+
+      *member.obj = Expr::Array(ArrayLit {
+        span: DUMMY_SP,
+        elems: vec![Some(ExprOrSpread {
+          spread: None,
+          expr: Box::new(deep_or(100_000)),
+        })],
+      });
+
+      assert!(ordinals(&call, std::iter::empty(), &Recorded::default()).is_empty());
+
+      // A tree this deep drops by recursion too, so it is not dropped here.
+      std::mem::forget(call);
+    });
+  });
 }

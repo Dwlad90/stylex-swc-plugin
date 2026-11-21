@@ -11,7 +11,7 @@
 //!
 //! The decision and the safety argument are in ADR 0011.
 
-use std::{cell::Cell, ptr};
+use std::{cell::Cell, marker::PhantomData, ptr};
 
 use boa_engine::{
   Context, JsError, JsNativeError, JsResult, JsString, JsValue, NativeFunction,
@@ -52,24 +52,28 @@ thread_local! {
 /// dropped. So a fold that runs inside a compiler function (a nested fold)
 /// opens its own scope, and the outer scope is in force again when the nested
 /// fold ends. The drop also runs on an unwind.
-pub(super) struct LiveState {
+///
+/// The scope holds the mutable borrow of the state for its whole life. So the
+/// borrow checker, not the caller, makes sure that nothing else uses the state
+/// while the scope is open, and that the scope ends before the borrow does.
+pub(super) struct LiveState<'a> {
   previous: *mut StateManager,
+  borrow: PhantomData<&'a mut StateManager>,
 }
 
-impl LiveState {
+impl<'a> LiveState<'a> {
   /// Makes `state` the build state of the engine until the scope is dropped.
-  ///
-  /// The caller must not use `state` while the scope is open, except through
-  /// the scope. The fold keeps to this: it opens the scope before the engine
-  /// runs and drops it before it reads its own state again.
-  pub(super) fn enter(state: &mut StateManager) -> Self {
+  pub(super) fn enter(state: &'a mut StateManager) -> Self {
     let previous = LIVE_STATE.replace(state);
 
-    Self { previous }
+    Self {
+      previous,
+      borrow: PhantomData,
+    }
   }
 }
 
-impl Drop for LiveState {
+impl Drop for LiveState<'_> {
   fn drop(&mut self) {
     LIVE_STATE.set(self.previous);
   }
@@ -81,12 +85,12 @@ fn with_live_state<T>(run: impl FnOnce(&mut StateManager) -> T) -> Option<T> {
   let state = LIVE_STATE.get();
 
   // SAFETY: the pointer is null or it comes from `LiveState::enter`, which got
-  // it from a `&mut StateManager` that the fold owns. All of this runs on one
-  // thread, because the cell is thread-local. The fold does not use its own
-  // borrow while the scope is open, so this reference is the only one in use.
-  // The scope is dropped, and the pointer cleared, before that borrow ends. A
-  // nested fold reborrows from this reference and puts the pointer back when
-  // it ends, so two references are never in use at the same time.
+  // it from a `&mut StateManager` that the scope holds for its whole life. All
+  // of this runs on one thread, because the cell is thread-local. The scope
+  // holds the borrow, so no other reference to the state is in use while it is
+  // open, and the scope is dropped, and the pointer put back, before the borrow
+  // ends. A nested fold reborrows from this reference and puts the pointer back
+  // when it ends, so two references are never in use at the same time.
   let state = unsafe { state.as_mut() };
 
   state.map(run)

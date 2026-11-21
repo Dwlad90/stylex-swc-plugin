@@ -58,9 +58,10 @@ The scope is sound for these reasons:
 
 - The cell is thread-local, and a fold runs on one thread. No other thread can
   see the pointer.
-- The pointer comes from the `&mut StateManager` that the fold holds. The fold
-  does not use that borrow while the scope is open: it opens the scope after the
-  guard walk and drops it before it returns.
+- The pointer comes from the `&mut StateManager` that the fold holds. The scope
+  takes that borrow and holds it for its whole life (`LiveState<'a>`), so the
+  borrow checker stops the fold from using the state while the scope is open.
+  The fold opens the scope after the guard walk and drops it before it returns.
 - The scope is dropped before the borrow ends, on a normal return and on an
   unwind. Outside a scope the cell is null, and the native function throws.
 - A compiler function can evaluate again, and that evaluation can start a nested

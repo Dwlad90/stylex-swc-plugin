@@ -165,6 +165,7 @@ struct Ceilings {
 /// Two counts, because a value costs in two ways that do not stand in for each
 /// other. A thousand empty arrays hold no text at all and are still a thousand
 /// values to build; a single string is one entry and can be a megabyte.
+#[derive(Clone, Copy)]
 struct Totals {
   /// UTF-16 code units of every string and key so far.
   units: u64,
@@ -527,17 +528,18 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       };
 
       // The build state is in scope while the engine runs, so a compiler
-      // function the engine calls can write into the build. The walk does not
-      // read the state again until the scope is dropped at the end of this
-      // closure.
-      let in_scope = LiveState::enter(walk.traversal_state());
+      // function the engine calls can write into the build. The scope holds
+      // the borrow of the state until it is dropped at the end of this closure,
+      // and the fold reads only what the walk collected until then.
+      let (live, collected) = walk.for_the_engine();
+      let in_scope = LiveState::enter(live);
 
       let folded = applied
-        .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
+        .and_then(|()| collected.arguments(&mut engine.context, method, &var_group))
         .and_then(|arguments| {
           apply(
             key,
-            || print_fold(call, walk.parameters(), &losing_operands),
+            || print_fold(call, collected.parameters(), &losing_operands),
             &arguments,
             &mut engine,
             method,
@@ -561,7 +563,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
         // marker reader directly, in `var_group_tests`. The refusal travels
         // through the chain rather than through a `?`, because a `?` here is
         // a branch of this function that no source can take.
-        .and_then(|value| match walk.carried_a_theme_reference() {
+        .and_then(|value| match collected.carried_a_theme_reference() {
           true => is_a_var_group(&value, method, &mut engine.context).map(|group| (value, group)),
           false => Ok((value, false)),
         })

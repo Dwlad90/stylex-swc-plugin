@@ -520,13 +520,17 @@ still queues its compensating import. It does not enter the arm a `?:` does not
 take.
 
 The engine fold does the same for a losing side that calls a compiler
-function. The guard walks that side, and where the walk admits it, the printed
-source changes the operator into a call of the global `__sxEither`, which runs
-the right side first and then picks. A throw from the side that loses has no
-effect. Where the walk refuses the side, the side stays dead, as the evaluator
-ignores a refusal on the side it does not use. A deciding side that calls a
-compiler function is not read before the engine runs, because reading it would
-run the function twice. Which operand is dead is the
+function, directly or through a function the module declares. The guard walks
+that side, and where the walk admits it, the printed source changes the
+operator into a call of the global `__sxEither`, which runs the right side
+first and then picks. A throw from the side that loses has no effect. Where the
+walk refuses the side, the side stays dead, as the evaluator ignores a refusal
+on the side it does not use, and what the walk carried for it goes back. A `??`
+whose left side the guard cannot show to decide goes through `__sxEither` too,
+because only there does the logical node's rule apply: a left side that is
+falsy and not nullish decides nothing, and the fold refuses. A deciding side
+that calls a compiler function is not read before the engine runs, because
+reading it would run the function twice. Which operand is dead is the
 operator's own rule, read from the one place that states it — and read from the
 module only outside a callback body, since inside one the engine binds the names
 and both sides have to carry.

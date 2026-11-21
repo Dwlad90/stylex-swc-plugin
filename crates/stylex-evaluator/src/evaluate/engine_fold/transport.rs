@@ -91,6 +91,14 @@ pub(super) struct Transport {
   pub(super) read_a_theme_reference: bool,
 }
 
+/// Where a [`Transport`] stands: how many names it carries, and what they
+/// count against the ceilings.
+pub(super) struct TransportMark {
+  carried: usize,
+  totals: Totals,
+  read_a_theme_reference: bool,
+}
+
 impl Transport {
   /// An empty transport, holding the ceilings every value it carries is counted
   /// against.
@@ -257,6 +265,24 @@ impl Transport {
   /// as its name.
   pub(super) fn parameters_key(&self) -> u128 {
     stable_hash_wide(&PrintedParameters(self))
+  }
+
+  /// Where the transport stands now. See [`roll_back`](Transport::roll_back).
+  pub(super) fn mark(&self) -> TransportMark {
+    TransportMark {
+      carried: self.params.len(),
+      totals: self.totals,
+      read_a_theme_reference: self.read_a_theme_reference,
+    }
+  }
+
+  /// Drops what was carried since `mark`, and its count against the ceilings,
+  /// for a walk that refused a side it did not have to run.
+  pub(super) fn roll_back(&mut self, mark: TransportMark) {
+    self.params.truncate(mark.carried);
+    self.values.truncate(mark.carried);
+    self.totals = mark.totals;
+    self.read_a_theme_reference = mark.read_a_theme_reference;
   }
 
   /// Whether a value is already travelling under `name`.

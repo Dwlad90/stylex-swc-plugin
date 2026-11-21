@@ -3041,6 +3041,12 @@ fn media_types_resolve_to_one_positive_media_type() {
       "@media screen and (not (all and (not (min-width: 100px))))",
       "@media screen and (not ((not (min-width: 100px))))",
     ),
+    // A negated `or` negates each item of an `and` in it. The negation of a
+    // `not` is its operand, so `(not (color))` becomes `(color)`.
+    (
+      "@media not ((screen and (not (color))) or (grid))",
+      "@media print and (not (grid)), (color) and (not (grid))",
+    ),
   ];
 
   for (input, expected) in cases {

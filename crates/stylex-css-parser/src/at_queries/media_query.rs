@@ -721,7 +721,8 @@ fn resolve_and_rules(mut rules: Vec<MediaQueryRule>, budget: &mut WorkBudget) ->
       Some(_) => None,
       None => media_type.map(|media_type| MediaKeyword::new(media_type, false, false)),
     };
-    let mut rules: Vec<MediaQueryRule> = Vec::with_capacity(rest.len());
+    // One more slot for a new anchor, which `rest` does not hold.
+    let mut rules: Vec<MediaQueryRule> = Vec::with_capacity(rest.len() + 1);
     for (index, rule) in rest.into_iter().enumerate() {
       match rule {
         MediaQueryRule::MediaKeyword(keyword) => {

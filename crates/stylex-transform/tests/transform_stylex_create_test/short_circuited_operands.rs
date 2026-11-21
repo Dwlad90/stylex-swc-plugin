@@ -6,9 +6,9 @@
 //! the other arm queues nothing. A losing side that cannot be folded does not
 //! refuse the expression when the other side decides it.
 //!
-//! Runtime injection is on throughout, so each snapshot records the rule text
-//! beside the class name; the import list above it is the half these cases are
-//! really about, and the one a CSS-only assertion would miss.
+//! Runtime injection is on in all cases but one, so each snapshot records the
+//! rule text beside the class name; the import list above it is the half these
+//! cases are really about, and the one a CSS-only assertion would miss.
 
 use crate::utils::prelude::*;
 use swc_core::common::FileName;
@@ -41,6 +41,27 @@ stylex_test!(
   |tr| build_test_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("MyComponent.js".into()))
       .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_treeshake_compensation(false)
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from 'tokens.stylex';
+    const enabled = false;
+    export const styles = stylex.create({
+      a: { color: [(enabled && colors.glow) || 'red'].join('') },
+    });
+  "#
+);
+
+// The same module with runtime injection on and compensation off. The option
+// turns injection on without the builder shortcut, which also turns
+// compensation on. The rule is injected, and no theme import is added.
+stylex_test!(
+  a_dead_theme_read_with_no_compensation_and_runtime_injection,
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
       .with_treeshake_compensation(false)
   }),
   r#"

@@ -150,7 +150,7 @@
       "id": "1b0d2e86",
       "property": "animationName",
       "value": "x",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/short_circuited_operands.rs:269"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/short_circuited_operands.rs:290"
     },
     {
       "id": "1c0d3019",

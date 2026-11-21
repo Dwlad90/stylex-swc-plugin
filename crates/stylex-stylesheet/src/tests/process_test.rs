@@ -1850,6 +1850,19 @@ fn a_falsy_rtl_is_no_rtl_text_and_a_truthy_non_string_is_refused() {
       );
     }
   }
+  // With layers on, a rule of priority 0 is written out of the layer, and its
+  // RTL text is refused there too.
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": "@keyframes x1{}", "rtl": true}, 0]]"#),
+      true.into()
+    ),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Rtl,
+      class_name: "x1".into(),
+      kind: "a boolean"
+    })
+  );
   // Replaced in its group by the later rule of its class.
   assert_eq!(
     answer(

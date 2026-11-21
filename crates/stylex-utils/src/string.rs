@@ -98,27 +98,6 @@ pub fn kebab_case(s: &str) -> Cow<'_, str> {
   }
 }
 
-/// Whether a value spells no CSS text at all — empty, or nothing but
-/// characters the value scanner reads as whitespace.
-///
-/// A declaration built from one of these is `color:`, which no browser accepts.
-/// The transform fails the build for a blank value, as the reference does, and
-/// a pair of CSS text asks this to omit a blank half.
-///
-/// Deliberately narrower than `str::trim`. The scanner calls a character
-/// whitespace when its code is at most 32 and nothing else, so U+00A0 or
-/// U+3000 is a *word token* to it, not a gap — and the reference compiler
-/// emits such a value verbatim. Testing bytes is exact here: every byte of a
-/// multi-byte character is at least 0x80.
-///
-/// Wider than `str::trim` in the other direction: a C0 control such as
-/// `"\u{1}"` is not Unicode whitespace, but the scanner reads it as
-/// whitespace, so it is blank too. Pinned by
-/// `c0_controls_that_are_not_unicode_whitespace_are_blank`.
-pub fn is_blank_css_text(s: &str) -> bool {
-  s.bytes().all(|byte| byte <= 32)
-}
-
 /// The length of a string as JavaScript reports it: its count of UTF-16 code
 /// units.
 ///

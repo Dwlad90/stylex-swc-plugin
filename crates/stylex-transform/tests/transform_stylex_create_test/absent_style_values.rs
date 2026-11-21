@@ -396,7 +396,7 @@ stylex_test!(
   "#
 );
 
-// `content` is the property whose blank string is *not* blank CSS text, so an
+// On `content`, a blank string is quoted and so still spells a value. An
 // absence on it has to be told apart from `''`.
 stylex_test!(
   an_absence_on_content_is_not_a_blank_string,

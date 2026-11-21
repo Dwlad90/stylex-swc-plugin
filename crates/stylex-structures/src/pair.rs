@@ -1,7 +1,5 @@
 use std::borrow::Cow;
 
-use stylex_utils::string::is_blank_css_text;
-
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Pair {
   pub key: String,
@@ -16,34 +14,35 @@ impl Pair {
     }
   }
 
-  /// The `key:value;` CSS text this pair spells, or `None` when it spells none.
+  /// Appends this pair to `out` as `key:value;`.
   ///
-  /// A half that is [blank CSS text](is_blank_css_text) leaves nothing to
-  /// declare: `top:` is not valid CSS and a browser discards it, so the text is
-  /// omitted rather than emitted empty. Every at-rule body assembled from pairs
-  /// asks this, so that a blank half drops before the body is hashed. The
-  /// transform fails the build for a blank value before it makes a pair.
-  pub fn as_css_text(&self) -> Option<String> {
-    css_text_of(&self.key, &self.value)
+  /// Each half is written as it is, also when it is blank. A blank value
+  /// fails the build before a pair is made, and a blank key is kept, as the
+  /// reference keeps it.
+  pub fn push_css_text(&self, out: &mut String) {
+    push_css_text(out, &self.key, &self.value);
+  }
+
+  /// The length of the text that [`Pair::push_css_text`] writes, so a caller
+  /// can size its buffer once.
+  pub fn css_text_len(&self) -> usize {
+    css_text_len(&self.key, &self.value)
   }
 }
 
-/// The `key:value;` text the two halves spell, or `None` when they spell none.
-///
-/// Both pair kinds ask this, so the rule that a blank half declares nothing is
-/// stated once.
-fn css_text_of(key: &str, value: &str) -> Option<String> {
-  if is_blank_css_text(key) || is_blank_css_text(value) {
-    return None;
-  }
+/// The length of `key:value;`: the two halves, a colon and a semicolon.
+fn css_text_len(key: &str, value: &str) -> usize {
+  key.len() + value.len() + 2
+}
 
-  let mut css_text = String::with_capacity(key.len() + value.len() + 2);
-  css_text.push_str(key);
-  css_text.push(':');
-  css_text.push_str(value);
-  css_text.push(';');
-
-  Some(css_text)
+/// Appends `key:value;` to `out`. Both pair kinds use it, so the format is
+/// written once.
+fn push_css_text(out: &mut String, key: &str, value: &str) {
+  out.reserve(css_text_len(key, value));
+  out.push_str(key);
+  out.push(':');
+  out.push_str(value);
+  out.push(';');
 }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -53,12 +52,10 @@ pub struct PairCow<'a> {
 }
 
 impl<'a> PairCow<'a> {
-  /// The `key:value;` CSS text this pair spells, or `None` when it spells none.
-  ///
-  /// The same answer [`Pair::as_css_text`] gives, without making the pair own
-  /// its halves first.
-  pub fn as_css_text(&self) -> Option<String> {
-    css_text_of(&self.key, &self.value)
+  /// Appends this pair to `out` as `key:value;`, the same text that
+  /// [`Pair::push_css_text`] writes, without making the pair own its halves.
+  pub fn push_css_text(&self, out: &mut String) {
+    push_css_text(out, &self.key, &self.value);
   }
 
   pub fn borrowed(pair: &'a Pair) -> Self {

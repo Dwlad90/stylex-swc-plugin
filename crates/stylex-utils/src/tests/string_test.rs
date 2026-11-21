@@ -268,58 +268,6 @@ mod utf16_length_tests {
 }
 
 #[cfg(test)]
-mod is_blank_css_text_tests {
-  use crate::string::is_blank_css_text;
-
-  #[test]
-  fn recognises_text_that_spells_nothing() {
-    assert!(is_blank_css_text(""));
-    assert!(is_blank_css_text(" "));
-    assert!(is_blank_css_text("  \t\n "));
-  }
-
-  #[test]
-  fn keeps_text_that_spells_a_value() {
-    assert!(!is_blank_css_text("0"));
-    assert!(!is_blank_css_text("red"));
-    // Surrounding whitespace does not make a value blank.
-    assert!(!is_blank_css_text(" red "));
-    // Empty *quotes* are CSS text, which is what a blank `content` becomes.
-    assert!(!is_blank_css_text("\"\""));
-  }
-
-  #[test]
-  fn unicode_whitespace_is_a_value() {
-    // The value scanner reads whitespace as "char code <= 32" and nothing
-    // else, so each of these is a *word token* to it, not a gap. The
-    // reference compiler emits them: `transformValue("color", "\u{3000}")`
-    // produces the declaration.
-    assert!(!is_blank_css_text("\u{3000}")); // ideographic space
-    assert!(!is_blank_css_text("\u{00a0}")); // no-break space
-    assert!(!is_blank_css_text("\u{2028}")); // line separator
-    // Mixed with scanner whitespace, the word token still carries the value.
-    assert!(!is_blank_css_text(" \u{00a0} "));
-  }
-
-  /// The other side of the same divergence from `str::trim`.
-  ///
-  /// A C0 control is not Unicode whitespace, but the scanner reads it as
-  /// whitespace, so it is blank, the same as `""` and `" "`.
-  #[test]
-  fn c0_controls_that_are_not_unicode_whitespace_are_blank() {
-    assert!(is_blank_css_text("\u{0}")); // NUL
-    assert!(is_blank_css_text("\u{1}")); // start of heading
-    assert!(is_blank_css_text("\u{1f}")); // unit separator
-    // And still true of the controls `trim` already agreed were whitespace.
-    assert!(is_blank_css_text("\u{b}")); // vertical tab
-    assert!(is_blank_css_text("\u{c}")); // form feed
-    // Code 32 is the boundary; 33 is the first character that spells a value.
-    assert!(is_blank_css_text("\u{20}"));
-    assert!(!is_blank_css_text("\u{21}"));
-  }
-}
-
-#[cfg(test)]
 mod json_stringify_tests {
   use crate::string::json_stringify;
 

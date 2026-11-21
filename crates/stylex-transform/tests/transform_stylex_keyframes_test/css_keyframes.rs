@@ -231,3 +231,18 @@ stylex_test!(
     });
   "#
 );
+
+// A blank property name is written as it is, so the step keeps `:red;`. The
+// reference does the same, and the name is hashed from that text.
+stylex_test!(
+  a_blank_property_name_in_a_step_is_kept,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const empty = stylex.keyframes({
+      from: { '': 'red', color: 'blue' },
+    });
+    export const blank = stylex.keyframes({
+      from: { ' ': 'red', color: 'blue' },
+    });
+  "#
+);

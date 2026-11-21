@@ -231,3 +231,16 @@ stylex_test!(
     });
   "#
 );
+
+// A blank property name is written as it is, so the part keeps `:red;`. The
+// reference does the same, and the class name is hashed from that text.
+stylex_test!(
+  a_blank_property_name_in_a_part_is_kept,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vt = stylex.viewTransitionClass({
+      group: { '': 'red', color: 'blue' },
+    });
+  "#
+);

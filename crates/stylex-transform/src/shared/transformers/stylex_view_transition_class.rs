@@ -43,16 +43,12 @@ pub(crate) fn stylex_view_transition_class(
     let declarations =
       obj_transform_values_and_map_keys(&entries, state, |key| dashify(key).into_owned());
 
-    // An upper bound: the declarations that turn out to spell nothing are
-    // dropped below, so this over-reserves rather than reallocating.
-    let capacity = declarations
-      .iter()
-      .map(|pair| pair.key.len() + pair.value.len() + 2)
-      .sum();
+    // The exact length of the text, so the buffer is not grown.
+    let capacity = declarations.iter().map(Pair::css_text_len).sum();
     let mut css_text = String::with_capacity(capacity);
 
-    for declaration in declarations.iter().filter_map(Pair::as_css_text) {
-      css_text.push_str(&declaration);
+    for declaration in &declarations {
+      declaration.push_css_text(&mut css_text);
     }
 
     parts.insert(format!("::view-transition-{}", dashify(&part)), css_text);
@@ -94,9 +90,9 @@ fn construct_final_view_transition_css_str(
 /// The string the class name is hashed from.
 ///
 /// This writes `selector:body;`, which is not a rule's CSS text at all, so it
-/// deliberately does not ask [`Pair::as_css_text`]: a selector whose body is
-/// empty still has to appear, because the reference implementation hashes it
-/// that way and the name has to agree. What the emitted CSS carries is set by
+/// does not use [`Pair::push_css_text`]. A selector whose body is empty still
+/// has to appear, because the reference hashes it that way and the name has to
+/// agree. What the emitted CSS carries is set by
 /// [`construct_final_view_transition_css_str`], not here.
 fn string_to_hash(parts: &ViewTransitionParts) -> String {
   let mut result = String::with_capacity(parts.len() * 16);

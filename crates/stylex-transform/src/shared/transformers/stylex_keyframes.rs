@@ -113,8 +113,8 @@ pub(crate) fn stylex_keyframes(
 /// The steps of one keyframes rule, written as `step{declarations}`.
 ///
 /// `resolve` answers the declaration a pair makes in the direction the caller
-/// asks for, and a pair that spells nothing is dropped. When two pairs of a
-/// step resolve to one property name, the step keeps one of them.
+/// asks for. When two pairs of a step resolve to one property name, the step
+/// keeps one of them.
 fn construct_keyframes_obj(
   steps: &KeyframeSteps,
   resolve: impl for<'a> Fn(&'a Pair) -> PairCow<'a>,
@@ -125,11 +125,8 @@ fn construct_keyframes_obj(
     result.push_str(step);
     result.push('{');
 
-    for css_text in obj_map_entry(pairs, &resolve)
-      .iter()
-      .filter_map(PairCow::as_css_text)
-    {
-      result.push_str(&css_text);
+    for pair in obj_map_entry(pairs, &resolve) {
+      pair.push_css_text(&mut result);
     }
 
     result.push('}');

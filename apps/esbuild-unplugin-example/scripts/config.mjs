@@ -27,7 +27,6 @@ export const config = {
       useCSSLayers: true,
       rsOptions: {
         treeshakeCompensation: true,
-        stylexImports: ['@stylexjs/stylex'],
         env: {
           tokens: {
             layout: {

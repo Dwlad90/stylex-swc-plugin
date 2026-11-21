@@ -34,6 +34,24 @@ mod get_canonical_file_path {
     assert_eq!(canonical_path, "_unknown_name_:vars.stylex.js");
   }
 
+  /// A folder is read as an entry of its parent, so its own `package.json`
+  /// does not name it. The search starts in the parent and finds the package
+  /// of this crate.
+  #[test]
+  fn get_canonical_file_path_of_a_folder_is_named_by_the_package_of_its_parent() {
+    let fixture_path = fixture_path("package_json_with_name");
+
+    let stage_manager = StateManager::default();
+
+    let canonical_path = stage_manager
+      .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
+
+    assert_eq!(
+      canonical_path,
+      "@stylexswc/state:src/tests/fixtures/package_json_with_name"
+    );
+  }
+
   #[test]
   fn get_canonical_file_unknown_path() {
     let fixture_path = PathBuf::from("/unknown/path");

@@ -123,7 +123,7 @@ const styles = {
         alignItems: "x6s0dn4",
         justifyContent: "xl56j7k",
         gap: "xmjcfx9",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:15"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:15"
     },
     rect: {
         "input__styles.rect": "input__styles.rect",
@@ -134,67 +134,67 @@ const styles = {
         animationDuration: "x1m9vv7p",
         animationIterationCount: "xa4qsjk",
         animationTimingFunction: "x4hg4is",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:23"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:23"
     },
     rect1: {
         "input__styles.rect1": "input__styles.rect1",
         height: "x10buj8t",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:32"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:32"
     },
     rect2: {
         "input__styles.rect2": "input__styles.rect2",
         animationDelay: "x1qdon1m",
         height: "x1lnynta",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:35"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:35"
     },
     rect3: {
         "input__styles.rect3": "input__styles.rect3",
         animationDelay: "x123bg45",
         height: "x5yr21d",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:39"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:39"
     },
     rect4: {
         "input__styles.rect4": "input__styles.rect4",
         animationDelay: "x1ba7lo8",
         backgroundColor: "xb4ade6",
         height: "x1lnynta",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:43"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:43"
     },
     rect5: {
         "input__styles.rect5": "input__styles.rect5",
         animationDelay: "xdwblqi",
         height: "x10buj8t",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:48"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:48"
     },
     sizeSmall: {
         "input__styles.sizeSmall": "input__styles.sizeSmall",
         height: "xettwda",
         width: "xs5h3dt",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:52"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:52"
     },
     size_small: {
         "input__styles.size_small": "input__styles.size_small",
         height: "xettwda",
         width: "xs5h3dt",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:56"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:56"
     },
     size_normal: {
         "input__styles.size_normal": "input__styles.size_normal",
         height: "x1sh0tsm",
         width: "xekueh",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:60"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:60"
     },
     size_large: {
         "input__styles.size_large": "input__styles.size_large",
         height: "x17frcva",
         width: "xdvn7xf",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:64"
+        $$css: "@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:64"
     }
 };
 const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
     return isLoading && <>
         <div {...stylex.props(styles[size])}>{size}</div>
-        <div className="input__styles.root xrvj5dj x1mt1orb xernuvs x6s0dn4 xl56j7k xmjcfx9 input__styles.sizeSmall xettwda xs5h3dt" data-style-src="tests/fixture/spot-loader/input.stylex.js:15; tests/fixture/spot-loader/input.stylex.js:52">styles.sizeSmall</div>
+        <div className="input__styles.root xrvj5dj x1mt1orb xernuvs x6s0dn4 xl56j7k xmjcfx9 input__styles.sizeSmall xettwda xs5h3dt" data-style-src="@stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:15; @stylexswc/transform:tests/fixture/spot-loader/input.stylex.js:52">styles.sizeSmall</div>
         <div {...stylex.props(styles.root, styles.sizeSmall, style)}>styles.sizeSmall with styles</div>
       </>;
 };

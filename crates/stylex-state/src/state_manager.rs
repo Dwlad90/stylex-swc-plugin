@@ -2062,7 +2062,10 @@ impl StateManager {
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   ) -> Option<(Option<String>, String)> {
     let folder = Path::new(filepath).parent()?;
-    let package_json_path = find_closest_package_json_folder(Path::new(filepath));
+    // The search starts at the folder that holds the path, not at the path.
+    // A directory, such as the working directory, is then read as an entry of
+    // its parent, so its own package.json is not found.
+    let package_json_path = find_closest_package_json_folder(folder);
 
     if let Some(package_json_path) = package_json_path {
       let (package_json, _) = get_package_json(&package_json_path, package_json_seen);

@@ -11,21 +11,21 @@ interface Props {
 }
 export default function Home(_props: Props) {
     return(// @ts-expect-error - sx is not correctly typed
-    <main className="input__style.main x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x5zw9ho x1jlena x1hs85sq" data-style-src="tests/fixture/page-tsx/input.stylex.js:73">
-      <div className="input__style.description x1jfb8zj xarpa2k x1h91t0o x1m46db1 xlql8t6 xh8yej3 xhtitgo xum72dy" data-style-src="tests/fixture/page-tsx/input.stylex.js:119">
-        <p className="input__style.descP xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x2jueht xx1ocoh xzfjryi x1xwseyw x1hs85sq xhxofkm x1rgf71s xmkeg23 x1m60m6i x1y0btm7 xbc1r81 x1e6d3oi xvm41bv xd22jv x1los6se" data-style-src="tests/fixture/page-tsx/input.stylex.js:136">
+    <main className="input__style.main x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x5zw9ho x1jlena x1hs85sq" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:73">
+      <div className="input__style.description x1jfb8zj xarpa2k x1h91t0o x1m46db1 xlql8t6 xh8yej3 xhtitgo xum72dy" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:119">
+        <p className="input__style.descP xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x2jueht xx1ocoh xzfjryi x1xwseyw x1hs85sq xhxofkm x1rgf71s xmkeg23 x1m60m6i x1y0btm7 xbc1r81 x1e6d3oi xvm41bv xd22jv x1los6se" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:136">
           Get started by editing&nbsp;
-          <code className="input__style.code x1xlr1w8 xum72dy" data-style-src="tests/fixture/page-tsx/input.stylex.js:176">app/page.tsx</code>
+          <code className="input__style.code x1xlr1w8 xum72dy" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:176">app/page.tsx</code>
         </p>
       </div>
-      <div className="input__style.hero x1iyjqo2 x78zum5 xdt5ytf x6s0dn4 xl56j7k x1fvhq8d" data-style-src="tests/fixture/page-tsx/input.stylex.js:85">
-        <h1 className="input__style.h1 x1kg2sfr xo5v014 x1alyrvt xo1l8bm x2b8uid x78zum5 xecefrz xuxw1ft x1q0g3np xwlf911" data-style-src="tests/fixture/page-tsx/input.stylex.js:93">
-          Next.js App Dir<span className="input__style.emoji x1n2onr6 x6icuqf x13vifvy xe3njyp x1r68wle x1c74tu6 xa4qsjk x1esw782" data-style-src="tests/fixture/page-tsx/input.stylex.js:107">♥️</span>️StyleX
+      <div className="input__style.hero x1iyjqo2 x78zum5 xdt5ytf x6s0dn4 xl56j7k x1fvhq8d" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:85">
+        <h1 className="input__style.h1 x1kg2sfr xo5v014 x1alyrvt xo1l8bm x2b8uid x78zum5 xecefrz xuxw1ft x1q0g3np xwlf911" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:93">
+          Next.js App Dir<span className="input__style.emoji x1n2onr6 x6icuqf x13vifvy xe3njyp x1r68wle x1c74tu6 xa4qsjk x1esw782" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:107">♥️</span>️StyleX
         </h1>
           <Counter/>
       </div>
 
-      <div className="input__style.grid xrvj5dj xtp8ymz xx3cr9d xtffbmy x1xhi074 x193iq5w xl858mc x15hltav" data-style-src="tests/fixture/page-tsx/input.stylex.js:180">
+      <div className="input__style.grid xrvj5dj xtp8ymz xx3cr9d xtffbmy x1xhi074 x193iq5w xl858mc x15hltav" data-style-src="@stylexswc/transform:tests/fixture/page-tsx/input.stylex.js:180">
         <Card body="Learn how to use StyleX to build UIs" href={`${HOMEPAGE}/docs/learn/`} title="Docs"/>
         <Card body="Browse through the StyleX API reference" href={`${HOMEPAGE}/docs/api/`} title="API"/>
         <Card body="Play with StyleX and look at the compile outputs" href={`${HOMEPAGE}/playground/`} title="Playground"/>

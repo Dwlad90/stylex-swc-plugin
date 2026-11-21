@@ -92,19 +92,19 @@ const styles = {
         justifyContent: "xl56j7k",
         gap: "xou54vl",
         paddingBottom: "xzk7aed",
-        $$css: "tests/fixture/buttons-demo/input.stylex.js:49"
+        $$css: "@stylexswc/transform:tests/fixture/buttons-demo/input.stylex.js:49"
     },
     bordered: {
         "input__styles.bordered": "input__styles.bordered",
         borderWidth: "xdh2fpr",
         borderStyle: "x1y0btm7",
         borderColor: "x71xlcl",
-        $$css: "tests/fixture/buttons-demo/input.stylex.js:57"
+        $$css: "@stylexswc/transform:tests/fixture/buttons-demo/input.stylex.js:57"
     },
     greenBorder: {
         "input__styles.greenBorder": "input__styles.greenBorder",
         borderColor: "x1bg2uv5",
-        $$css: "tests/fixture/buttons-demo/input.stylex.js:62"
+        $$css: "@stylexswc/transform:tests/fixture/buttons-demo/input.stylex.js:62"
     }
 };
 _inject2({

@@ -8,9 +8,11 @@ mod get_package_name_and_path {
   #[test]
   fn get_package_json_with_name() {
     let fixture_path = fixture_path("package_json_with_name");
+    // A file, as a caller passes. A folder is read as an entry of its parent.
+    let file_path = fixture_path.join("app.js");
 
     let (package_name, package_path) = StateManager::get_package_name_and_path(
-      fixture_path.to_str().unwrap(),
+      file_path.to_str().unwrap(),
       &mut FxHashMap::default(),
     )
     .unwrap();
@@ -22,9 +24,11 @@ mod get_package_name_and_path {
   #[test]
   fn get_package_json_without_name() {
     let fixture_path = fixture_path("package_json_without_name");
+    // A file, as a caller passes. A folder is read as an entry of its parent.
+    let file_path = fixture_path.join("app.js");
 
     let (package_name, package_path) = StateManager::get_package_name_and_path(
-      fixture_path.to_str().unwrap(),
+      file_path.to_str().unwrap(),
       &mut FxHashMap::default(),
     )
     .unwrap();

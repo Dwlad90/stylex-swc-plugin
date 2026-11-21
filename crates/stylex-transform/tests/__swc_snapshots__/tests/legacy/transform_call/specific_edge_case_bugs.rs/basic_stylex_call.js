@@ -60,7 +60,7 @@ export const styles = {
         "gridColumn-kBCFzs": null,
         "gridColumnStart-kEXP64": null,
         "gridColumnEnd-kWZpDQ": null,
-        $$css: "src/js/components/Foo.react.js:3"
+        $$css: "@stylexswc/transform:src/js/components/Foo.react.js:3"
     },
     content: {
         "Foo__styles.content": "Foo__styles.content",
@@ -71,14 +71,14 @@ export const styles = {
         "gridColumn-kBCFzs": null,
         "gridColumnStart-kEXP64": null,
         "gridColumnEnd-kWZpDQ": null,
-        $$css: "src/js/components/Foo.react.js:7"
+        $$css: "@stylexswc/transform:src/js/components/Foo.react.js:7"
     },
     root: {
         "Foo__styles.root": "Foo__styles.root",
         "display-k1xSpc": "xrvj5dj",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x5gp9wm",
-        $$css: "src/js/components/Foo.react.js:10"
+        $$css: "@stylexswc/transform:src/js/components/Foo.react.js:10"
     },
     withSidebar: {
         "Foo__styles.withSidebar": "Foo__styles.withSidebar",
@@ -88,12 +88,12 @@ export const styles = {
         "@media (max-width: 640px)_gridTemplateRows-k9pwkU": "xmr4b4k",
         "@media (max-width: 640px)_gridTemplateAreas-kOnEH4": "xesbpuc",
         "@media (max-width: 640px)_gridTemplateColumns-k1JLwA": "x15nfgh4",
-        $$css: "src/js/components/Foo.react.js:15"
+        $$css: "@stylexswc/transform:src/js/components/Foo.react.js:15"
     },
     noSidebar: {
         "Foo__styles.noSidebar": "Foo__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "x1mkdm3x",
-        $$css: "src/js/components/Foo.react.js:25"
+        $$css: "@stylexswc/transform:src/js/components/Foo.react.js:25"
     }
 };
 ({

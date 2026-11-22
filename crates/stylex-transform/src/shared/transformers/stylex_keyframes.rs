@@ -8,7 +8,9 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::utils::{
   core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-  object::{obj_entries, obj_from_entries, obj_map_entry, obj_transform_values_and_map_keys},
+  object::{
+    MappedEntries, obj_entries, obj_from_entries, obj_map_entry, obj_transform_values_and_map_keys,
+  },
 };
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, get_key_values_from_object, normalize_expr,
@@ -120,12 +122,15 @@ fn construct_keyframes_obj(
   resolve: impl for<'a> Fn(&'a Pair) -> PairCow<'a>,
 ) -> String {
   let mut result = String::with_capacity(steps.len() * 32);
+  // One map serves every step, so it is allocated once for the rule.
+  let mut entries = MappedEntries::default();
 
   for (step, pairs) in steps {
     result.push_str(step);
     result.push('{');
 
-    for pair in obj_map_entry(pairs, &resolve) {
+    obj_map_entry(pairs, &resolve, &mut entries);
+    for pair in entries.values() {
       pair.push_css_text(&mut result);
     }
 

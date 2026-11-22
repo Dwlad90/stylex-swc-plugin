@@ -1,6 +1,6 @@
 use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::utils::object::{
-  obj_map_entry, obj_map_keys_and_transform_values, preprocess_object_properties,
+  MappedEntries, obj_map_entry, obj_map_keys_and_transform_values, preprocess_object_properties,
 };
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
@@ -36,13 +36,21 @@ pub(crate) fn stylex_position_try(
 
   // The generators map a whole declaration, because a direction flip can
   // rewrite the property name as well as the value.
-  let ltr_styles = obj_map_entry(&declarations, |pair| generate_ltr(pair, &state.options));
-  let rtl_styles = obj_map_entry(&declarations, |pair| {
-    generate_rtl(pair, &state.options).unwrap_or_else(|| PairCow::borrowed(pair))
-  });
+  let mut styles = MappedEntries::default();
 
-  let ltr_string = construct_position_try_obj(ltr_styles);
-  let rtl_string = construct_position_try_obj(rtl_styles);
+  obj_map_entry(
+    &declarations,
+    |pair| generate_ltr(pair, &state.options),
+    &mut styles,
+  );
+  let ltr_string = construct_position_try_obj(&mut styles);
+
+  obj_map_entry(
+    &declarations,
+    |pair| generate_rtl(pair, &state.options).unwrap_or_else(|| PairCow::borrowed(pair)),
+    &mut styles,
+  );
+  let rtl_string = construct_position_try_obj(&mut styles);
 
   let position_try_name = format!("--{}{}", class_name_prefix, create_hash(&ltr_string));
 
@@ -71,13 +79,14 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
 
 /// The body of one `@position-try` rule, its declarations written in the order
 /// their property names sort in, which is the UTF-16 order JavaScript sorts by.
-fn construct_position_try_obj(mut styles: Vec<PairCow>) -> String {
+/// It sorts `styles` in place.
+fn construct_position_try_obj(styles: &mut MappedEntries) -> String {
   // Each name is held once, so the order of the sort is total.
-  styles.sort_unstable_by(|left, right| js_string_cmp(&left.key, &right.key));
+  styles.sort_unstable_by(|left, _, right, _| js_string_cmp(left, right));
 
   let mut output = String::with_capacity(styles.len().saturating_mul(32));
 
-  for style in &styles {
+  for style in styles.values() {
     style.push_css_text(&mut output);
   }
 

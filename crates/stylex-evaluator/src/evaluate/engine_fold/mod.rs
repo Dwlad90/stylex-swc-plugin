@@ -240,11 +240,10 @@ fn lists(list: &[&str], name: &str) -> bool {
 /// and `bind` are what turn an unapplied function back into a call, so they are
 /// refused with it.
 ///
-/// Four names: the reads that reach a callable in one step. `__proto__` and
-/// `prototype` reach the same graph one step earlier and are refused by
-/// [`BLOCKED_PROPERTIES`] instead, which is asked second so that
-/// `constructor` keeps the sentence written for it here.
-pub(super) const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
+/// Three names. `constructor`, `__proto__` and `prototype` reach the same graph
+/// by a read and are refused by [`BLOCKED_PROPERTIES`], with the sentence the
+/// reference gives them. The two sets do not overlap.
+pub(super) const ESCAPING_PROPERTIES: [&str; 3] = ["call", "apply", "bind"];
 
 /// Property names that step onto the prototype chain of the value that was
 /// written.
@@ -253,11 +252,6 @@ pub(super) const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply
 /// whose `constructor` is `Function`. Refusing the first step closes the chain
 /// at its root rather than at the callable it ends in, and it makes the
 /// compiler answer these reads the way the reference implementation does.
-///
-/// `constructor` is in this set and in [`ESCAPING_PROPERTIES`]. Escaping is
-/// asked first at every call site, so a read of `constructor` keeps the
-/// sentence it already had and no author sees a message change. In practice
-/// this set is reached by `__proto__` and `prototype` only.
 ///
 /// This is about a property *read*. `__proto__` written as an object-literal
 /// key is a different thing -- it sets a prototype rather than reading one --
@@ -296,10 +290,9 @@ pub(super) fn is_a_blocked_property(name: &str) -> bool {
 /// The words a read of `name` is refused with, or `None` where the name is one
 /// a fold may read.
 ///
-/// The two property rules in the order they are asked, in one place. Escaping
-/// is asked first so that `constructor` -- which both sets hold -- keeps the
-/// sentence written for it, and a third rule would be added here rather than at
-/// each of the four sites that ask.
+/// The two property rules in one place. The sets do not overlap, so each name
+/// gets one sentence. A third rule would be added here rather than at each of
+/// the four sites that ask.
 ///
 /// Shared with the dispatch below the fold, because a read of one of these
 /// names is refused whether or not a call is around it: `s.constructor.name` is
@@ -307,12 +300,12 @@ pub(super) fn is_a_blocked_property(name: &str) -> bool {
 /// wrote the first would otherwise be told only that a property could not be
 /// determined.
 pub(super) fn refusal_for_a_property_name(name: &str) -> Option<Refusal> {
-  if lists(&ESCAPING_PROPERTIES, name) {
-    return Some(escaping_property(name).into());
-  }
-
   if is_a_blocked_property(name) {
     return Some(BLOCKED_PROPERTY_ACCESS.into());
+  }
+
+  if lists(&ESCAPING_PROPERTIES, name) {
+    return Some(escaping_property(name).into());
   }
 
   None

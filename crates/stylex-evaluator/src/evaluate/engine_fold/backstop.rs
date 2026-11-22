@@ -115,8 +115,7 @@ pub(super) fn is_a_reserved_name(name: &str) -> bool {
 /// besides.
 ///
 /// Chained rather than written out, so a name added to either table reaches the
-/// engine without a second list agreeing to it. `constructor` is in both and
-/// arrives twice, which the `Set` the reader builds from this answers once.
+/// engine without a second list agreeing to it.
 fn refused_property_names() -> impl Iterator<Item = &'static str> {
   ESCAPING_PROPERTIES.into_iter().chain(BLOCKED_PROPERTIES)
 }

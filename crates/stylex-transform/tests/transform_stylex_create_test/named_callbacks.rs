@@ -27,6 +27,8 @@
 //! Every case below was measured against `@stylexjs/babel-plugin` 0.19.0 and
 //! carries the class name it produced.
 
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+
 use crate::utils::transform::{assert_folds, assert_refuses, fold_module as fold};
 
 // ──────────────────────────────────────────────
@@ -388,7 +390,7 @@ fn an_escaping_read_inside_a_declaration_still_refuses() {
   assert_refuses(
     "const f = (x) => x.constructor;",
     "content: ['a'].map(f).join(''),",
-    "Cannot fold a read of 'constructor' at compile time.",
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 

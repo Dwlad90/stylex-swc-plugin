@@ -329,6 +329,13 @@ Four categories survive in this effort, and they map onto those kinds:
    holds nothing a stylesheet can use, and `s.__proto__.constructor` is refused
    exactly as `s.constructor` is, so the chain is cut either way.
 
+   _Amended later:_ the reference now refuses a read of `constructor`,
+   `__proto__` and `prototype` with its own prototype-chain sentence, and that
+   rule is now asked before the escaping rule. So a read of `constructor` gets
+   the reference's words, and the row now reads `both-reject`. The escaping
+   sentence stays for `call`, `apply` and `bind`, and `constructor` is no longer
+   in the escaping set, so the two sets do not overlap.
+
 **The spec's "one category" claim is therefore amended to four.** It was written
 before the value bridge and the allocation bound existed as they now do, and it
 is the count rather than the reasoning that was wrong: each of the four carries

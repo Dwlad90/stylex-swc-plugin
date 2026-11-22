@@ -2392,8 +2392,8 @@
       "label": "a property read that leads onto the language's function graph",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'AbC'.constructor('a') },\n  s1: { zIndex: [1, 2].constructor(3).length },\n});\n",
       "origin": "issue 15, found by the generated sweep",
-      "expected": "both-reject-divergent",
-      "note": "Both reject, in different words. `constructor` is an own property of every prototype the sweep crosses, and no curated row had named it. What the refusal holds back is the step after the read: `String`'s own `constructor` is `Function`, which compiles a string into a function, so `\"\".constructor.constructor(\"return Date.now()\").call()` is a chain of two property reads and a call -- shapes every other rule here admits -- whose answer is a different number on every build and whose body can assign to `String.prototype` in an engine every later fold shares. `call`, `apply` and `bind` are refused with it because they turn an unapplied function back into a call. Folding the harmless half means admitting the read that reaches the harmful one, since the guard cannot know which `constructor` a chain will land on before evaluating it. The reference compiler reaches the same conclusion and reports it as an expression it does not support."
+      "expected": "both-reject",
+      "note": "Both reject, with the same words now. A read of `constructor` gets the prototype-chain sentence, as in the reference. `String`'s own `constructor` is `Function`, which compiles a string into a function, so the read is refused before the chain can reach it. `call`, `apply` and `bind` keep the escaping sentence because they turn an unapplied function back into a call."
     },
     {
       "id": "modules-a-reflective-static",

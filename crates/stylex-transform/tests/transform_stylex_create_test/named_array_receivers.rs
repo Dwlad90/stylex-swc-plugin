@@ -14,6 +14,8 @@
 //! agreement with the reference compiler rather than agreement with this
 //! compiler's own previous answer.
 
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+
 use crate::utils::{
   prelude::*,
   transform::{assert_folds, assert_refuses, base_style_module as module, fold_module as fold},
@@ -411,14 +413,14 @@ fn an_escaping_property_inside_a_callback_is_refused() {
   assert_refuses(
     "const a = ['a'];",
     "content: a.map(x => x.constructor)[0],",
-    "Cannot fold a read of 'constructor' at compile time.",
+    BLOCKED_PROPERTY_ACCESS,
   );
 
   // And spelled as a computed key, which is the same read.
   assert_refuses(
     "const a = ['a'];",
     "content: a.map(x => x['constructor'])[0],",
-    "Cannot fold a read of 'constructor' at compile time.",
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 

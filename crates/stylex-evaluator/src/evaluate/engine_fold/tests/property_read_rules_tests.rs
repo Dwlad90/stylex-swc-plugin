@@ -79,10 +79,14 @@ fn a_private_name_spells_nothing() {
   assert!(refusal_for_a_property_read(&private).is_none());
 }
 
-/// Every escaping name is refused, in both spellings, under its own sentence.
+/// The names only the escaping set holds are refused, in both spellings, under
+/// the escaping sentence.
 #[test]
-fn an_escaping_property_is_refused_by_the_escaping_rule() {
-  for property in ESCAPING_PROPERTIES {
+fn call_apply_and_bind_are_refused_by_the_escaping_rule() {
+  for property in ["call", "apply", "bind"] {
+    assert!(lists(&ESCAPING_PROPERTIES, property));
+    assert!(!is_a_blocked_property(property));
+
     let expected = Some(escaping_property(property).into());
 
     assert_eq!(refusal_for_a_property_read(&named(property)), expected);
@@ -104,16 +108,20 @@ fn a_prototype_chain_property_is_refused_by_the_prototype_chain_rule() {
   }
 }
 
-/// `constructor` is in both sets. Escaping is asked first, so it keeps the
-/// sentence it already had and no author sees a message change.
+/// `constructor` is in the prototype-chain set only, so it reads the sentence
+/// the reference gives it, in both spellings.
 #[test]
-fn a_name_both_sets_hold_keeps_the_escaping_sentence() {
-  assert!(lists(&ESCAPING_PROPERTIES, "constructor"));
+fn constructor_gets_the_prototype_chain_sentence() {
+  assert!(!lists(&ESCAPING_PROPERTIES, "constructor"));
   assert!(is_a_blocked_property("constructor"));
 
+  let expected = Some(BLOCKED_PROPERTY_ACCESS.into());
+
+  assert_eq!(refusal_for_a_property_name("constructor"), expected);
+  assert_eq!(refusal_for_a_property_read(&named("constructor")), expected);
   assert_eq!(
-    refusal_for_a_property_name("constructor"),
-    Some(escaping_property("constructor").into())
+    refusal_for_a_property_read(&computed(create_string_expr("constructor"))),
+    expected
   );
 }
 

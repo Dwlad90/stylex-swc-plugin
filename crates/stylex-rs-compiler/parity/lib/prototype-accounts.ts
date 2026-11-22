@@ -73,17 +73,15 @@ export const ACCOUNTS: readonly Account[] = [
     recordedBy: 'modules-06-locale-sensitive-method',
   },
   {
-    name: 'a read that escapes onto the function graph',
+    name: 'a read of the prototype chain',
     complaint:
-      "It leads off the value that was written and onto the language's own function graph.",
-    // One verdict, because the reference compiler refuses these reads too and
-    // reports them as an expression it does not support. It read
-    // `acceptance-divergent` while this compiler still folded such a read;
-    // both compilers refuse now, and the last row arguing the acceptance half
-    // moved with them. Measured: every row of this account reads
-    // `both-reject-divergent`, and the row it is recorded by does too.
+      "Accessing prototype-chain properties such as 'constructor', '__proto__', or 'prototype'",
+    // One verdict. A `constructor` call on a string receiver gets the same
+    // words from both compilers, so it agrees. On an array or object receiver
+    // the reference refuses the call as an expression it does not support, so
+    // the words differ. The escape-payload row records that same split.
     verdicts: ['both-reject-divergent'],
-    recordedBy: 'modules-15-a-read-that-escapes-onto-the-function-graph',
+    recordedBy: 'modules-an-escape-payload-02',
   },
   {
     name: 'a receiver written as a number',

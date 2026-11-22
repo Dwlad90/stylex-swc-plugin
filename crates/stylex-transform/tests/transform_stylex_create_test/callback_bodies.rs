@@ -17,6 +17,8 @@
 //! therefore measured from `@stylexjs/babel-plugin` 0.19.0 on the *value* the
 //! fold produces written out as a literal, which is what fixes the class name.
 
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+
 use crate::utils::transform::{assert_folds, assert_refuses, fold_module as fold};
 
 // ──────────────────────────────────────────────
@@ -192,7 +194,7 @@ fn an_escaping_read_inside_a_body_refuses() {
   assert_refuses(
     "const a = ['x'];",
     "content: a.map(n => { const c = n.constructor; return 'q'; }).join(''),",
-    "Cannot fold a read of 'constructor' at compile time.",
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 
@@ -417,7 +419,7 @@ fn a_callback_reaching_a_stylex_function_folds() {
 /// that lead off the prototype and onto the function graph are refused there as
 /// they are anywhere.
 #[test]
-fn a_prototype_read_through_a_pattern_stops_at_the_escaping_rule() {
+fn a_prototype_read_through_a_pattern_stops_at_the_prototype_chain_rule() {
   assert_folds(
     "const a = [[1]];",
     "content: a.map(({ __proto__: p }) => typeof p).join(''),",
@@ -427,7 +429,7 @@ fn a_prototype_read_through_a_pattern_stops_at_the_escaping_rule() {
   assert_refuses(
     "const a = ['x'];",
     "content: a.map(({ __proto__: p }) => p.constructor)[0],",
-    "Cannot fold a read of 'constructor' at compile time.",
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 

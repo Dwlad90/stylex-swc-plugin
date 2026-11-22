@@ -150,14 +150,14 @@ Six rule sets, by name:
 - **Locale-sensitive** (`LOCALE_SENSITIVE_METHODS`) — the engine has no locale
   data and would answer from the root locale, which is a wrong value rather than
   no value.
-- **Escaping** (`ESCAPING_PROPERTIES`: `constructor`, `call`, `apply`, `bind`) —
-  each walks off the value that was written and onto the language's function
-  graph, where `Function` compiles a string into a body.
+- **Escaping** (`ESCAPING_PROPERTIES`: `call`, `apply`, `bind`) — each turns
+  an unapplied function back into a call on the language's function graph,
+  where `Function` compiles a string into a body.
 - **Prototype-chain** (`BLOCKED_PROPERTIES`: `constructor`, `__proto__`,
   `prototype`) — the same graph reached one step earlier: `({}).__proto__` is
   `Object.prototype`, whose `constructor` is `Object`, whose `constructor` is
-  `Function`. Asked after **Escaping**, so `constructor` — which both sets hold
-  — keeps the sentence written for it. A computed key is asked once more after
+  `Function`. It gives the sentence the reference gives for these reads. The two
+  sets do not overlap. A computed key is asked once more after
   it resolves, so a key built at compile time spells no read a check on the
   syntax would miss. The rule is about a property _read_: `__proto__` written as
   an object-literal **key** sets a prototype rather than reading one, and it

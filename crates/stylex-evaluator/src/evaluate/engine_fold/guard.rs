@@ -11,7 +11,7 @@
 //! carries, and the one thing it deliberately does not, is [`Guard`].
 
 use boa_engine::{Context, JsString, JsValue, object::builtins::JsFunction};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -39,6 +39,7 @@ use super::amplification::EntryAmplifier;
 use super::backstop::is_a_reserved_name;
 use super::engine::read;
 use super::losing_operand;
+use super::theme::{DottedPrefixes, DottedPrefixesMark};
 use super::transport::{Crossing, Transport, TransportMark};
 use super::{
   Ceilings, Decline, Depth, lists, refusal_for_a_property_name, refusal_for_a_property_read,
@@ -380,7 +381,7 @@ pub(super) struct Reader<'a> {
   ///
   /// Per name rather than per fold, because an expression can read two groups
   /// and a path off one says nothing about the other.
-  dotted_prefixes: FxHashMap<Atom, FxHashSet<Atom>>,
+  dotted_prefixes: DottedPrefixes,
   /// How deep the printed source nests through the operand the walk declined to
   /// enter, measured from the top of the expression.
   ///
@@ -411,7 +412,7 @@ pub(super) struct Reader<'a> {
 struct ReaderMark {
   transport: TransportMark,
   losing_operands: usize,
-  dotted_prefixes: FxHashMap<Atom, FxHashSet<Atom>>,
+  dotted_prefixes: DottedPrefixesMark,
 }
 
 impl<'a> Reader<'a> {
@@ -433,7 +434,7 @@ impl<'a> Reader<'a> {
       traversal_state,
       fns,
       transport: Transport::new(ceilings),
-      dotted_prefixes: FxHashMap::default(),
+      dotted_prefixes: DottedPrefixes::default(),
       unentered_nesting: 0,
       losing_operands: losing_operand::Recorded::default(),
       compiler_calls: FxHashMap::default(),
@@ -449,7 +450,7 @@ impl<'a> Reader<'a> {
     ReaderMark {
       transport: self.transport.mark(),
       losing_operands: self.losing_operands.len(),
-      dotted_prefixes: self.dotted_prefixes.clone(),
+      dotted_prefixes: self.dotted_prefixes.mark(),
     }
   }
 
@@ -457,7 +458,7 @@ impl<'a> Reader<'a> {
   fn roll_back(&mut self, mark: ReaderMark) {
     self.transport.roll_back(mark.transport);
     self.losing_operands.truncate(mark.losing_operands);
-    self.dotted_prefixes = mark.dotted_prefixes;
+    self.dotted_prefixes.roll_back(mark.dotted_prefixes);
   }
 
   /// The value `expr` resolves to, or `None` where it resolves to nothing.
@@ -829,7 +830,7 @@ impl<'a, 'r> Walk<'a, 'r> {
 /// scope a compiler function reads it through.
 pub(super) struct Collected<'w> {
   transport: &'w Transport,
-  dotted_prefixes: &'w FxHashMap<Atom, FxHashSet<Atom>>,
+  dotted_prefixes: &'w DottedPrefixes,
   depth: Depth,
 }
 
@@ -1259,11 +1260,6 @@ impl<'r> Walk<'_, 'r> {
       return;
     }
 
-    let paths = self
-      .reader
-      .dotted_prefixes
-      .entry(name.sym.clone())
-      .or_default();
     let mut path = String::new();
 
     for part in parts.iter().take(parts.len() - 1) {
@@ -1273,7 +1269,10 @@ impl<'r> Walk<'_, 'r> {
 
       path.push_str(part);
 
-      paths.insert(Atom::from(path.as_str()));
+      self
+        .reader
+        .dotted_prefixes
+        .insert(&name.sym, Atom::from(path.as_str()));
     }
   }
 

@@ -28,7 +28,7 @@ use boa_engine::{
     builtins::{JsArray, JsFunction},
   },
 };
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_constants::constants::evaluation_errors::{
@@ -280,6 +280,57 @@ fn derive(_: &JsValue, arguments: &[JsValue], _: &mut Context) -> JsResult<JsVal
   Ok(JsString::from(named).into())
 }
 
+/// The dotted paths a walk saw read off a theme group, under the name each was
+/// read through. These are the prefixes the group must answer with a stand-in.
+///
+/// Each prefix that a walk adds is also written to a log. A walk that refuses
+/// takes back only what it added, so a refusal costs the prefixes it added and
+/// not a copy of all of them.
+#[derive(Default)]
+pub(super) struct DottedPrefixes {
+  by_name: FxHashMap<Atom, FxHashSet<Atom>>,
+  added: Vec<(Atom, Atom)>,
+}
+
+/// Where a [`DottedPrefixes`] stands, so a refused walk can go back to it.
+#[derive(Clone, Copy)]
+pub(super) struct DottedPrefixesMark(usize);
+
+impl DottedPrefixes {
+  /// The prefixes read off the group carried under `name`.
+  pub(super) fn get(&self, name: &Atom) -> Option<&FxHashSet<Atom>> {
+    self.by_name.get(name)
+  }
+
+  /// Records `prefix` under `name`. A prefix that is already there is not
+  /// logged again, so a rollback does not remove a prefix from before its mark.
+  pub(super) fn insert(&mut self, name: &Atom, prefix: Atom) {
+    let paths = self.by_name.entry(name.clone()).or_default();
+
+    if paths.insert(prefix.clone()) {
+      self.added.push((name.clone(), prefix));
+    }
+  }
+
+  /// Where the prefixes stand now. Marks nest, and an inner rollback goes no
+  /// further back than its own mark.
+  pub(super) fn mark(&self) -> DottedPrefixesMark {
+    DottedPrefixesMark(self.added.len())
+  }
+
+  /// Removes each prefix added since `mark`. A name can keep an empty set,
+  /// which [`var_group`] reads as no prefixes, the same as no entry.
+  pub(super) fn roll_back(&mut self, mark: DottedPrefixesMark) {
+    for (name, prefix) in self.added.drain(mark.0..) {
+      self.by_name.entry(name).or_default().remove(&prefix);
+    }
+  }
+}
+
 #[cfg(test)]
 #[path = "tests/var_group_tests.rs"]
 mod var_group_tests;
+
+#[cfg(test)]
+#[path = "tests/dotted_prefixes_tests.rs"]
+mod dotted_prefixes_tests;

@@ -253,7 +253,7 @@ fn built_and_read(source: &str, read: &str) -> String {
     &method,
     Depth::full(LEVELS),
     &builder,
-    &FxHashMap::default(),
+    &DottedPrefixes::default(),
   ) {
     Ok(arguments) => arguments,
     Err(Decline::Rule(reason)) => panic!("`{}` did not cross: {}", source, reason),
@@ -372,7 +372,7 @@ fn a_group_that_will_not_build_declines_the_fold() {
     &method,
     Depth::full(LEVELS),
     &builder,
-    &FxHashMap::default(),
+    &DottedPrefixes::default(),
   );
 
   match declined {

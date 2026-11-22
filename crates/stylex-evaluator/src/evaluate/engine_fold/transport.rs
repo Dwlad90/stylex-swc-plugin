@@ -16,7 +16,7 @@
 
 use std::hash::{Hash, Hasher};
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use boa_engine::{
   Context, JsObject, JsString, JsValue, NativeFunction,
@@ -45,7 +45,7 @@ use stylex_utils::number::to_js_string;
 use super::super::engine_stylex_functions::{EngineCallable, EnvMap, NamespaceMembers};
 use super::compiler::{compiler_native, env_native};
 use super::engine::read;
-use super::theme::var_group;
+use super::theme::{DottedPrefixes, var_group};
 use super::{Ceilings, Decline, Depth, Totals};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::StylexExprFn, theme_ref::ThemeRef,
@@ -306,7 +306,7 @@ impl Transport {
     method: &Atom,
     depth: Depth,
     var_group: &JsFunction,
-    dotted_prefixes: &FxHashMap<Atom, FxHashSet<Atom>>,
+    dotted_prefixes: &DottedPrefixes,
   ) -> Result<Vec<JsValue>, Decline> {
     let mut arguments = Vec::with_capacity(self.values.len());
 

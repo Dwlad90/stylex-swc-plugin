@@ -158,8 +158,8 @@ catalogs:
       specifier: ^10.6.5
       version: 10.6.5
     next:
-      specifier: ^16.4.3
-      version: 16.4.3
+      specifier: ^16.4.5
+      version: 16.4.6
     next-rspack:
       specifier: ^16.4.3
       version: 16.4.3
@@ -183,113 +183,113 @@ catalogs:
       version: 3.5.44
   internal:
     '@stylexswc/ast':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/atoms':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/constants':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/css':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/css-parser':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/design-system':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/diagnostics':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/enums':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/evaluator':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/jest':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/logs':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/macros':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/nested-config':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/nextjs-plugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/path-resolver':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/playwright':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/plugin-shared':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/postcss-plugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/postcss-value-parser':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/regex':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/rollup-plugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/rs-compiler':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/rspack-plugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/state':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/state-index':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/structures':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/stylesheet':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/stylex-js':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/stylex-styleq':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/transform':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/turbopack-plugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/types':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/typescript-config':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/unplugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/utils':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
     '@stylexswc/webpack-plugin':
-      specifier: 0.20.1-rc.1
-      version: 0.20.1-rc.1
+      specifier: 0.20.1
+      version: 0.20.1
   runtime:
     '@stylexjs/babel-plugin':
       specifier: 0.19.1
@@ -840,7 +840,7 @@ importers:
         version: link:../../packages/nextjs-plugin
       next:
         specifier: catalog:frameworks
-        version: 16.4.3(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.6(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: catalog:frameworks
         version: 19.3.1
@@ -928,7 +928,7 @@ importers:
         version: link:../../packages/postcss-plugin
       next:
         specifier: catalog:frameworks
-        version: 16.4.3(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.6(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: catalog:frameworks
         version: 19.3.1
@@ -1007,7 +1007,7 @@ importers:
         version: link:../../packages/nextjs-plugin
       next:
         specifier: catalog:frameworks
-        version: 16.4.3(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.6(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-rspack:
         specifier: catalog:frameworks
         version: 16.4.3(@swc/helpers@0.5.23)
@@ -1098,7 +1098,7 @@ importers:
         version: link:../../packages/postcss-plugin
       next:
         specifier: catalog:frameworks
-        version: 16.4.3(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.6(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: catalog:frameworks
         version: 19.3.1
@@ -2588,7 +2588,7 @@ importers:
         version: 26.6.6
       next:
         specifier: catalog:frameworks
-        version: 16.4.3(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.6(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       postcss:
         specifier: catalog:runtime
         version: 8.5.32
@@ -4781,8 +4781,8 @@ packages:
   '@neoconfetti/react@1.0.0':
     resolution: {integrity: sha512-klcSooChXXOzIm+SE5IISIAn3bYzYfPjbX7D7HoqZL84oAfgREeSg5vSIaSFH+DaGzzvImTyWe1OyrJ67vik4A==}
 
-  '@next/env@16.4.3':
-    resolution: {integrity: sha512-a7tz1QCcWWkwC/rPJcPMJk/UNRu9CFhDd3OHYE5hddbJrs8BqRTalxI6GlKCWEGzRLHN+S/B7a4PAHCtm25aBQ==}
+  '@next/env@16.4.6':
+    resolution: {integrity: sha512-SunBjJ6t+oBtecS3dTjdVuMhUogP5wD/vrGL5EVuQYM1iS4O5ilL51HkiJ3sPjMzRHiCChvr4dbaSJbR7F3lxA==}
 
   '@next/rspack-binding-android-arm-eabi@1.0.3':
     resolution: {integrity: sha512-iyl9QipZl7osUbhi9GNRbZbzTQB//wvRXk6uwMSmRTYGdbSP8lKkZBjso9S5ijAubN1ulRIhe55kl8BzrmhlBA==}
@@ -4854,54 +4854,54 @@ packages:
   '@next/rspack-core@1.0.3':
     resolution: {integrity: sha512-4EDUKhRIuljVhTDjy8DqGvTrWrZIFUHffdAThSB3OAEyCPm+pgM3JedSodm00Od5ox0PpsZ0nWY2sbwsJofg2A==}
 
-  '@next/swc-darwin-arm64@16.4.3':
-    resolution: {integrity: sha512-4yq5EXBt+VDtAZwTyfijaFp5D2C5oz3Ikw5a2kiX2K9nw72vrZX2q5UuAlkPtUMO1tQz6JTKpaKWjS7OOefTDQ==}
+  '@next/swc-darwin-arm64@16.4.6':
+    resolution: {integrity: sha512-kJ4VVZkley17xKaJx72QN2IBqjrj7zenCQZaUF0l9ShS/1Mt2kW4+Z5KGG6vgr3L/J562xTOizVyM1iA/u5nlg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@16.4.3':
-    resolution: {integrity: sha512-1Rvkn/LUhnEF8WxnRkOrqGhbwXui1bkWFxONKIbN+r7C+9KHDSZ+iUoj4CzymVMWUyZIyx9szcb9+kbKhD500A==}
+  '@next/swc-darwin-x64@16.4.6':
+    resolution: {integrity: sha512-eIPGZIqC+8JKaeZmvnCANJQF4xWkkHqSnAAajtFxgwDMAOnCgxNvP52SeWZ41PyVwoe+Le/NQuZSaQ8j7YshSA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-linux-arm64-gnu@16.4.3':
-    resolution: {integrity: sha512-dCKpXErGg3abUM6t5JTJV/ottVBTStJB5lRJTbgdUdQaQ+jNHiK56Hsc0YAEg/rinSh42hYG3HWiYmEMdilnxg==}
+  '@next/swc-linux-arm64-gnu@16.4.6':
+    resolution: {integrity: sha512-9nI6O8vvczH2D9ZNdMGqb/3NuT15T9ksOZnAmx9/gjF2cOi74+xxyf1Hk96uIMfm14c9y6wHeBq6SH8g6udvcA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@next/swc-linux-arm64-musl@16.4.3':
-    resolution: {integrity: sha512-WwYbhWkhYBvBtib1K4W0kL8MW2snBD2A5b3SN4vPpqalZbZs5+bQ1yzAdepVoOqrFfEW3dmREy4Zs1MrWcrFbw==}
+  '@next/swc-linux-arm64-musl@16.4.6':
+    resolution: {integrity: sha512-7/qPhTxDp2ScluOJOhLuhWmlA17o1yZ0SIgpISBCpBxXgtnK4+KGywBpFkfLPiU1rnSM1faFGzYkH6i7JdTrqA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@next/swc-linux-x64-gnu@16.4.3':
-    resolution: {integrity: sha512-QymWvfUwDEC5/lpJOsxX5VAbyoR2D13+2Jsjz4be7gT4LPqEgdpkeLIR/HFfCLgKzoMhpJbp6I/JnogyNZHcaA==}
+  '@next/swc-linux-x64-gnu@16.4.6':
+    resolution: {integrity: sha512-oOpbNa8XOW1qCGd9VvzC4fbkkRxEls7/WI6tz+YHC0xRA7KpV1U7DrAnCPjzVyOk/karzWEepCOcTIDmwK8FwQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@next/swc-linux-x64-musl@16.4.3':
-    resolution: {integrity: sha512-Vmjd9D7DpA4Vv3cUlr82QWgJD/BQZmns801vtC5VWHg6jCIA4a5vMKpQnfrM2pyCrp2eV0ENdUg4PlN3bAc2Yw==}
+  '@next/swc-linux-x64-musl@16.4.6':
+    resolution: {integrity: sha512-aM8CZ+OR2EwXaAYw7KGkW2GDmNDsLBIRe1MMRZCJPTdw/xhTD0IMUVO4sf3KqrzuRouGzwwLZn34+gFeVXiUQA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@next/swc-win32-arm64-msvc@16.4.3':
-    resolution: {integrity: sha512-lG1pPdPLk7gTyGb00n5JIMLdBJgjb+UEhSdZvFbhUMg0DyC6z4B7RnpSKF9VCd4imkLObVbXOFA0kFCpw7yFow==}
+  '@next/swc-win32-arm64-msvc@16.4.6':
+    resolution: {integrity: sha512-U0p7/tEtqvHX2crhd841CDwKtp5CFkKXVjOhmfccR3Pvp64sj8KBwRqsvltqLOwVBbj0NtkxwXSDpEHYGbxeXQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@16.4.3':
-    resolution: {integrity: sha512-NmQC9RkJdnPXRaMxtkCzobB3teVjqF33oSOnwDfi+XYGWWYpt+xlGK3mtktSKLbdjwaWbJu2OkkMiRFGUUncKg==}
+  '@next/swc-win32-x64-msvc@16.4.6':
+    resolution: {integrity: sha512-3ZG15/5WIdlTQsIEvc9sPTTSL5XFrlLklIKmfF4fwsDnoAhu6NcBDXsk3mbGxNyo6aVLEGex+fHCv2MahY7a9g==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -10461,8 +10461,8 @@ packages:
   next-rspack@16.4.3:
     resolution: {integrity: sha512-jsaxP9d/y7r1Pof5VfuN5pCsni7uojoj1KQFJ/MsvOt6mSKstI/rqIcc3Z3lUr1kswlWm+nwfsRxqsD/iXdLEQ==}
 
-  next@16.4.3:
-    resolution: {integrity: sha512-OqxKTGi9u80FydydsMNYNjnuje9Au+kvHlt2GZ//ftdpDHm1dxKqAaENoOOTX5wKzn+9vaKUNIfZeyZUuLhCnA==}
+  next@16.4.6:
+    resolution: {integrity: sha512-QZJiYhaZLJMo2KpkQGQIwvmd79WVsAWeYIU554a8d7zArS3si/IRy3lBNV/rtYhE70oLwdLYhPAXLPx8HwcwtA==}
     engines: {node: '>=20.9.0'}
     hasBin: true
     peerDependencies:
@@ -13085,7 +13085,7 @@ snapshots:
       outdent: 0.5.0
       prettier: 2.8.8
       resolve-from: 5.0.0
-      semver: 7.8.5
+      semver: 7.8.6
 
   '@changesets/assemble-release-plan@6.0.6':
     dependencies:
@@ -13094,7 +13094,7 @@ snapshots:
       '@changesets/should-skip-package': 0.1.2
       '@changesets/types': 6.1.0
       '@manypkg/get-packages': 1.1.3
-      semver: 7.8.5
+      semver: 7.8.6
 
   '@changesets/changelog-git@0.2.1':
     dependencies:
@@ -13127,7 +13127,7 @@ snapshots:
       package-manager-detector: 0.2.11
       picocolors: 1.1.1
       resolve-from: 5.0.0
-      semver: 7.8.5
+      semver: 7.8.6
       spawndamnit: 3.0.1
       term-size: 2.2.1
 
@@ -13150,7 +13150,7 @@ snapshots:
       '@changesets/types': 6.1.0
       '@manypkg/get-packages': 1.1.3
       picocolors: 1.1.1
-      semver: 7.8.5
+      semver: 7.8.6
 
   '@changesets/get-release-plan@4.0.8':
     dependencies:
@@ -13270,7 +13270,7 @@ snapshots:
   '@commitlint/is-ignored@21.2.3':
     dependencies:
       '@commitlint/types': 21.2.3
-      semver: 7.8.5
+      semver: 7.8.6
 
   '@commitlint/lint@21.2.4':
     dependencies:
@@ -13357,7 +13357,7 @@ snapshots:
     dependencies:
       '@simple-libs/child-process-utils': 2.0.0
       '@simple-libs/stream-utils': 2.0.0
-      semver: 7.8.5
+      semver: 7.8.6
     optionalDependencies:
       conventional-commits-parser: 7.1.2
 
@@ -14761,7 +14761,7 @@ snapshots:
 
   '@neoconfetti/react@1.0.0': {}
 
-  '@next/env@16.4.3': {}
+  '@next/env@16.4.6': {}
 
   '@next/rspack-binding-android-arm-eabi@1.0.3':
     optional: true
@@ -14822,28 +14822,28 @@ snapshots:
       - '@module-federation/runtime-tools'
       - '@swc/helpers'
 
-  '@next/swc-darwin-arm64@16.4.3':
+  '@next/swc-darwin-arm64@16.4.6':
     optional: true
 
-  '@next/swc-darwin-x64@16.4.3':
+  '@next/swc-darwin-x64@16.4.6':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@16.4.3':
+  '@next/swc-linux-arm64-gnu@16.4.6':
     optional: true
 
-  '@next/swc-linux-arm64-musl@16.4.3':
+  '@next/swc-linux-arm64-musl@16.4.6':
     optional: true
 
-  '@next/swc-linux-x64-gnu@16.4.3':
+  '@next/swc-linux-x64-gnu@16.4.6':
     optional: true
 
-  '@next/swc-linux-x64-musl@16.4.3':
+  '@next/swc-linux-x64-musl@16.4.6':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@16.4.3':
+  '@next/swc-win32-arm64-msvc@16.4.6':
     optional: true
 
-  '@next/swc-win32-x64-msvc@16.4.3':
+  '@next/swc-win32-x64-msvc@16.4.6':
     optional: true
 
   '@noble/hashes@1.4.0': {}
@@ -19435,7 +19435,7 @@ snapshots:
       jest-message-util: 30.5.1
       jest-util: 30.5.1
       pretty-format: 30.5.1
-      semver: 7.8.5
+      semver: 7.8.6
       synckit: 0.11.13
     transitivePeerDependencies:
       - supports-color
@@ -20078,9 +20078,9 @@ snapshots:
       - '@module-federation/runtime-tools'
       - '@swc/helpers'
 
-  next@16.4.3(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  next@16.4.6(@babel/core@8.1.0)(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
-      '@next/env': 16.4.3
+      '@next/env': 16.4.6
       '@swc/helpers': 0.5.23
       baseline-browser-mapping: 2.11.34
       caniuse-lite: 1.0.30001820
@@ -20089,14 +20089,14 @@ snapshots:
       react-dom: 19.3.1(react@19.3.1)
       styled-jsx: 5.1.6(@babel/core@8.1.0)(react@19.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 16.4.3
-      '@next/swc-darwin-x64': 16.4.3
-      '@next/swc-linux-arm64-gnu': 16.4.3
-      '@next/swc-linux-arm64-musl': 16.4.3
-      '@next/swc-linux-x64-gnu': 16.4.3
-      '@next/swc-linux-x64-musl': 16.4.3
-      '@next/swc-win32-arm64-msvc': 16.4.3
-      '@next/swc-win32-x64-msvc': 16.4.3
+      '@next/swc-darwin-arm64': 16.4.6
+      '@next/swc-darwin-x64': 16.4.6
+      '@next/swc-linux-arm64-gnu': 16.4.6
+      '@next/swc-linux-arm64-musl': 16.4.6
+      '@next/swc-linux-x64-gnu': 16.4.6
+      '@next/swc-linux-x64-musl': 16.4.6
+      '@next/swc-win32-arm64-msvc': 16.4.6
+      '@next/swc-win32-x64-msvc': 16.4.6
       '@playwright/test': 1.65.0
       sharp: 0.35.5(@types/node@26.6.6)
     transitivePeerDependencies:

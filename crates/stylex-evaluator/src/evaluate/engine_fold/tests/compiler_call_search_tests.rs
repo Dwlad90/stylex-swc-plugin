@@ -244,12 +244,12 @@ fn a_deep_operand_is_searched_without_overflow() {
   });
 }
 
-/// A losing side that the walk refuses after it carried a value gives the
-/// value back. So the value does not count against the entry ceiling, and the
-/// live part of the call still folds.
+/// A part of a losing side that the walk refuses after it carried a value
+/// gives the value back. So the value does not count against the entry
+/// ceiling, and the live part of the call still folds.
 #[test]
 fn a_refused_losing_side_gives_back_what_it_carried() {
-  let source = "[true || [first, own(missing)], second.length].join()";
+  let source = "[true || own(first, ...missing), second.length].join()";
   let result = evaluated_in_a_state(
     |state| {
       state.options.core.max_folded_entries = 5;

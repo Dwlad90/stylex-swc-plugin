@@ -23,7 +23,7 @@ use swc_core::common::{GLOBALS, Globals};
 use swc_core::ecma::ast::Expr;
 
 use super::Decline;
-use super::{Engine, FoldKey, Printed, apply};
+use super::{Engine, FoldKey, FoldScript, Printed, apply};
 use crate::tests::scaffolding::parse_expr;
 
 /// An engine built the way a fold builds one.
@@ -64,12 +64,13 @@ pub(super) fn applied(
   key: FoldKey,
   method: &str,
 ) -> Result<JsValue, Decline> {
+  let print = || Printed {
+    source: source.to_string(),
+    binds_the_checks,
+  };
+
   apply(
-    key,
-    || Printed {
-      source: source.to_string(),
-      binds_the_checks,
-    },
+    FoldScript::new(key, print),
     arguments,
     engine,
     &Atom::from(method),

@@ -332,6 +332,10 @@ pub(super) struct Guard<'a> {
   /// Set by a call for its own arguments and dropped everywhere else, so the
   /// arrow that reads it is the one written inside the call that measured it.
   pub(super) callback: Option<Callback>,
+  /// Whether a refusal under the walk is a put-off refusal. True inside a
+  /// right operand that runs only where the engine says so, or that runs
+  /// where it loses. See [`losing_operand`](super::losing_operand).
+  pub(super) puts_off: bool,
 }
 
 impl<'a> Guard<'a> {
@@ -363,6 +367,7 @@ impl<'a> Guard<'a> {
       // The scope being entered is not a call, and only the call an arrow was
       // written inside says how often that arrow runs.
       callback: None,
+      puts_off: self.puts_off,
     }
   }
 }
@@ -390,13 +395,14 @@ pub(super) struct Reader<'a> {
   /// that kept its own answer could only report the branch it happened to be on.
   unentered_nesting: usize,
   /// The logical operators whose right operand the engine runs even where the
-  /// left one decides, by their span. See [`losing_operand`](super::losing_operand).
+  /// left one decides, and the parts that hold a put-off refusal, by their
+  /// span. See [`losing_operand`](super::losing_operand).
   ///
   /// A span, and not an address, because the walk also reads copies of
   /// declarations, and a copy that a refused walk drops frees its address. The
   /// copy of a declaration has the spans of the declaration, so the printer
   /// finds the operator in either tree.
-  losing_operands: losing_operand::Recorded,
+  recorded: losing_operand::Recorded,
   /// Whether each expression the walk asked about calls a compiler function,
   /// by its span. One search fills the answer for each operand under the one
   /// it was asked about, so a nest of logical operators is searched once and
@@ -411,7 +417,7 @@ pub(super) struct Reader<'a> {
 /// carried and recorded. See [`Reader::roll_back`].
 struct ReaderMark {
   transport: TransportMark,
-  losing_operands: usize,
+  recorded: usize,
   dotted_prefixes: DottedPrefixesMark,
 }
 
@@ -436,7 +442,7 @@ impl<'a> Reader<'a> {
       transport: Transport::new(ceilings),
       dotted_prefixes: DottedPrefixes::default(),
       unentered_nesting: 0,
-      losing_operands: losing_operand::Recorded::default(),
+      recorded: losing_operand::Recorded::default(),
       compiler_calls: FxHashMap::default(),
     }
   }
@@ -449,7 +455,7 @@ impl<'a> Reader<'a> {
   fn mark(&self) -> ReaderMark {
     ReaderMark {
       transport: self.transport.mark(),
-      losing_operands: self.losing_operands.len(),
+      recorded: self.recorded.len(),
       dotted_prefixes: self.dotted_prefixes.mark(),
     }
   }
@@ -457,7 +463,7 @@ impl<'a> Reader<'a> {
   /// Puts back what the walk carried and recorded since `mark`.
   fn roll_back(&mut self, mark: ReaderMark) {
     self.transport.roll_back(mark.transport);
-    self.losing_operands.truncate(mark.losing_operands);
+    self.recorded.truncate(mark.recorded);
     self.dotted_prefixes.roll_back(mark.dotted_prefixes);
   }
 
@@ -776,24 +782,25 @@ impl<'a, 'r> Walk<'a, 'r> {
   /// A logical operator that runs its losing operand is printed as a call
   /// with the operand in an arrow, which is two levels more. Each such
   /// operator adds two, which is more than the text needs when they are not
-  /// nested in each other.
+  /// nested in each other. A part that holds a put-off refusal is printed as a
+  /// call with one number. It also adds two, which is more than that call
+  /// needs.
   pub(super) fn printed_nesting(&self) -> usize {
-    let losing_operands = 2 * self.reader.losing_operands.len();
+    let changes = 2 * self.reader.recorded.len();
 
-    self.guard.depth.ceiling.max(self.reader.unentered_nesting) + losing_operands
+    self.guard.depth.ceiling.max(self.reader.unentered_nesting) + changes
   }
 
-  /// The positions of the logical operators that run their losing operand,
-  /// among the logical operators of `call` and of the parameter defaults. See
-  /// [`losing_operand::ordinals`].
-  pub(super) fn losing_operands(&self, call: &CallExpr) -> Vec<usize> {
+  /// The recorded nodes of `call` and of the parameter defaults, with their
+  /// positions. See [`losing_operand::ordinals`].
+  pub(super) fn changes(&self, call: &CallExpr) -> Vec<losing_operand::Changed> {
     let defaults = self
       .reader
       .transport
       .printed_parameters()
       .filter_map(|(_, default)| default);
 
-    losing_operand::ordinals(call, defaults, &self.reader.losing_operands)
+    losing_operand::ordinals(call, defaults, &self.reader.recorded)
   }
 
   /// The same parameters as the hash the fold memo is keyed on, answered
@@ -813,12 +820,14 @@ impl<'a, 'r> Walk<'a, 'r> {
       traversal_state,
       transport,
       dotted_prefixes,
+      recorded,
       ..
     } = &mut *self.reader;
 
     let collected = Collected {
       transport,
       dotted_prefixes,
+      recorded,
       depth: self.guard.depth,
     };
 
@@ -831,10 +840,17 @@ impl<'a, 'r> Walk<'a, 'r> {
 pub(super) struct Collected<'w> {
   transport: &'w Transport,
   dotted_prefixes: &'w DottedPrefixes,
+  recorded: &'w losing_operand::Recorded,
   depth: Depth,
 }
 
-impl Collected<'_> {
+impl<'w> Collected<'w> {
+  /// The nodes the walk recorded for the printer, with the declines of the
+  /// put-off refusals.
+  pub(super) fn recorded(&self) -> &'w losing_operand::Recorded {
+    self.recorded
+  }
+
   /// Whether a theme reference crossed inward under any of the names the walk
   /// resolved.
   pub(super) fn carried_a_theme_reference(&self) -> bool {
@@ -900,7 +916,25 @@ impl<'r> Walk<'_, 'r> {
   /// in the other. Deliberately narrow: a shape it does not recognise is not a
   /// candidate.
   fn admit_value(&mut self, expr: &Expr) -> Result<(), Decline> {
-    grown_per_level(|| self.nested_value(expr))
+    match self.guard.puts_off {
+      false => grown_per_level(|| self.nested_value(expr)),
+      true => self.admit_or_put_off(expr),
+    }
+  }
+
+  /// Admits `expr`, or records its refusal as a put-off refusal. What the walk
+  /// carried and recorded for `expr` then goes back, because the printed
+  /// source does not hold `expr`.
+  ///
+  /// A node with no span has no stable name for the printer to find it by, so
+  /// its refusal goes to the node above it.
+  fn admit_or_put_off(&mut self, expr: &Expr) -> Result<(), Decline> {
+    let mark = self.reader.mark();
+
+    grown_per_level(|| self.nested_value(expr)).or_else(|refusal| {
+      self.reader.roll_back(mark);
+      self.record_a_put_off(expr.span(), refusal)
+    })
   }
 
   /// One expression, on the room [`admit_value`](Walk::admit_value) asked for,
@@ -1022,45 +1056,45 @@ impl<'r> Walk<'_, 'r> {
       //
       // A logical operator whose right operand calls a compiler function is the
       // exception: the evaluator runs that operand even where it loses, so the
-      // engine has to run it too. Where the walk admits it, the printed source
-      // runs it always — see [`losing_operand`](super::losing_operand). Where the
-      // walk refuses it and the left operand decides, the refusal is ignored, as
-      // the evaluator ignores it, and the operand stays unentered.
+      // engine has to run it too. The printed source runs it always — see
+      // [`losing_operand`](super::losing_operand).
       //
       // A `??` whose left operand the walk cannot show to decide is printed the
       // same way, because only the printed helper applies the rule of the
       // logical node to it: a left operand that is falsy and not nullish
       // decides nothing.
+      //
+      // Where only the engine can tell if the left operand decides, or where
+      // the right operand runs when it loses, a refusal in the right operand is
+      // a put-off refusal. The parts in front of it still run, and it applies
+      // only where the left operand does not decide.
       Expr::Bin(bin) => {
         self.under(inner).admit_value(&bin.left)?;
 
         let runs = self.right_operand_runs(bin);
-        let runs_when_it_loses = LogicalOp::of(bin.op).is_some_and(|op| {
-          (runs && op == LogicalOp::Nullish) || self.calls_a_compiler_function(&bin.right)
+        let op = LogicalOp::of(bin.op);
+        let runs_when_it_loses = op.is_some_and(|op| {
+          (runs != Some(false) && op == LogicalOp::Nullish)
+            || self.calls_a_compiler_function(&bin.right)
         });
 
-        match (runs, runs_when_it_loses) {
-          (true, false) => self.under(inner).admit_value(&bin.right),
-          (true, true) => {
+        match (runs, op.filter(|_| runs_when_it_loses)) {
+          (Some(true), None) => self.under(inner).admit_value(&bin.right),
+          (Some(true), Some(op)) => {
             self.under(inner).admit_value(&bin.right)?;
-            self.record_a_losing_operand(bin)
+            self.record_an_either(bin.span, op)
           },
-          // The walk of a side the language does not run may refuse. Then
-          // what it carried and recorded goes back, and the side stays dead.
-          (false, true) => {
-            let mark = self.reader.mark();
+          (None, either) | (Some(false), either @ Some(_)) => {
+            self
+              .under(Guard {
+                puts_off: true,
+                ..inner
+              })
+              .admit_value(&bin.right)?;
 
-            match self.under(inner).admit_value(&bin.right) {
-              Ok(()) => self.record_a_losing_operand(bin),
-              Err(_) => {
-                self.reader.roll_back(mark);
-                self.under(inner).never_entered(&bin.right);
-
-                Ok(())
-              },
-            }
+            either.map_or(Ok(()), |op| self.record_an_either(bin.span, op))
           },
-          (false, false) => {
+          (Some(false), None) => {
             self.under(inner).never_entered(&bin.right);
 
             Ok(())
@@ -1286,15 +1320,17 @@ impl<'r> Walk<'_, 'r> {
   /// about which side runs: the evaluator runs both. The caller closes that gap
   /// for a right operand that calls a compiler function, which is the only
   /// operand whose running the build can see.
-  fn right_operand_runs(&mut self, bin: &BinExpr) -> bool {
+  ///
+  /// `None` where only the engine can tell: a short-circuiting operator whose
+  /// left operand this walk may not read.
+  fn right_operand_runs(&mut self, bin: &BinExpr) -> Option<bool> {
     let Some(op) = LogicalOp::of(bin.op) else {
-      return true;
+      return Some(true);
     };
 
-    match self.deciding_value_of(&bin.left) {
-      Some(left) => evaluates_its_right_operand(op, &left),
-      None => true,
-    }
+    self
+      .deciding_value_of(&bin.left)
+      .map(|left| evaluates_its_right_operand(op, &left))
   }
 
   /// The arm of `test ? cons : alt` the engine evaluates and the arm it does
@@ -1377,17 +1413,45 @@ impl<'r> Walk<'_, 'r> {
     search.found
   }
 
-  /// Records `bin` as an operator whose right operand runs where it loses.
+  /// Records `span` as an operator whose right operand runs where it loses.
   ///
   /// An operator with no span has no stable name for the printer to find it
   /// by. Such a tree is built by a transform and not parsed, and the dispatch
   /// below answers for it.
-  fn record_a_losing_operand(&mut self, bin: &BinExpr) -> Result<(), Decline> {
-    if bin.span.is_dummy() {
+  ///
+  /// It does not replace an entry. See [`Walk::record_a_put_off`] for why no
+  /// entry is there.
+  fn record_an_either(&mut self, span: Span, op: LogicalOp) -> Result<(), Decline> {
+    if span.is_dummy() {
       return Err(Decline::NotACandidate);
     }
 
-    self.reader.losing_operands.insert(bin.span);
+    self
+      .reader
+      .recorded
+      .entry(span)
+      .or_insert(losing_operand::Change::Either(op));
+
+    Ok(())
+  }
+
+  /// Records `span` as a part that holds a put-off refusal, on the same terms
+  /// as [`Walk::record_an_either`].
+  ///
+  /// It replaces an entry, so a put-off refusal is never lost. No entry is
+  /// there in a parsed tree: the walk of the part rolled back what it recorded,
+  /// and every other node with this span is above or below the part. A node
+  /// below it was walked with the part and rolled back. A node above it is
+  /// recorded after the walk of the part ends.
+  fn record_a_put_off(&mut self, span: Span, refusal: Decline) -> Result<(), Decline> {
+    if span.is_dummy() {
+      return Err(Decline::NotACandidate);
+    }
+
+    self
+      .reader
+      .recorded
+      .insert(span, losing_operand::Change::PutOff(refusal));
 
     Ok(())
   }
@@ -1412,8 +1476,15 @@ impl<'r> Walk<'_, 'r> {
     // Depth descends here rather than restarting, unlike the walk over a resolved
     // value: a declaration can name a second function whose declaration names the
     // first, and the descent is what bounds a walk that goes round.
+    //
+    // A refusal in the declaration is not a put-off refusal. The declaration is
+    // printed as a parameter default, which runs when the printed arrow binds
+    // its parameters, before any operator decides. So the refusal goes to the
+    // name that reads the declaration, and that name holds the put-off
+    // refusal.
     let outer = Guard {
       scope: Scope::Module,
+      puts_off: false,
       ..self.guard
     };
 

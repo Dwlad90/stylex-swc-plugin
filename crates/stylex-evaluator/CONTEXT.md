@@ -523,9 +523,8 @@ The engine fold does the same for a losing side that calls a compiler
 function, directly or through a function the module declares. The guard walks
 that side, and where the walk admits it, the printed source changes the
 operator into a call of the global `__sxEither`, which runs the right side
-first and then picks. A throw from the side that loses has no effect. Where the
-walk refuses the side, the side stays dead, as the evaluator ignores a refusal
-on the side it does not use, and what the walk carried for it goes back. A `??`
+first and then picks. A throw from the side that loses has no effect. A part
+of that side the walk refuses is a [put-off refusal](#put-off-refusal). A `??`
 whose left side the guard cannot show to decide goes through `__sxEither` too,
 because only there does the logical node's rule apply: a left side that is
 falsy and not nullish decides nothing, and the fold refuses. A deciding side
@@ -533,13 +532,42 @@ that calls a compiler function is not read before the engine runs, because
 reading it would run the function twice. Which operand is dead is the
 operator's own rule, read from the one place that states it — and read from the
 module only outside a callback body, since inside one the engine binds the names
-and both sides have to carry.
+and both sides have to carry. Where only the engine can tell whether the left
+side decides, a part of the right side the walk refuses is a
+[put-off refusal](#put-off-refusal) too.
 
 Not entered is not the same as not printed: the engine decides the short circuit
 itself, so a dead operand crosses whole and the printer and parser both descend
 through it. The guard therefore measures its [text nesting](#text-nesting) where
 it declines to enter it.
 _Avoid_: unreachable branch, pruned side, skipped operand
+
+**Put-off refusal**:
+A decline of the guard for a part of the right side of `||`, `&&` or `??` that
+the fold does not give at once. The decline is a refusal, or a hand-back that
+gives the call to the dispatch below. It applies where only the engine can tell
+whether the left side decides, and where the right side runs when it loses. The
+walk records the decline and goes on. The printed source has a call of the
+global `__sxPutOff` in place of the part, which throws the position of the
+part. The parts in front of it run, so a compiler call there still declares its
+rule, as the evaluator evaluates them before it stops. Where the left side
+decides, the throw has no effect. Where it does not, the fold gives the decline
+the walk recorded. A put-off refusal in the left side of `__sxEither` still lets
+the right side run, as the logical node evaluates both sides.
+
+A refusal of a whole declaration that crosses as a parameter default is not
+held in the default, because a default runs before any operator decides. The
+name that reads the declaration holds it. An operator inside the default can
+still hold one, because that operator decides before its own parts run.
+
+Three documented differences. A hole, a spread, a shorthand, a computed key or a
+method makes the whole array or object literal one part, so a compiler call in
+front of it in that literal does not run; the reference runs it. A method that
+the walk refuses by its name makes the whole call one part, so a compiler call
+in its receiver does not run; the reference runs the receiver first. And a
+refusal inside a callback on the losing side is ignored, as any throw on the
+losing side is; the reference stops the build there.
+_Avoid_: deferred refusal, salvage, refused leaf
 
 **Coercion bridge**:
 A helper that answers one of the [coercion crate](../stylex-js/CONTEXT.md)'s

@@ -63,7 +63,7 @@ mod theme;
 mod transport;
 
 use compiler::LiveState;
-use engine::{ENGINE, Engine, FoldKey, Printed, print_fold, threw};
+use engine::{ENGINE, Engine, FoldKey, FoldScript, Printed, print_fold, threw_in_fold};
 use guard::{AdmittedKind, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 use theme::is_a_var_group;
@@ -342,6 +342,7 @@ pub(crate) type Refusal = Cow<'static, str>;
 /// declined it, so nothing is reported and the dispatch below this module owns
 /// the call. A rule that fired declined a call the guard did recognise, and
 /// carries the words for it.
+#[derive(Clone)]
 enum Decline {
   NotACandidate,
   Rule(Refusal),
@@ -443,6 +444,7 @@ pub(crate) fn try_fold(
     // The expression the caller asked about is evaluated once.
     repeats: Repeats::Times(1),
     callback: None,
+    puts_off: false,
   };
 
   let mut reader = Reader::new(state, traversal_state, fns, ceilings);
@@ -466,7 +468,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
   // claimed for, the fold refuses — the one answer that is neither an abort nor
   // a wrong one.
   let nesting = walk.printed_nesting();
-  let losing_operands = walk.losing_operands(call);
+  let changes = walk.changes(call);
 
   if !growable_stack::carriable(nesting) {
     return Err(Decline::rule(nesting_too_deep_to_carry(
@@ -485,7 +487,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
     // The key rather than the printed source: what the engine is asked for is
     // an expression it may already hold a compiled script for, and printing one
     // to find that out is most of what a hit would cost.
-    let key = FoldKey::new(call, walk.parameters_key(), &losing_operands);
+    let key = FoldKey::new(call, walk.parameters_key(), &changes);
 
     // Taken, not borrowed in place, and the slot is not held while the engine
     // runs. A panic unwinding out of the engine is caught at the NAPI boundary
@@ -537,9 +539,10 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       let folded = applied
         .and_then(|()| collected.arguments(&mut engine.context, method, &var_group))
         .and_then(|arguments| {
+          let print = || print_fold(call, collected.parameters(), &changes);
+
           apply(
-            key,
-            || print_fold(call, collected.parameters(), &losing_operands),
+            FoldScript::new(key, print).changing(&changes, collected.recorded()),
             &arguments,
             &mut engine,
             method,
@@ -616,13 +619,13 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 /// whole contract is that it may fail, where an assertion would abort a build
 /// that a deopt would only leave to the runtime.
 fn apply(
-  key: FoldKey,
-  print: impl FnOnce() -> Printed,
+  fold: FoldScript<'_, impl FnOnce() -> Printed>,
   arguments: &[JsValue],
   engine: &mut Engine,
   method: &Atom,
 ) -> Result<JsValue, Decline> {
-  let (evaluated, binds_the_checks) = engine.eval(key, print, method)?;
+  let put_offs = fold.put_offs;
+  let (evaluated, binds_the_checks) = engine.eval(fold, method)?;
 
   if !binds_the_checks && arguments.is_empty() {
     return Ok(evaluated);
@@ -648,7 +651,7 @@ fn apply(
 
   callable
     .call(&JsValue::undefined(), &passed, &mut engine.context)
-    .map_err(|error| threw(method, &error))
+    .map_err(|error| threw_in_fold(method, &error, put_offs))
 }
 
 // Read by the two suites that ask the engine what a value they built behaves

@@ -70,7 +70,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 
 use super::Decline;
-use super::losing_operand::EITHER;
+use super::losing_operand::{EITHER, PUT_OFF};
 use super::math::EXPONENTIATE;
 use super::{BLOCKED_PROPERTIES, ESCAPING_PROPERTIES};
 
@@ -102,10 +102,13 @@ pub(super) fn reserved_names() -> impl Iterator<Item = &'static str> {
 }
 
 /// Whether `name` is one the printed source reserves: a check of its own, the
-/// global native that computes `**` (see [`math`](super::math)), or the global
-/// that runs a losing operand (see [`losing_operand`](super::losing_operand)).
+/// global native that computes `**` (see [`math`](super::math)), or one of the
+/// two globals of a losing operand (see [`losing_operand`](super::losing_operand)).
 pub(super) fn is_a_reserved_name(name: &str) -> bool {
-  name == EXPONENTIATE || name == EITHER || reserved_names().any(|reserved| reserved == name)
+  name == EXPONENTIATE
+    || name == EITHER
+    || name == PUT_OFF
+    || reserved_names().any(|reserved| reserved == name)
 }
 
 /// The property names the reader refuses: the guard's two tables and nothing

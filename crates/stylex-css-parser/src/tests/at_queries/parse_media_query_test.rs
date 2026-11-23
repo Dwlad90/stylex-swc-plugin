@@ -5259,6 +5259,67 @@ mod style_value_parser_at_queries {
 
       assert_eq!(parsed.to_string(), "@media not print");
     }
+
+    /// A `not` in parentheses negates a list of two or more conditions, with
+    /// `and` or with `or`. Each pair is the query and its printed form.
+    #[test]
+    fn parenthesized_not_negates_a_whole_list() {
+      for (query, printed) in [
+        (
+          "@media (not screen and (color))",
+          "@media not screen and (color)",
+        ),
+        ("@media (not all and (color))", "@media not all and (color)"),
+        (
+          "@media (not only screen and (color))",
+          "@media not only screen and (color)",
+        ),
+        (
+          "@media (not only screen or (color))",
+          "@media print and (not (color))",
+        ),
+        (
+          "@media (not screen or (color))",
+          "@media print and (not (color))",
+        ),
+        (
+          "@media (not (min-width: 100px) and (max-width: 200px))",
+          "@media (not ((min-width: 100px) and (max-width: 200px)))",
+        ),
+        (
+          "@media (not (color) or (hover: hover))",
+          "@media (not ((color) or (hover: hover)))",
+        ),
+        (
+          "@media (not not screen and (color))",
+          "@media screen and (color)",
+        ),
+        (
+          "@media (not (color) and screen)",
+          "@media (not (color)), not screen",
+        ),
+        (
+          "@media (min-width: 1px) and (not screen and (color))",
+          "@media print and (min-width: 1px), (min-width: 1px) and (not (color))",
+        ),
+      ] {
+        match MediaQuery::parser().parse_to_end(query) {
+          Ok(parsed) => assert_eq!(parsed.to_string(), printed, "{query}"),
+          Err(error) => panic!("failed to parse {query}: {error:?}"),
+        }
+      }
+    }
+
+    /// A bare `not` takes one condition. A list after it must be in
+    /// parentheses.
+    #[test]
+    fn bare_not_does_not_negate_a_list() {
+      let result = MediaQuery::parser().parse_to_end("@media not (min-width: 1px) and (color)");
+      assert!(
+        matches!(&result, Err(error) if error.to_string().contains("cannot be combined without parentheses")),
+        "{result:?}"
+      );
+    }
   }
 
   #[cfg(test)]

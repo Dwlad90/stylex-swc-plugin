@@ -2400,17 +2400,22 @@ fn parenthesized_not_parser_refuses_a_bare_media_type() {
 
 #[test]
 fn parenthesized_not_parser_missing_close_paren() {
-  // Custom token list: (not screen — EOF without ')' → Err
+  // Custom token list: (not (screen) — EOF without ')' → Err
   let parser = parenthesized_not_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
     SimpleToken::Ident("not".to_string()),
     SimpleToken::Whitespace,
+    SimpleToken::LeftParen,
     SimpleToken::Ident("screen".to_string()),
+    SimpleToken::RightParen,
     // no RightParen — EOF
   ]);
   let result = (parser.run)(&mut token_list);
-  assert!(result.is_err());
+  assert!(
+    matches!(&result, Err(error) if error.to_string().contains("Expected closing parenthesis")),
+    "{result:?}"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -2497,17 +2502,22 @@ fn parenthesized_expression_not_branch_refuses_a_bare_media_type() {
 
 #[test]
 fn parenthesized_expression_not_branch_missing_close_paren() {
-  // Custom token list: (not screen — EOF without ')' → Err
+  // Custom token list: (not (screen) — EOF without ')' → Err
   let parser = parenthesized_expression_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
     SimpleToken::Ident("not".to_string()),
     SimpleToken::Whitespace,
+    SimpleToken::LeftParen,
     SimpleToken::Ident("screen".to_string()),
+    SimpleToken::RightParen,
     // no RightParen — EOF
   ]);
   let result = (parser.run)(&mut token_list);
-  assert!(result.is_err());
+  assert!(
+    matches!(&result, Err(error) if error.to_string().contains("Expected closing parenthesis")),
+    "{result:?}"
+  );
 }
 
 #[test]

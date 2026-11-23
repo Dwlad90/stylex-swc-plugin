@@ -2316,83 +2316,117 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
   )
 }
 
-/// Enhanced NOT parser that handles complex nested expressions
+/// The bare `not` parser, as in `not (min-width: 100px)`.
 fn leading_not_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
-    |tokens| {
-      // Expect "not" keyword
-      let not_token =
-        tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected 'not' keyword".to_string(),
-          })?;
-      if let SimpleToken::Ident(keyword) = not_token {
-        if keyword != "not" {
-          return Err(CssParseError::ParseError {
-            message: format!("Expected 'not', got '{}'", keyword),
-          });
-        }
-      } else {
-        return Err(CssParseError::ParseError {
-          message: format!("Expected identifier, got {:?}", not_token),
-        });
-      }
-
-      // Skip whitespace after "not"
-      let whitespace_token =
-        tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected whitespace after 'not'".to_string(),
-          })?;
-      if !matches!(whitespace_token, SimpleToken::Whitespace) {
-        return Err(CssParseError::ParseError {
-          message: format!("Expected whitespace, got {:?}", whitespace_token),
-        });
-      }
-
-      if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
-        && keyword == "only"
-      {
-        return Err(CssParseError::ParseError {
-          message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
-        });
-      }
-
-      // Parse the rule that follows "not" using normal rule parser.
-      //
-      // Through the depth budget, because this is the recursion no parenthesis
-      // pays for: the operand of a bare `not` is a whole rule, which may be
-      // another bare `not`. A chain of them grows the stack once per keyword
-      // while a scan for parentheses sees none of it.
-      let inner_rule = parse_not_operand(tokens)?;
-      Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
-    },
+    |tokens| parse_not_rule(tokens, NotForm::Bare),
     "leading_not_parser",
   )
 }
 
-/// Parse the rule a `not` negates.
-///
-/// A media type standing alone is refused here, so `(not all)` and `(not
-/// screen)` do not parse, but `(not (all))` does. A type on its own is not a
-/// condition.
-fn parse_not_operand(tokens: &mut TokenList) -> Result<MediaQueryRule, CssParseError> {
-  let starts_bare = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(_))));
-  let rule = tokens.with_depth(|tokens| (normal_rule_parser().run)(tokens))?;
+/// The two places a `not` can stand, which take different operands.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum NotForm {
+  /// A bare `not` takes one condition. A list after it must be in
+  /// parentheses, so `not (a) and (b)` does not parse. `only` cannot follow
+  /// it.
+  Bare,
+  /// A `not` in parentheses takes a list joined by `and` or by `or`, as in
+  /// `(not screen and (color))`. The list can start with `only`, as in `(not
+  /// only screen and (color))`.
+  Parenthesized,
+}
 
-  if starts_bare && matches!(rule, MediaQueryRule::MediaKeyword(_)) {
+impl NotForm {
+  /// The parser for the operand of this form.
+  fn operand_parser(self) -> TokenParser<MediaQueryRule> {
+    match self {
+      NotForm::Bare => normal_rule_parser(),
+      NotForm::Parenthesized => or_combinator_parser(),
+    }
+  }
+}
+
+/// Parse `not`, the whitespace after it, and the rule it negates.
+fn parse_not_rule(tokens: &mut TokenList, form: NotForm) -> Result<MediaQueryRule, CssParseError> {
+  // The first token must be the `not` keyword.
+  let not_token = tokens
+    .consume_next_token()
+    .ok()
+    .flatten()
+    .ok_or(CssParseError::ParseError {
+      message: "Expected 'not' keyword".to_string(),
+    })?;
+  if let SimpleToken::Ident(keyword) = not_token {
+    if keyword != "not" {
+      return Err(CssParseError::ParseError {
+        message: format!("Expected 'not', got '{}'", keyword),
+      });
+    }
+  } else {
+    return Err(CssParseError::ParseError {
+      message: format!("Expected identifier, got {:?}", not_token),
+    });
+  }
+
+  // Whitespace must follow `not`.
+  let whitespace_token =
+    tokens
+      .consume_next_token()
+      .ok()
+      .flatten()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected whitespace after 'not'".to_string(),
+      })?;
+  if !matches!(whitespace_token, SimpleToken::Whitespace) {
+    return Err(CssParseError::ParseError {
+      message: format!("Expected whitespace, got {:?}", whitespace_token),
+    });
+  }
+
+  if form == NotForm::Bare
+    && let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
+    && keyword == "only"
+  {
+    return Err(CssParseError::ParseError {
+      message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
+    });
+  }
+
+  // Parse the operand inside the depth budget. The operand of a `not` can be
+  // another `not`. A chain of bare `not` keywords adds one stack frame for
+  // each keyword, and a scan for parentheses does not see it.
+  //
+  // A media type standing alone is refused, so `(not all)`, `(not screen)`
+  // and `(not only screen)` do not parse, but `(not (all))` and `(not all and
+  // (color))` do. A type on its own is not a condition.
+  let starts_bare = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(_))));
+  let operand = tokens.with_depth(|tokens| (form.operand_parser().run)(tokens))?;
+
+  if starts_bare && matches!(operand, MediaQueryRule::MediaKeyword(_)) {
     return Err(CssParseError::ParseError {
       message: "A media type after `not` must be in parentheses".to_string(),
     });
   }
 
-  Ok(rule)
+  Ok(MediaQueryRule::Not(MediaNotRule::new(operand)))
+}
+
+/// Parse what follows the `(` of a `(not ...)` rule, up to and including
+/// the `)`.
+fn parse_parenthesized_not_body(tokens: &mut TokenList) -> Result<MediaQueryRule, CssParseError> {
+  let not_rule = parse_not_rule(tokens, NotForm::Parenthesized)?;
+
+  skip_whitespace(tokens);
+
+  if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
+    let _ = tokens.consume_next_token(); // consume ')'
+    Ok(not_rule)
+  } else {
+    Err(CssParseError::ParseError {
+      message: "Expected closing parenthesis after parenthesized NOT expression".to_string(),
+    })
+  }
 }
 
 /// This parser specifically handles "(not ...)" patterns
@@ -2406,53 +2440,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
         // Skip optional whitespace
         skip_whitespace(tokens);
 
-        // Expect "not" keyword
-        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek() {
-          if keyword == "not" {
-            let _ = tokens.consume_next_token(); // consume "not"
-
-            // Skip mandatory whitespace after "not"
-            if let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              let _ = tokens.consume_next_token();
-            } else {
-              return Err(CssParseError::ParseError {
-                message: "Expected whitespace after 'not' in parenthesized expression".to_string(),
-              });
-            }
-
-            if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
-              && keyword == "only"
-            {
-              return Err(CssParseError::ParseError {
-                message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
-              });
-            }
-
-            let inner_rule = parse_not_operand(tokens)?;
-
-            // Skip optional whitespace before closing
-            skip_whitespace(tokens);
-
-            // Expect closing parenthesis
-            if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
-              let _ = tokens.consume_next_token(); // consume ')'
-              Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
-            } else {
-              Err(CssParseError::ParseError {
-                message: "Expected closing parenthesis after parenthesized NOT expression"
-                  .to_string(),
-              })
-            }
-          } else {
-            Err(CssParseError::ParseError {
-              message: "Expected 'not' keyword in parenthesized NOT expression".to_string(),
-            })
-          }
-        } else {
-          Err(CssParseError::ParseError {
-            message: "Expected 'not' keyword in parenthesized NOT expression".to_string(),
-          })
-        }
+        parse_parenthesized_not_body(tokens)
       } else {
         Err(CssParseError::ParseError {
           message: "Expected opening parenthesis for parenthesized NOT expression".to_string(),
@@ -2767,22 +2755,7 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
         if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
           && keyword == "not"
         {
-          // Parse NOT expression within parentheses
-          let not_rule = (leading_not_parser().run)(tokens)?;
-
-          // Skip optional whitespace before closing
-          skip_whitespace(tokens);
-
-          // Expect closing parenthesis
-          if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
-            let _ = tokens.consume_next_token(); // consume ')'
-            return Ok(not_rule);
-          } else {
-            return Err(CssParseError::ParseError {
-              message: "Expected closing parenthesis after parenthesized NOT expression"
-                .to_string(),
-            });
-          }
+          return parse_parenthesized_not_body(tokens);
         }
 
         // The `or` parser rather than the `and` one, because a parenthesized

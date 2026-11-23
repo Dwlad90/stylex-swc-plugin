@@ -1781,6 +1781,30 @@
       "note": "No two rungs touch, so every branch the negation chain distributes into contradicts. A contradiction is retained rather than pruned -- it prints as `not all`, and the disjunction nesting around it stays in the key that the class name hashes. Two of the seven class names here depend on that wrapper, which is why the subject belongs in the corpus rather than only in the Rust suites: it is the seam that fails when the reference implementation moves rather than when this compiler does."
     },
     {
+      "id": "modules-not-negates-a-list",
+      "label": "a `not` in parentheses that negates an `and` list, an `or` list and a list that starts with `only`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media (min-width: 1px)': 'green',\n      '@media (not screen and (color))': 'blue',\n      '@media (not screen or (color))': 'red',\n      '@media (not only print and (color))': 'gray',\n    },\n  },\n});\n",
+      "origin": "hand-written: the operand of `(not ...)` is a list of two or more conditions",
+      "expected": "identical",
+      "note": "The parser read one condition after `not`, so the `and` refused the query. The keys also go through the last-media-query-wins merge, which negates each list again."
+    },
+    {
+      "id": "modules-not-refuses-a-bare-media-type",
+      "label": "a `not` before a bare media type in parentheses",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media (not screen)': 'blue' } },\n});\n",
+      "origin": "hand-written: `(not screen)` does not parse",
+      "expected": "both-reject",
+      "note": "A media type alone is not a condition. `(not (screen))` parses."
+    },
+    {
+      "id": "modules-bare-not-refuses-a-list",
+      "label": "a bare `not` before a list of conditions",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media not (min-width: 1px) and (color)': 'blue' } },\n});\n",
+      "origin": "hand-written: a bare `not` takes one condition",
+      "expected": "both-reject",
+      "note": "The list must be in parentheses: `(not (min-width: 1px) and (color))` parses."
+    },
+    {
       "id": "modules-1268-colliding-rewritten-keys",
       "label": "two `@media` entries of one value map that canonicalize to the same query",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media (min-width: 200px)': 'red',\n      '@media (min-height: 100px)': 'green',\n      '@media (min-width: 300px)': 'blue',\n      '@media (min-width: 100px)': 'purple',\n    },\n  },\n});\n",

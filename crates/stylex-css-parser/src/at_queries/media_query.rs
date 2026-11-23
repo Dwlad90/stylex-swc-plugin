@@ -2370,11 +2370,29 @@ fn leading_not_parser() -> TokenParser<MediaQueryRule> {
       // pays for: the operand of a bare `not` is a whole rule, which may be
       // another bare `not`. A chain of them grows the stack once per keyword
       // while a scan for parentheses sees none of it.
-      let inner_rule = tokens.with_depth(|tokens| (normal_rule_parser().run)(tokens))?;
+      let inner_rule = parse_not_operand(tokens)?;
       Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
     },
     "leading_not_parser",
   )
+}
+
+/// Parse the rule a `not` negates.
+///
+/// A media type standing alone is refused here, so `(not all)` and `(not
+/// screen)` do not parse, but `(not (all))` does. A type on its own is not a
+/// condition.
+fn parse_not_operand(tokens: &mut TokenList) -> Result<MediaQueryRule, CssParseError> {
+  let starts_bare = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(_))));
+  let rule = tokens.with_depth(|tokens| (normal_rule_parser().run)(tokens))?;
+
+  if starts_bare && matches!(rule, MediaQueryRule::MediaKeyword(_)) {
+    return Err(CssParseError::ParseError {
+      message: "A media type after `not` must be in parentheses".to_string(),
+    });
+  }
+
+  Ok(rule)
 }
 
 /// This parser specifically handles "(not ...)" patterns
@@ -2410,8 +2428,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
               });
             }
 
-            // Parse the rule after "not" using the normal rule parser
-            let inner_rule = tokens.with_depth(|tokens| (normal_rule_parser().run)(tokens))?;
+            let inner_rule = parse_not_operand(tokens)?;
 
             // Skip optional whitespace before closing
             skip_whitespace(tokens);

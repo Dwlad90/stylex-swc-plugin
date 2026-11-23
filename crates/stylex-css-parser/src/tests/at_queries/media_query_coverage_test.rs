@@ -2385,9 +2385,17 @@ fn parenthesized_not_parser_inner_rule_fails() {
 
 #[test]
 fn parenthesized_not_parser_whitespace_before_close_paren() {
-  // '(not screen )' — whitespace before ')' exercises loop body
-  let result = parenthesized_not_parser().parse_to_end("(not screen )");
+  // '(not (screen) )' — whitespace before ')' exercises loop body
+  let result = parenthesized_not_parser().parse_to_end("(not (screen) )");
   assert!(result.is_ok());
+}
+
+#[test]
+fn parenthesized_not_parser_refuses_a_bare_media_type() {
+  // A media type alone is not a condition, so `(not all)` does not parse.
+  for query in ["(not all)", "(not screen)"] {
+    assert!(parenthesized_not_parser().parse_to_end(query).is_err());
+  }
 }
 
 #[test]
@@ -2446,11 +2454,11 @@ fn parenthesized_expression_not_branch_leading_not_fails() {
 
 #[test]
 fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
-  // '(not screen )' — whitespace before ')' exercises loop body
+  // '(not (screen) )' — whitespace before ')' exercises loop body
   // Direct call bypasses parenthesized_not_parser (which also handles this case)
-  let rule = match parenthesized_expression_parser().parse_to_end("(not screen )") {
+  let rule = match parenthesized_expression_parser().parse_to_end("(not (screen) )") {
     Ok(rule) => rule,
-    Err(error) => panic!("failed to parse (not screen ): {error:?}"),
+    Err(error) => panic!("failed to parse (not (screen) ): {error:?}"),
   };
   match rule {
     MediaQueryRule::Not(n) => match n.rule.as_ref() {
@@ -2463,10 +2471,10 @@ fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
 
 #[test]
 fn parenthesized_expression_not_branch_with_close_paren() {
-  // '(not screen)' — direct call exercises success path
-  let rule = match parenthesized_expression_parser().parse_to_end("(not screen)") {
+  // '(not (screen))' — direct call exercises success path
+  let rule = match parenthesized_expression_parser().parse_to_end("(not (screen))") {
     Ok(rule) => rule,
-    Err(error) => panic!("failed to parse (not screen): {error:?}"),
+    Err(error) => panic!("failed to parse (not (screen)): {error:?}"),
   };
   match rule {
     MediaQueryRule::Not(n) => match n.rule.as_ref() {
@@ -2475,6 +2483,16 @@ fn parenthesized_expression_not_branch_with_close_paren() {
     },
     other => panic!("Expected Not, got {:?}", other),
   }
+}
+
+#[test]
+fn parenthesized_expression_not_branch_refuses_a_bare_media_type() {
+  // The same refusal on the path through leading_not_parser.
+  assert!(
+    parenthesized_expression_parser()
+      .parse_to_end("(not all)")
+      .is_err()
+  );
 }
 
 #[test]

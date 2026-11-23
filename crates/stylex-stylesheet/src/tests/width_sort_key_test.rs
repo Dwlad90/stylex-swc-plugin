@@ -329,6 +329,21 @@ fn an_or_query_has_no_bound() {
   );
 }
 
+/// The printed form of a breakpoint ladder holds `(not all)` branches. The
+/// parser refuses `(not all)`, so the query has no bound, though only one
+/// branch can match.
+#[test]
+fn a_ladder_query_with_not_all_branches_has_no_bound() {
+  assert_eq!(
+    bound_of("@media ((not all) or (not all)) or ((not all) or ((min-width: 1440px)))"),
+    None
+  );
+  assert_eq!(
+    bound_of("@media (not all) or ((min-width: 1200px) and (max-width: 1439px))"),
+    None
+  );
+}
+
 #[test]
 fn a_prelude_the_parser_refuses_has_no_bound() {
   // A block the prelude leaves open is refused by `parse_to_end`, as the

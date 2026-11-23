@@ -495,6 +495,46 @@ fn rules_filed_on_a_copy_are_kept() {
   assert_eq!(state.nested_rules_filed(), copy.nested_rules_filed());
 }
 
+/// A rule the state already holds keeps its own value and its position. Only
+/// the rules that are new on the copy are added.
+#[test]
+fn a_rule_the_state_held_is_not_replaced_by_the_copy() {
+  let mut state = state_with(None);
+
+  state
+    .other_injected_css_rules
+    .extend(regular_style("xfade-B", "@keyframes xfade-B{}", None));
+  state
+    .other_injected_css_rules
+    .extend(regular_style("xspin-B", "@keyframes xspin-B{}", None));
+
+  let held = Rc::clone(&state.other_injected_css_rules["xfade-B"]);
+  let mut copy = state.clone();
+
+  copy
+    .other_injected_css_rules
+    .extend(regular_style("xfade-B", "@keyframes xfade-B{}", None));
+  copy
+    .other_injected_css_rules
+    .extend(regular_style("xgrow-B", "@keyframes xgrow-B{}", None));
+  copy.note_nested_rule_filed();
+
+  state.keep_rules_filed_on(&copy);
+
+  assert!(Rc::ptr_eq(
+    &state.other_injected_css_rules["xfade-B"],
+    &held
+  ));
+  assert_eq!(
+    state
+      .other_injected_css_rules
+      .keys()
+      .map(|key| key.as_str())
+      .collect::<Vec<_>>(),
+    vec!["xfade-B", "xspin-B", "xgrow-B"]
+  );
+}
+
 /// A producer that registers something the placement walk does not read keys
 /// its rules to nothing, and the module is printed without them. Nothing does
 /// that today, so what is asked here is that it says so: a producer written

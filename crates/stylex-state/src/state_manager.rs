@@ -2506,10 +2506,14 @@ impl StateManager {
       return;
     }
 
+    // A rule is keyed by its name, so a rule this state holds is the same
+    // rule. Skip it, and do not copy its key.
     for (key, rule) in &copy.other_injected_css_rules {
-      self
-        .other_injected_css_rules
-        .insert(key.clone(), Rc::clone(rule));
+      if !self.other_injected_css_rules.contains_key(key) {
+        self
+          .other_injected_css_rules
+          .insert(key.clone(), Rc::clone(rule));
+      }
     }
 
     self.nested_rules_filed = copy.nested_rules_filed;

@@ -224,6 +224,37 @@ stylex_test!(
 );
 
 stylex_test!(
+  does_not_hoist_css_objects_that_read_a_local_variable_inside_an_expression,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: { display: 'flex' },
+    });
+    function Foo({size, map}) {
+      return <div {...stylex.props(styles.root, size && {$$css: true, a: `x${size}`}, map && {$$css: true, [map.key]: 'x'})}>Hello, foo!</div>;
+    }
+  "#
+);
+
+stylex_test!(
+  does_not_hoist_css_objects_that_read_this_or_arguments,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: { display: 'flex' },
+    });
+    export class Foo {
+      render() {
+        return stylex.props(styles.root, this.on && {$$css: true, a: `x${this.size}`});
+      }
+    }
+    export function Bar() {
+      return stylex.props(styles.root, {$$css: true, [arguments[0]]: 'x'});
+    }
+  "#
+);
+
+stylex_test!(
   does_not_hoist_css_objects_that_reference_constructor_parameters,
   r#"
     import * as stylex from '@stylexjs/stylex';

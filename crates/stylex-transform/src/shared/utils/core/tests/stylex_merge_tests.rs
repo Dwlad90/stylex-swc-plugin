@@ -3,10 +3,13 @@
 
 use rustc_hash::FxHashSet;
 use stylex_state::state_manager::{BindingWrites, StateManager};
-use swc_core::ecma::ast::Id;
+use swc_core::ecma::{
+  ast::{Id, ObjectLit},
+  visit::{Visit, VisitWith},
+};
 
 use super::{can_hoist_object, object_has_css_marker};
-use crate::tests::support::object;
+use crate::tests::support::{module, object};
 
 /// A state where each of `names` is declared inside a function or a block.
 ///
@@ -102,6 +105,103 @@ fn keeps_an_object_that_reads_an_enclosed_binding() {
   assert!(!can_hoist(
     "{ $$css: true, __: (className) }",
     &["className"]
+  ));
+}
+
+/// A template literal or a computed key can read an enclosed name inside a
+/// longer expression. Moved to program level, the object throws when the
+/// module loads.
+#[test]
+fn keeps_an_object_that_reads_an_enclosed_binding_inside_an_expression() {
+  assert!(!can_hoist("{ $$css: true, a: `x${size}` }", &["size"]));
+  assert!(!can_hoist(
+    "{ $$css: true, a: `x${`y${size}`}` }",
+    &["size"]
+  ));
+  assert!(!can_hoist("{ $$css: true, a: `x${map.key}` }", &["map"]));
+  assert!(!can_hoist("{ $$css: true, [map.key]: 'xa' }", &["map"]));
+  assert!(!can_hoist("{ $$css: true, [`k${size}`]: 'xa' }", &["size"]));
+  assert!(!can_hoist("{ $$css: true, [(key)]: 'xa' }", &["key"]));
+}
+
+/// `this`, `arguments`, `super`, `new.target`, `await` and `yield` take
+/// their value from the function that holds the object. At program level they
+/// read another value or do not parse, so the object stays.
+#[test]
+fn keeps_an_object_that_reads_a_value_of_the_enclosing_function() {
+  for code in [
+    "{ $$css: true, a: `x${this.k}` }",
+    "{ $$css: true, [this.k]: 'xa' }",
+    "{ $$css: true, a: `x${arguments[0]}` }",
+    "{ $$css: true, [arguments[0]]: 'xa' }",
+    "{ $$css: true, a: `x${super.k}` }",
+    "{ $$css: true, a: `x${new.target}` }",
+    "{ $$css: true, a: `x${await size}` }",
+    "{ $$css: true, a: `x${yield size}` }",
+  ] {
+    let object = object_in_a_method(code);
+
+    assert!(
+      !can_hoist_object(&object, &state_with_enclosed(&[])),
+      "{code}"
+    );
+  }
+}
+
+/// `import.meta` is the same everywhere in the module, so it does not keep the
+/// object in place.
+#[test]
+fn hoists_an_object_that_reads_import_meta() {
+  let object = object_in_a_method("{ $$css: true, a: `x${import.meta.url}` }");
+
+  assert!(can_hoist_object(&object, &state_with_enclosed(&[])));
+}
+
+/// The object literal `code` spells, read as the value an async generator
+/// method returns. `super`, `new.target` and `yield` parse only there.
+fn object_in_a_method(code: &str) -> ObjectLit {
+  struct FirstObject(Option<ObjectLit>);
+
+  impl Visit for FirstObject {
+    fn visit_object_lit(&mut self, object: &ObjectLit) {
+      if self.0.is_none() {
+        self.0 = Some(object.clone());
+      }
+    }
+  }
+
+  let source = format!("class C extends B {{ async *m() {{ return {code}; }} }}");
+  let mut search = FirstObject(None);
+  module(&source).visit_with(&mut search);
+
+  match search.0 {
+    Some(object) => object,
+    None => panic!("the fixture {code} holds no object literal"),
+  }
+}
+
+/// A template literal that reads only program-level names, or no name at
+/// all, can move. A property name after a dot is not a read of a binding.
+#[test]
+fn hoists_a_template_literal_that_reads_a_module_scope_name() {
+  assert!(can_hoist("{ $$css: true, a: `x${size}` }", &[]));
+  assert!(can_hoist("{ $$css: true, a: `xa` }", &["size"]));
+  assert!(can_hoist("{ $$css: true, a: `x${map.size}` }", &["size"]));
+  assert!(can_hoist("{ $$css: true, [map.key]: 'xa' }", &["key"]));
+}
+
+/// A very long template literal is searched to its end without a failure.
+#[test]
+fn searches_a_very_long_template_literal() {
+  let parts = "${1}".repeat(10_000);
+
+  assert!(can_hoist(
+    &format!("{{ $$css: true, a: `{parts}` }}"),
+    &["size"]
+  ));
+  assert!(!can_hoist(
+    &format!("{{ $$css: true, a: `{parts}${{size}}` }}"),
+    &["size"]
   ));
 }
 

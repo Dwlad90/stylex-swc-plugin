@@ -7,10 +7,11 @@ use stylex_ast::ast::convertors::{
 use swc_core::common::util::take::Take;
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
-    JSXAttrValue, Lit, ObjectLit, Prop, PropName, PropOrSpread,
+    AwaitExpr, BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
+    JSXAttrValue, Lit, MetaPropExpr, MetaPropKind, ObjectLit, Prop, PropName, PropOrSpread, Super,
+    ThisExpr, YieldExpr,
   },
-  visit::{VisitMut, VisitMutWith, VisitWith},
+  visit::{Visit, VisitMut, VisitMutWith, VisitWith},
 };
 
 use crate::shared::{
@@ -359,14 +360,18 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
 /// Whether every name the object reads is visible at program level, so the
 /// object can move there.
 ///
-/// Each property must be a plain or shorthand property. A computed key that
-/// is a name must be visible at program level. A value must be a literal, a
-/// template literal or a name that is visible at program level. A global is
+/// Each property must be a plain or shorthand property. A computed key must
+/// not read an enclosed value anywhere in its expression. A value must be a
+/// literal, a name or a template literal, and it must not read an enclosed
+/// value. See [`reads_an_enclosed_binding`] for what that is. A global is
 /// visible everywhere, so it passes.
+///
+/// This is stricter than the reference. Its `canHoistObject` accepts any
+/// template literal and any computed key that is not a bare name. So an object
+/// that reads a parameter in `${size}` or in `[map.key]` moves, and the module
+/// throws a `ReferenceError` when it loads. An object that reads `${this.k}`
+/// in a method moves too, and then reads another value.
 fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
-  // Whether the expression is a name that is not visible at program level.
-  let is_enclosed_name = |expr: &Expr| matches!(normalize_expr(expr), Expr::Ident(ident) if state.is_enclosed_binding(ident));
-
   object.props.iter().all(|prop| {
     let PropOrSpread::Prop(prop) = prop else {
       return false;
@@ -376,18 +381,70 @@ fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
       Prop::Shorthand(ident) => !state.is_enclosed_binding(ident),
       Prop::KeyValue(key_value) => {
         let key_is_visible = match &key_value.key {
-          PropName::Computed(computed) => !is_enclosed_name(&computed.expr),
+          PropName::Computed(computed) => !reads_an_enclosed_binding(&computed.expr, state),
           _ => true,
         };
-        let value = normalize_expr(&key_value.value);
-        let value_is_visible =
-          matches!(value, Expr::Ident(_) | Expr::Lit(_) | Expr::Tpl(_)) && !is_enclosed_name(value);
+        let value_is_visible = match normalize_expr(&key_value.value) {
+          Expr::Lit(_) => true,
+          value @ (Expr::Ident(_) | Expr::Tpl(_)) => !reads_an_enclosed_binding(value, state),
+          _ => false,
+        };
 
         key_is_visible && value_is_visible
       },
       _ => false,
     }
   })
+}
+
+/// Whether `expr` reads a value that is not the same at program level.
+///
+/// That is a name bound below program level, or a value the enclosing
+/// function gives: `this`, `arguments`, `super`, `new.target`, `await` and
+/// `yield`. A property name after a dot is not a read of a binding, so
+/// `map.key` tests only `map`.
+fn reads_an_enclosed_binding(expr: &Expr, state: &StateManager) -> bool {
+  let mut search = EnclosedRead {
+    state,
+    found: false,
+  };
+  expr.visit_with(&mut search);
+  search.found
+}
+
+/// Records whether the walk visits a read that [`reads_an_enclosed_binding`]
+/// refuses.
+struct EnclosedRead<'a> {
+  state: &'a StateManager,
+  found: bool,
+}
+
+impl Visit for EnclosedRead<'_> {
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.found |= ident.sym == "arguments" || self.state.is_enclosed_binding(ident);
+  }
+
+  fn visit_this_expr(&mut self, _: &ThisExpr) {
+    self.found = true;
+  }
+
+  fn visit_super(&mut self, _: &Super) {
+    self.found = true;
+  }
+
+  fn visit_await_expr(&mut self, _: &AwaitExpr) {
+    self.found = true;
+  }
+
+  fn visit_yield_expr(&mut self, _: &YieldExpr) {
+    self.found = true;
+  }
+
+  /// `import.meta` is the same everywhere in the module, so only
+  /// `new.target` counts.
+  fn visit_meta_prop_expr(&mut self, meta: &MetaPropExpr) {
+    self.found |= meta.kind == MetaPropKind::NewTarget;
+  }
 }
 
 /// Whether an object literal carries a `$$css: true` property, marking it as a

@@ -119,9 +119,10 @@ pub enum InsertionSlot {
   /// runtime helpers because they always followed them, regardless
   /// of which producer ran first.
   ThemeImports,
-  /// Hoisted dynamic-style constants. Emitted after the existing
-  /// import block, before the rest of the body. Mirrors the legacy
-  /// `hoisted_module_items` placement.
+  /// Emitted after the existing import block, before the rest of the body.
+  /// It holds the injection calls of the atoms transform, and each hoisted
+  /// declaration made outside the top-level walk. A hoist inside that walk goes
+  /// in front of its own statement. See [`StateManager::hoist_to_program_level`].
   AfterImports,
   /// Per-statement style metadata (the `_inject2(...)` calls) keyed by the
   /// stable hash of the object the call was replaced by, and by the
@@ -135,6 +136,14 @@ pub enum InsertionSlot {
     /// The registration that queued the items.
     registration: u64,
   },
+}
+
+/// The hoisted declarations that wait for the program-level statement that
+/// holds their expression, and the bindings they must not read there.
+#[derive(Debug, Clone)]
+struct StatementHoists {
+  items: Vec<ModuleItem>,
+  undeclared: FxHashSet<Id>,
 }
 
 #[derive(Debug, Clone)]
@@ -1005,6 +1014,10 @@ pub struct StateManager {
   /// accumulator vecs above plus the per-decl `styles_to_inject` map.
   pub(crate) pending_module_items: Vec<PendingInsertion>,
 
+  /// The hoists that the top-level walk places. Present only while that walk
+  /// runs. See [`StateManager::hoist_to_program_level`].
+  statement_hoists: Option<StatementHoists>,
+
   pub other_injected_css_rules: InjectableStylesMap,
   /// How many times the file has filed a nested rule, counting every filing
   /// rather than every distinct name.
@@ -1101,6 +1114,7 @@ impl StateManager {
 
       injection: StyleInjectionState::default(),
       pending_module_items: vec![],
+      statement_hoists: None,
 
       other_injected_css_rules: IndexMap::new(),
       nested_rules_filed: 0,
@@ -2811,6 +2825,75 @@ impl StateManager {
       .push(PendingInsertion { slot, item });
   }
 
+  /// Adds a declaration that a hoisted expression moved to.
+  ///
+  /// While the top-level walk runs, the declaration goes in front of the
+  /// program-level statement that holds the expression, as the reference
+  /// places it. So it comes after every binding that an earlier statement
+  /// declares, and it can read them when the module loads. A hoist outside that
+  /// walk goes after the imports.
+  pub fn hoist_to_program_level(&mut self, item: ModuleItem) {
+    match &mut self.statement_hoists {
+      Some(hoists) => hoists.items.push(item),
+      None => self.queue_insertion(InsertionSlot::AfterImports, item),
+    }
+  }
+
+  /// Whether the top-level walk runs. A list of items inside a program-level
+  /// statement, such as a TypeScript namespace body, does not start a second
+  /// walk: its hoists belong in front of that outer statement.
+  pub fn places_statement_hoists(&self) -> bool {
+    self.statement_hoists.is_some()
+  }
+
+  /// Starts to keep hoisted declarations for the statement that holds them.
+  ///
+  /// `undeclared` holds the program-level bindings that a hoisted declaration
+  /// must not read, because they have no value in front of the statement
+  /// that the walk reads. The walk takes each one off when it passes its
+  /// statement, with [`StateManager::note_program_bindings_declared`].
+  pub fn start_statement_hoists(&mut self, undeclared: FxHashSet<Id>) {
+    self.statement_hoists = Some(StatementHoists {
+      items: Vec::new(),
+      undeclared,
+    });
+  }
+
+  /// Records that the walk passed the statement that declares `ids`. A
+  /// declaration hoisted in front of a later statement can read them.
+  pub fn note_program_bindings_declared(&mut self, ids: impl IntoIterator<Item = Id>) {
+    if let Some(hoists) = &mut self.statement_hoists {
+      for id in ids {
+        hoists.undeclared.remove(&id);
+      }
+    }
+  }
+
+  /// Whether `ident` names a program-level binding that a declaration hoisted
+  /// in front of the statement the walk reads must not read.
+  pub fn is_undeclared_program_binding(&self, ident: &Ident) -> bool {
+    self
+      .statement_hoists
+      .as_ref()
+      .is_some_and(|hoists| hoists.undeclared.contains(&ident.to_id()))
+  }
+
+  /// Takes the declarations hoisted out of the statement that the walk read
+  /// last, in the order they were hoisted.
+  pub fn take_statement_hoists(&mut self) -> Vec<ModuleItem> {
+    self
+      .statement_hoists
+      .as_mut()
+      .map(|hoists| std::mem::take(&mut hoists.items))
+      .unwrap_or_default()
+  }
+
+  /// Stops keeping hoisted declarations. A hoist after this goes after the
+  /// imports.
+  pub fn stop_statement_hoists(&mut self) {
+    self.statement_hoists = None;
+  }
+
   /// Whether a refusal raised right now is the evaluated subtree's own answer,
   /// and so worth recording against it in the memo.
   ///
@@ -2862,9 +2945,9 @@ impl StateManager {
 ///    existing import block — matching the legacy `prepend_import_module_items`
 ///    placement.
 /// 4. The existing import block follows.
-/// 5. `AfterImports` items follow the import block — matching the legacy
-///    in-walk splice that placed `hoisted_module_items` after imports during
-///    the consumer walk.
+/// 5. `AfterImports` items follow the import block. A hoisted declaration is
+///    here only when it was made outside the top-level walk. The walk puts
+///    every other one in front of its statement before this flush.
 /// 6. The remainder of the body follows. Each item is read for the objects a
 ///    producer registered, and the `BeforeDecl` metadata of each one found is
 ///    spliced before the item. [`RegisteredObjects`] is that walk.
@@ -2875,8 +2958,8 @@ impl StateManager {
 /// (`ThemeImports`), and per-decl metadata (`BeforeDecl`) are
 /// dropped on the floor — exactly as the legacy
 /// `inject_runtime_styles` was simply not invoked.
-/// `AfterImports` always emits — the legacy in-walk hoisted splice
-/// ran regardless of the option.
+/// `AfterImports` always emits, because a hoisted declaration is part of the
+/// module whatever the option says.
 pub fn flush_pending_insertions(
   state: &mut StateManager,
   module_body: &mut Vec<ModuleItem>,
@@ -2929,9 +3012,8 @@ pub fn flush_pending_insertions(
     }
   }
 
-  // Step 1: replicate the legacy in-walk splice that placed
-  // hoisted items between the import block and the rest of the
-  // body. Doing it here keeps the BeforeDecl iteration in step 4
+  // Step 1: put the `AfterImports` items between the import block and the
+  // rest of the body. Doing it here keeps the BeforeDecl iteration in step 4
   // walking the same shape the legacy `inject_runtime_styles` saw.
   let original = std::mem::take(module_body);
   let body_with_after_imports = if after_imports.is_empty() {

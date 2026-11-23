@@ -3,10 +3,6 @@ import * as stylex from '@stylexjs/stylex';
 import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { useState } from 'react';
-const _temp = {
-    kGuDYH: "xdmh292",
-    $$css: true
-};
 export default function Counter() {
     const [count, setCount] = useState(0);
     return <div className="x78zum5 x6s0dn4 xl56j7k x1q0g3np x12xgqvu xmkeg23 x1y0btm7 xqpy6nh x87erls x1alyrvt x1749g51">
@@ -21,6 +17,10 @@ export default function Counter() {
       </button>
     </div>;
 }
+const _temp = {
+    kGuDYH: "xdmh292",
+    $$css: true
+};
 const styles = {
     size: (size)=>[
             _temp,

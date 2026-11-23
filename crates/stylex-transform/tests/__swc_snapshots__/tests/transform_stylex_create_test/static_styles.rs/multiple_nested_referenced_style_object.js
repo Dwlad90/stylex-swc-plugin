@@ -13,6 +13,12 @@ const _styles2 = {
         $$css: true
     }
 };
+function fooBar() {
+    const styles = _styles;
+    const styles2 = _styles2;
+    console.log(styles);
+    console.log(styles2);
+}
 const _styles3 = {
     root: {
         kWkggS: "x1u857p9",
@@ -20,12 +26,6 @@ const _styles3 = {
         $$css: true
     }
 };
-function fooBar() {
-    const styles = _styles;
-    const styles2 = _styles2;
-    console.log(styles);
-    console.log(styles2);
-}
 export const otherFunction = ()=>{
     const styles3 = _styles3;
     console.log(styles3);

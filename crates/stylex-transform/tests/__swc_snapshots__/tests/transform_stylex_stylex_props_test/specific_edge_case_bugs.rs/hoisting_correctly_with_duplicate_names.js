@@ -12,6 +12,10 @@ const _styles = {
         $$css: true
     }
 };
+function Foo() {
+    const styles = _styles;
+    return <div {...stylex.props(styles.div)}>Hello, foo!</div>;
+}
 _inject2({
     ltr: ".xju2f9n{color:blue}",
     priority: 3000
@@ -22,10 +26,6 @@ const _styles2 = {
         $$css: true
     }
 };
-function Foo() {
-    const styles = _styles;
-    return <div {...stylex.props(styles.div)}>Hello, foo!</div>;
-}
 function Bar() {
     const styles = _styles2;
     return <div {...stylex.props(styles.div)}>Hello, bar!</div>;

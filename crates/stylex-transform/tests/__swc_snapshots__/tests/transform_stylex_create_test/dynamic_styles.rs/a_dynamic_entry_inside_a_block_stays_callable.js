@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex';
+export let render;
 const _styles = {
     color: (value)=>[
             value !== undefined && {
@@ -14,7 +15,6 @@ const _styles = {
         $$css: true
     }
 };
-export let render;
 {
     const styles = _styles;
     render = (value)=>stylex.props(styles.base, styles.color(value));

@@ -178,6 +178,17 @@ object: an object that reads an enclosed binding stays where it is written,
 because the name does not exist where the hoisted object would go.
 _Avoid_: nested binding, local binding, scoped binding
 
+**Undeclared program binding**:
+A program-level binding that the statement the top-level walk reads, or a later
+statement, declares: a `let`, a `const`, a `var`, a class, a `using`, or a
+TypeScript `enum` or namespace. A hoisted declaration goes in front of the
+statement that holds its expression, where such a binding has no value yet.
+So the `stylex.props` merge keeps an object that reads one where it is
+written. A function declaration and an import hold their value before the
+first statement runs, so they are never undeclared. Answered by
+`is_undeclared_program_binding` while the walk runs, and `false` outside it.
+_Avoid_: later binding, forward reference, TDZ binding
+
 **Rule-call function map**:
 The function map a rule call folds its argument with, held on the state for the
 life of the file. One per set of helpers -- see

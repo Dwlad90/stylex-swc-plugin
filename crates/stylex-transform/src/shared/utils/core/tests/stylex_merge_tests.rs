@@ -16,10 +16,7 @@ use crate::tests::support::{module, object};
 /// The test source is parsed without the resolver, so each name has the empty
 /// syntax context.
 fn state_with_enclosed(names: &[&str]) -> StateManager {
-  let enclosed: FxHashSet<Id> = names
-    .iter()
-    .map(|name| (Into::into(*name), Default::default()))
-    .collect();
+  let enclosed = ids(names);
 
   let mut state = StateManager::default();
   state.adopt_binding_writes(BindingWrites {
@@ -29,6 +26,39 @@ fn state_with_enclosed(names: &[&str]) -> StateManager {
     declared: enclosed.clone(),
     enclosed,
   });
+  state
+}
+
+/// A state where each of `names` is a program-level binding that a statement
+/// assigns again.
+fn state_with_reassigned(names: &[&str]) -> StateManager {
+  let reassigned = ids(names);
+
+  let mut state = StateManager::default();
+  state.adopt_binding_writes(BindingWrites {
+    reassignments: reassigned.clone(),
+    mutations: FxHashSet::default(),
+    deep_mutations: FxHashSet::default(),
+    declared: reassigned,
+    enclosed: FxHashSet::default(),
+  });
+  state
+}
+
+/// The ids of `names`, each with the empty syntax context of a fixture that is
+/// parsed without the resolver.
+fn ids(names: &[&str]) -> FxHashSet<Id> {
+  names
+    .iter()
+    .map(|name| (Into::into(*name), Default::default()))
+    .collect()
+}
+
+/// A state where the top-level walk runs, and each of `names` is a
+/// program-level binding that no earlier statement declares.
+fn state_with_undeclared(names: &[&str]) -> StateManager {
+  let mut state = StateManager::default();
+  state.start_statement_hoists(ids(names));
   state
 }
 
@@ -203,6 +233,38 @@ fn searches_a_very_long_template_literal() {
     &format!("{{ $$css: true, a: `{parts}${{size}}` }}"),
     &["size"]
   ));
+}
+
+/// A program-level binding that the statement holding the object, or a later
+/// one, declares has no value yet where the hoisted object goes.
+#[test]
+fn keeps_an_object_that_reads_a_binding_declared_later() {
+  let state = state_with_undeclared(&["later"]);
+
+  for code in [
+    "{ $$css: true, __: later }",
+    "{ $$css: true, later }",
+    "{ $$css: true, a: `x${later}` }",
+    "{ $$css: true, [later]: 'xa' }",
+  ] {
+    assert!(!can_hoist_object(&object(code), &state), "{code}");
+  }
+
+  assert!(can_hoist_object(
+    &object("{ $$css: true, __: earlier }"),
+    &state
+  ));
+}
+
+/// A hoisted object reads its values once, when the module loads. A binding
+/// that a statement assigns again can hold another value when the call runs.
+#[test]
+fn keeps_an_object_that_reads_a_reassigned_binding() {
+  let state = state_with_reassigned(&["v"]);
+
+  assert!(!can_hoist_object(&object("{ $$css: true, __: v }"), &state));
+  assert!(!can_hoist_object(&object("{ $$css: true, v }"), &state));
+  assert!(can_hoist_object(&object("{ $$css: true, __: w }"), &state));
 }
 
 /// A global or a program-level name is visible at program level.

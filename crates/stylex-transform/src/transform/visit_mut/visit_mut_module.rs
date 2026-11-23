@@ -887,8 +887,8 @@ where
   /// completes, drains the pending-insertion buffer with a single
   /// linear merge into the module body. Runtime helpers and per-decl
   /// metadata are gated on `options.runtime_injection.is_some()`,
-  /// matching the legacy gate; hoisted dynamic-style consts always
-  /// emit.
+  /// matching the legacy gate. The walk itself puts each hoisted
+  /// declaration in front of its statement.
   pub(crate) fn transform_consumers(&mut self, module: &mut Module) {
     self.state.cycle = TransformationCycle::TransformConsumers;
     module.visit_mut_children_with(self);

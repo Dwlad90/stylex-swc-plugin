@@ -361,16 +361,22 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
 /// object can move there.
 ///
 /// Each property must be a plain or shorthand property. A computed key must
-/// not read an enclosed value anywhere in its expression. A value must be a
-/// literal, a name or a template literal, and it must not read an enclosed
-/// value. See [`reads_an_enclosed_binding`] for what that is. A global is
+/// not read a hidden value anywhere in its expression. A value must be a
+/// literal, a name or a template literal, and it must not read a hidden value.
+/// See [`reads_a_value_hidden_from_a_hoist`] for what that is. A global is
 /// visible everywhere, so it passes.
 ///
 /// This is stricter than the reference. Its `canHoistObject` accepts any
 /// template literal and any computed key that is not a bare name. So an object
 /// that reads a parameter in `${size}` or in `[map.key]` moves, and the module
 /// throws a `ReferenceError` when it loads. An object that reads `${this.k}`
-/// in a method moves too, and then reads another value.
+/// in a method moves too, and then reads another value. An object that reads a
+/// binding that its own statement or a later one declares moves in front of
+/// that declaration, where the name has no value yet. And an object that reads
+/// a binding that is assigned again keeps the value it read when the module
+/// loaded. These departures from the reference are deliberate: each one
+/// changes the output only where the reference output throws or reads the
+/// wrong value.
 fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
   object.props.iter().all(|prop| {
     let PropOrSpread::Prop(prop) = prop else {
@@ -378,15 +384,17 @@ fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
     };
 
     match prop.as_ref() {
-      Prop::Shorthand(ident) => !state.is_enclosed_binding(ident),
+      Prop::Shorthand(ident) => !hides_its_value_from_a_hoist(ident, state),
       Prop::KeyValue(key_value) => {
         let key_is_visible = match &key_value.key {
-          PropName::Computed(computed) => !reads_an_enclosed_binding(&computed.expr, state),
+          PropName::Computed(computed) => !reads_a_value_hidden_from_a_hoist(&computed.expr, state),
           _ => true,
         };
         let value_is_visible = match normalize_expr(&key_value.value) {
           Expr::Lit(_) => true,
-          value @ (Expr::Ident(_) | Expr::Tpl(_)) => !reads_an_enclosed_binding(value, state),
+          value @ (Expr::Ident(_) | Expr::Tpl(_)) => {
+            !reads_a_value_hidden_from_a_hoist(value, state)
+          },
           _ => false,
         };
 
@@ -399,12 +407,12 @@ fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
 
 /// Whether `expr` reads a value that is not the same at program level.
 ///
-/// That is a name bound below program level, or a value the enclosing
-/// function gives: `this`, `arguments`, `super`, `new.target`, `await` and
+/// That is a name that [`hides_its_value_from_a_hoist`], or a value the
+/// enclosing function gives: `this`, `super`, `new.target`, `await` and
 /// `yield`. A property name after a dot is not a read of a binding, so
 /// `map.key` tests only `map`.
-fn reads_an_enclosed_binding(expr: &Expr, state: &StateManager) -> bool {
-  let mut search = EnclosedRead {
+fn reads_a_value_hidden_from_a_hoist(expr: &Expr, state: &StateManager) -> bool {
+  let mut search = HiddenRead {
     state,
     found: false,
   };
@@ -412,16 +420,28 @@ fn reads_an_enclosed_binding(expr: &Expr, state: &StateManager) -> bool {
   search.found
 }
 
-/// Records whether the walk visits a read that [`reads_an_enclosed_binding`]
+/// Whether the name `ident` reads a value that a hoisted declaration does not
+/// see: `arguments`, a binding below program level, a program-level binding
+/// that is not declared yet in front of the statement that holds the object,
+/// or a binding that is assigned again. A hoisted declaration reads its value
+/// once, when the module loads.
+fn hides_its_value_from_a_hoist(ident: &Ident, state: &StateManager) -> bool {
+  ident.sym == "arguments"
+    || state.is_enclosed_binding(ident)
+    || state.is_undeclared_program_binding(ident)
+    || state.has_binding_reassignment(ident)
+}
+
+/// Records whether the walk visits a read that [`reads_a_value_hidden_from_a_hoist`]
 /// refuses.
-struct EnclosedRead<'a> {
+struct HiddenRead<'a> {
   state: &'a StateManager,
   found: bool,
 }
 
-impl Visit for EnclosedRead<'_> {
+impl Visit for HiddenRead<'_> {
   fn visit_ident(&mut self, ident: &Ident) {
-    self.found |= ident.sym == "arguments" || self.state.is_enclosed_binding(ident);
+    self.found |= hides_its_value_from_a_hoist(ident, self.state);
   }
 
   fn visit_this_expr(&mut self, _: &ThisExpr) {

@@ -127,6 +127,103 @@ mod state_manager {
     );
   }
 
+  /// A hoist outside the top-level walk has no statement to go in front of,
+  /// so it goes after the imports.
+  #[test]
+  fn a_hoist_outside_the_walk_goes_after_the_imports() {
+    let mut state = StateManager::default();
+    let mut body = vec![import_stmt("existing"), expr_stmt("body")];
+
+    state.hoist_to_program_level(expr_stmt("hoisted"));
+
+    assert!(state.take_statement_hoists().is_empty());
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(
+      item_labels(&body),
+      vec!["import:existing", "hoisted", "body"]
+    );
+  }
+
+  /// While the walk runs, each hoist waits for the walk to take it, in the
+  /// order it was hoisted, and nothing reaches the flush.
+  #[test]
+  fn a_hoist_inside_the_walk_waits_for_its_statement() {
+    let mut state = StateManager::default();
+    let mut body = vec![expr_stmt("body")];
+
+    state.start_statement_hoists(Default::default());
+
+    state.hoist_to_program_level(expr_stmt("first"));
+    state.hoist_to_program_level(expr_stmt("second"));
+
+    assert_eq!(
+      item_labels(&state.take_statement_hoists()),
+      vec!["first", "second"]
+    );
+    assert!(state.take_statement_hoists().is_empty());
+
+    state.stop_statement_hoists();
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["body"]);
+  }
+
+  /// The walk tells whether it runs, so a nested list of items does not start
+  /// a second walk. After the walk stops, a hoist goes after the imports again.
+  #[test]
+  fn a_hoist_after_the_walk_goes_after_the_imports() {
+    let mut state = StateManager::default();
+    let mut body = vec![import_stmt("existing"), expr_stmt("body")];
+
+    assert!(!state.places_statement_hoists());
+
+    state.start_statement_hoists(Default::default());
+
+    assert!(state.places_statement_hoists());
+
+    state.hoist_to_program_level(expr_stmt("outer"));
+
+    assert_eq!(item_labels(&state.take_statement_hoists()), vec!["outer"]);
+
+    state.stop_statement_hoists();
+
+    assert!(!state.places_statement_hoists());
+
+    state.hoist_to_program_level(expr_stmt("late"));
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["import:existing", "late", "body"]);
+  }
+
+  /// A binding stays undeclared until the walk passes its statement, and the
+  /// end of the walk forgets the set. Outside the walk, no binding is
+  /// undeclared and a declaration changes nothing.
+  #[test]
+  fn a_program_binding_is_undeclared_until_the_walk_passes_it() {
+    let mut state = StateManager::default();
+    let later = ident("later");
+    let other = ident("other");
+
+    state.note_program_bindings_declared([later.to_id()]);
+
+    assert!(!state.is_undeclared_program_binding(&later));
+
+    state.start_statement_hoists([later.to_id(), other.to_id()].into_iter().collect());
+
+    assert!(state.is_undeclared_program_binding(&later));
+
+    state.note_program_bindings_declared([later.to_id()]);
+
+    assert!(!state.is_undeclared_program_binding(&later));
+    assert!(state.is_undeclared_program_binding(&other));
+
+    state.stop_statement_hoists();
+
+    assert!(!state.is_undeclared_program_binding(&other));
+  }
+
   /// Two registrations that left the same object each inject in front of their
   /// own statement, in the order they registered, and the items of one
   /// registration stay together.

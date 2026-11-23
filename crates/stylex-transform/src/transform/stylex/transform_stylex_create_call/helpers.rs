@@ -149,9 +149,11 @@ pub(super) fn extract_expr_from_rule(
 
 /// Hoist an expression to the module level as a `const` declaration.
 ///
-/// The declaration is queued after the imports and the returned identifier
-/// stands for the expression at the call site. `stem` is what the generated
-/// name is built on.
+/// The declaration goes in front of the program-level statement that holds the
+/// expression, as the reference places it, and the returned identifier stands
+/// for the expression at the call site. `stem` is what the generated name is
+/// built on. See
+/// [`stylex_state::state_manager::StateManager::hoist_to_program_level`].
 ///
 /// The name is answered as the identifier it is, not as an expression holding
 /// one. A caller that needs the name -- the dynamic-style rewrite declares it
@@ -173,10 +175,7 @@ fn hoist_to_module_level(
   };
 
   let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
-  state.queue_insertion(
-    stylex_state::state_manager::InsertionSlot::AfterImports,
-    module_item,
-  );
+  state.hoist_to_program_level(module_item);
 
   hoisted_ident
 }

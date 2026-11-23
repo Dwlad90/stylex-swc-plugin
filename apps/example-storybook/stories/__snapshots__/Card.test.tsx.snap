@@ -3,17 +3,17 @@
 exports[`Card Snapshots > renders Default story correctly 1`] = `
 <div
   class="Card__cardStyles.base x12peec7 xur7f20 x1tamke2 x1mh2kpm xmkeg23 x1y0btm7 x159w2ql xw5ewwj"
-  data-style-src="stories/Card.tsx:8"
+  data-style-src="@stylexswc/example-storybook:stories/Card.tsx:8"
 >
   <h3
     class="Card__cardStyles.title xosj86m x117nqv4 x1e56ztr x1525slw"
-    data-style-src="stories/Card.tsx:20"
+    data-style-src="@stylexswc/example-storybook:stories/Card.tsx:20"
   >
     Card Title
   </h3>
   <p
     class="Card__cardStyles.content xif65rj x1evy7pa x33gn0b"
-    data-style-src="stories/Card.tsx:28"
+    data-style-src="@stylexswc/example-storybook:stories/Card.tsx:28"
   >
     This is some example content for the card component.
   </p>
@@ -23,17 +23,17 @@ exports[`Card Snapshots > renders Default story correctly 1`] = `
 exports[`Card Snapshots > renders Elevated story correctly 1`] = `
 <div
   class="Card__cardStyles.base x12peec7 xur7f20 x1tamke2 xmkeg23 x1y0btm7 x159w2ql xw5ewwj Card__cardStyles.elevated xz3rqps"
-  data-style-src="stories/Card.tsx:8; stories/Card.tsx:33"
+  data-style-src="@stylexswc/example-storybook:stories/Card.tsx:8; @stylexswc/example-storybook:stories/Card.tsx:33"
 >
   <h3
     class="Card__cardStyles.title xosj86m x117nqv4 x1e56ztr x1525slw"
-    data-style-src="stories/Card.tsx:20"
+    data-style-src="@stylexswc/example-storybook:stories/Card.tsx:20"
   >
     Elevated Card
   </h3>
   <p
     class="Card__cardStyles.content xif65rj x1evy7pa x33gn0b"
-    data-style-src="stories/Card.tsx:28"
+    data-style-src="@stylexswc/example-storybook:stories/Card.tsx:28"
   >
     This card has an elevated shadow effect.
   </p>

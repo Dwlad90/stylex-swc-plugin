@@ -5310,14 +5310,50 @@ mod style_value_parser_at_queries {
       }
     }
 
-    /// A bare `not` takes one condition. A list after it must be in
-    /// parentheses.
+    /// Spellings that do not parse. Each needs parentheses that are missing,
+    /// or has parentheses or whitespace that are not allowed.
+    #[test]
+    fn spellings_that_do_not_parse() {
+      for query in [
+        // One condition in its own extra parentheses.
+        "@media ((color))",
+        "@media ((not (color)))",
+        // Whitespace just after `(`, or just before the `)` of a list.
+        "@media ( (color))",
+        "@media ( not (color))",
+        "@media ((color) and (grid) )",
+        // A bare `not` that does not start the query.
+        "@media screen and not (color)",
+        "@media not not (color)",
+        "@media (not not (color))",
+        "@media (not screen and not (color))",
+        // A media type in parentheses that is not the whole `not` operand.
+        "@media (screen)",
+        "@media (not (all) and (color))",
+        // A range alone in a `(not ...)`.
+        "@media (not (width >= 100px))",
+        "@media not (100px <= width <= 200px)",
+      ] {
+        assert!(
+          MediaQuery::parser().parse_to_end(query).is_err(),
+          "{query} parsed"
+        );
+      }
+    }
+
+    /// A bare `not` takes one condition, and the query ends after it. A list
+    /// after it must be in parentheses.
     #[test]
     fn bare_not_does_not_negate_a_list() {
       let result = MediaQuery::parser().parse_to_end("@media not (min-width: 1px) and (color)");
       assert!(
-        matches!(&result, Err(error) if error.to_string().contains("cannot be combined without parentheses")),
+        matches!(&result, Err(error) if error.to_string().contains("Expected end of input")),
         "{result:?}"
+      );
+      assert!(
+        MediaQuery::parser()
+          .parse_to_end("@media not ((min-width: 1px) and (color))")
+          .is_ok()
       );
     }
   }

@@ -413,13 +413,10 @@ impl TokenList {
   /// Run `parse` one frame deeper, refusing to descend past the compiler's
   /// nesting budget.
   ///
-  /// Counted here, where a frame is entered, rather than off the raw text,
-  /// because not every frame costs a parenthesis: a parser that recurses for
-  /// its operand -- `not X`, whose operand is a whole rule -- grows the stack
-  /// with nothing for a text scan to count. Counting the frames themselves also
-  /// cannot be bypassed by a spelling, where a scan over undecoded text would
-  /// have to over-approximate: `n\6ft` tokenizes as `Ident("not")` and recurses
-  /// exactly like `not`.
+  /// Counted here, where a frame is entered, rather than off the raw text. A
+  /// count of the frames does not depend on the spelling of the text. A scan
+  /// over undecoded text would have to know each escape: `n\6ft` tokenizes as
+  /// `Ident("not")`.
   ///
   /// The budget matters because past it the process **aborts** rather than
   /// panicking -- a stack overflow is not unwindable, so the `catch_unwind`

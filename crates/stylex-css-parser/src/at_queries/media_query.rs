@@ -966,9 +966,9 @@ const MAX_QUERY_NESTING_DEPTH: usize = stylex_utils::nesting::MAX_NESTING_DEPTH;
 /// **tokenizer**, which recurses once per nested block while building the token
 /// list -- so it has to run before tokenizing, and a counter inside the parser
 /// is reached too late to help. [`TokenList::with_depth`] bounds the **parser**,
-/// which recurses for frames no parenthesis pays for: the operand of a bare
-/// `not` is a whole rule, so a chain of them grows the stack with nothing for a
-/// text scan to count.
+/// which recurses once for each list in parentheses, each `(not ...)` and the
+/// operand of a bare `not`. It counts the frames that the parser enters, so it
+/// does not depend on how the text is spelled.
 pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
   let structure = scan_query_structure(input);
 
@@ -1621,8 +1621,9 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
       // `not only screen` is accepted. The keyword keeps both flags: a lone
       // keyword prints its `not` and hides the `only`, but a leading `not`
       // over an `and` list moves to the list, and the `only` then prints.
-      // `(not only screen)` and `only not screen` stay refused -- they are
-      // handled by the parenthesized and leading `not` parsers.
+      // `only not screen` does not parse: `only` must come after `not`. A
+      // media type alone in a `(not ...)`, as in `(not only screen)`, does not
+      // parse either.
 
       // Parse the media type (required)
       let media_type = (basic_media_type_parser().run)(tokens)?;
@@ -1635,30 +1636,36 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
   )
 }
 
+/// `parser` with `(` before it and `)` after it, and no whitespace between.
+fn in_parens<T: Clone + std::fmt::Debug + 'static>(parser: TokenParser<T>) -> TokenParser<T> {
+  parser.surrounded_by(
+    TokenParser::<SimpleToken>::token(SimpleToken::LeftParen, Some("OpenParen")),
+    Some(TokenParser::<SimpleToken>::token(
+      SimpleToken::RightParen,
+      Some("CloseParen"),
+    )),
+  )
+}
+
 /// Media word rule parser for (color), (monochrome), etc.
 fn media_word_rule_parser() -> TokenParser<MediaQueryRule> {
-  tokens::ident()
-    .map(extract_ident_as_word_rule, Some("extract_word_rule"))
-    .where_fn(
-      |value| {
-        matches!(
-          value.as_str(),
-          "color" | "monochrome" | "grid" | "color-index"
-        )
-      },
-      Some("valid_word_rule"),
-    )
-    .surrounded_by(
-      TokenParser::<SimpleToken>::token(SimpleToken::LeftParen, Some("OpenParen")),
-      Some(TokenParser::<SimpleToken>::token(
-        SimpleToken::RightParen,
-        Some("CloseParen"),
-      )),
-    )
-    .map(
-      |keyword| MediaQueryRule::WordRule(MediaWordRule::new(keyword)),
-      Some("create_word_rule"),
-    )
+  in_parens(
+    tokens::ident()
+      .map(extract_ident_as_word_rule, Some("extract_word_rule"))
+      .where_fn(
+        |value| {
+          matches!(
+            value.as_str(),
+            "color" | "monochrome" | "grid" | "color-index"
+          )
+        },
+        Some("valid_word_rule"),
+      ),
+  )
+  .map(
+    |keyword| MediaQueryRule::WordRule(MediaWordRule::new(keyword)),
+    Some("create_word_rule"),
+  )
 }
 
 fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
@@ -2316,139 +2323,429 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
   )
 }
 
-/// The bare `not` parser, as in `not (min-width: 100px)`.
+// ==================== Query structure ====================
+//
+// The grammar of a media query, from the smallest part to the whole:
+//
+//   item       = media type | (list) | (not ...) | range | feature
+//   list       = item (and item)+ | item (or item)+
+//   (not ...)  = ( not <list, or one feature, (not ...), (list) or (type)> )
+//   bare not   = not <one (list), (not ...), range or feature>
+//   query      = <bare not | list | item> (, <bare not | list | item>)*
+//
+// A list mixes no joiners, and parentheses hold a list of two or more items.
+// A bare `not` stands only at the start of a query.
+
+/// The kind of one item in a media query.
+///
+/// A list takes items of every kind. An item that stands alone must be of a
+/// kind that its place allows, and each place states its own kinds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ItemKind {
+  /// A media type, as in `screen` or `not only print`.
+  MediaType,
+  /// A list in parentheses, as in `((color) and (hover: hover))`.
+  List,
+  /// A `not` in parentheses, as in `(not (color))`.
+  Not,
+  /// A range with two bounds, as in `(100px <= width <= 200px)`. It is not
+  /// the same kind as a range with one bound, because neither `not` takes it
+  /// alone.
+  DoubleRange,
+  /// A range with one bound, as in `(width >= 100px)`.
+  Range,
+  /// A feature and its value, as in `(min-width: 100px)`.
+  Pair,
+  /// A feature without a value, as in `(color)`.
+  Word,
+}
+
+/// One parsed item and its kind.
+#[derive(Clone, Debug)]
+struct MediaItem {
+  rule: MediaQueryRule,
+  kind: ItemKind,
+}
+
+/// The items that can stand alone after a bare `not`.
+const BARE_NOT_OPERAND_KINDS: [ItemKind; 5] = [
+  ItemKind::List,
+  ItemKind::Not,
+  ItemKind::Range,
+  ItemKind::Pair,
+  ItemKind::Word,
+];
+
+/// The items that can stand alone in a `(not ...)`.
+const NOT_OPERAND_KINDS: [ItemKind; 4] = [
+  ItemKind::List,
+  ItemKind::Not,
+  ItemKind::Pair,
+  ItemKind::Word,
+];
+
+/// Give each rule that `parser` reads the kind `kind`.
+fn with_kind(parser: TokenParser<MediaQueryRule>, kind: ItemKind) -> TokenParser<MediaItem> {
+  parser.map(move |rule| MediaItem { rule, kind }, Some("with_kind"))
+}
+
+/// One item of a media query. The parsers are tried in this order, and the
+/// first that reads the item gives it.
+fn media_item_parser() -> TokenParser<MediaItem> {
+  TokenParser::one_of(vec![
+    with_kind(media_keyword_parser(), ItemKind::MediaType),
+    with_kind(parenthesized_list_parser(), ItemKind::List),
+    parenthesized_not_parser(),
+    with_kind(double_inequality_rule_parser(), ItemKind::DoubleRange),
+    with_kind(combined_inequality_parser(), ItemKind::Range),
+    with_kind(
+      simple_pair_parser(media_rule_value_parser()),
+      ItemKind::Pair,
+    ),
+    with_kind(media_word_rule_parser(), ItemKind::Word),
+  ])
+}
+
+/// The word that joins the items of a list.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Joiner {
+  And,
+  Or,
+}
+
+/// What [`parse_media_rules`] read: one item, or a list of two or more.
+enum MediaRules {
+  Single(MediaItem),
+  List(MediaQueryRule),
+}
+
+/// Parse one item, and then the items that `and` or `or` joins to it.
+///
+/// This reads an `and` list and an `or` list in one pass. The first joiner
+/// sets the type of the list, and a different joiner ends the list. Thus the
+/// list in `(a) and (b) or (c)` stops before `or`, and the caller refuses the
+/// rest. Two passes, one for each joiner, would read each nested list twice
+/// at each level.
+fn parse_media_rules(tokens: &mut TokenList) -> Result<MediaRules, CssParseError> {
+  let first = (media_item_parser().run)(tokens)?;
+
+  let Some((joiner, second)) = parse_joined_item(tokens, None) else {
+    return Ok(MediaRules::Single(first));
+  };
+
+  let mut rules = vec![first.rule, second.rule];
+  while let Some((_, item)) = parse_joined_item(tokens, Some(joiner)) {
+    rules.push(item.rule);
+  }
+
+  Ok(MediaRules::List(match joiner {
+    Joiner::And => and_list_rule(rules),
+    Joiner::Or => MediaQueryRule::Or(MediaOrRules::new(rules)),
+  }))
+}
+
+/// Parse a joiner with whitespace on each side, and the item after it.
+///
+/// When `expected` is given, only that joiner is read. When nothing is read,
+/// the token position does not change.
+fn parse_joined_item(
+  tokens: &mut TokenList,
+  expected: Option<Joiner>,
+) -> Option<(Joiner, MediaItem)> {
+  let checkpoint = tokens.save_position();
+
+  let joined = (|| {
+    if !matches!(
+      tokens.consume_next_token(),
+      Ok(Some(SimpleToken::Whitespace))
+    ) {
+      return None;
+    }
+
+    let joiner = match tokens.consume_next_token() {
+      Ok(Some(SimpleToken::Ident(word))) if word == "and" => Joiner::And,
+      Ok(Some(SimpleToken::Ident(word))) if word == "or" => Joiner::Or,
+      _ => return None,
+    };
+
+    if expected.is_some_and(|expected| expected != joiner) {
+      return None;
+    }
+
+    if !matches!(
+      tokens.consume_next_token(),
+      Ok(Some(SimpleToken::Whitespace))
+    ) {
+      return None;
+    }
+
+    let item = (media_item_parser().run)(tokens).ok()?;
+    Some((joiner, item))
+  })();
+
+  if joined.is_none() {
+    let _ = tokens.restore_position(checkpoint);
+  }
+
+  joined
+}
+
+/// The rule for an `and` list of two or more rules.
+///
+/// A leading `not` negates the whole query, so `not screen and (a)` is
+/// `not (screen and (a))`, and not `(not screen) and (a)`.
+fn and_list_rule(mut rules: Vec<MediaQueryRule>) -> MediaQueryRule {
+  if let Some(MediaQueryRule::MediaKeyword(first)) = rules.first_mut()
+    && first.not
+  {
+    first.not = false;
+    return MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::And(MediaAndRules::new(
+      rules,
+    ))));
+  }
+  MediaQueryRule::And(MediaAndRules::new(rules))
+}
+
+/// Read an item that stands alone, where `(not ...)` comes before a list.
+///
+/// The text `(not screen or (color))` has two readings. As a list in
+/// parentheses, it is `(not screen) or (color)`. As a `(not ...)`, it is `not
+/// (screen or (color))`. An item in a list, and the item after a bare `not`,
+/// use the list reading. An item that stands alone uses the `(not ...)`
+/// reading.
+///
+/// The item parser gives the list reading, and this function changes it back.
+/// Only an `or` list has two different readings. See [`list_reading`].
+fn read_alone(item: MediaItem) -> MediaItem {
+  let MediaItem {
+    rule: MediaQueryRule::Or(mut or_rules),
+    kind: ItemKind::List,
+  } = item
+  else {
+    return item;
+  };
+
+  match or_rules.rules.first_mut() {
+    Some(MediaQueryRule::MediaKeyword(first)) if first.not => {
+      first.not = false;
+      MediaItem {
+        rule: MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::Or(or_rules))),
+        kind: ItemKind::Not,
+      }
+    },
+    _ => MediaItem {
+      rule: MediaQueryRule::Or(or_rules),
+      kind: ItemKind::List,
+    },
+  }
+}
+
+/// The error for an item that cannot stand alone in its place.
+fn item_cannot_stand_alone() -> CssParseError {
+  CssParseError::ParseError {
+    message: "This condition cannot stand alone here".to_string(),
+  }
+}
+
+/// Consume the next token if it is `expected`, or fail with `message`.
+fn expect_token(
+  tokens: &mut TokenList,
+  expected: &SimpleToken,
+  message: &str,
+) -> Result<(), CssParseError> {
+  match tokens.peek() {
+    Ok(Some(token)) if token == *expected => {
+      let _ = tokens.consume_next_token();
+      Ok(())
+    },
+    _ => Err(CssParseError::ParseError {
+      message: message.to_string(),
+    }),
+  }
+}
+
+/// Consume the `not` keyword and the whitespace after it.
+fn expect_not_keyword(tokens: &mut TokenList) -> Result<(), CssParseError> {
+  expect_token(
+    tokens,
+    &SimpleToken::Ident("not".to_string()),
+    "Expected the `not` keyword",
+  )?;
+  expect_token(
+    tokens,
+    &SimpleToken::Whitespace,
+    "Expected whitespace after `not`",
+  )
+}
+
+/// A list of two or more items in parentheses, as in `((a) and (b))`.
+///
+/// No whitespace can follow `(` or come before `)`. One item alone in
+/// parentheses, as in `((color))`, does not parse.
+///
+/// Text that starts with `(not` is left to [`parenthesized_not_parser`],
+/// which gives each reading of it. Thus no text is parsed twice. If this
+/// parser read `(not screen and X )` as a list, it would read all of `X`
+/// before it found the whitespace before `)`. Then the `not` parser would read
+/// `X` again, and nested text would double the work at each level.
+fn parenthesized_list_parser() -> TokenParser<MediaQueryRule> {
+  TokenParser::new(
+    |tokens| {
+      expect_token(tokens, &SimpleToken::LeftParen, "Expected `(`")?;
+
+      if matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(word))) if word == "not") {
+        return Err(CssParseError::ParseError {
+          message: "A `(not` starts a `not` condition, not a list".to_string(),
+        });
+      }
+
+      // Inside the depth budget, because a list holds lists.
+      let rule = tokens.with_depth(|tokens| match parse_media_rules(tokens)? {
+        MediaRules::List(rule) => Ok(rule),
+        MediaRules::Single(_) => Err(CssParseError::ParseError {
+          message: "Parentheses must hold two or more conditions".to_string(),
+        }),
+      })?;
+
+      expect_token(tokens, &SimpleToken::RightParen, "Expected `)`")?;
+      Ok(rule)
+    },
+    "parenthesized_list_parser",
+  )
+}
+
+/// A media type in parentheses, as in `(screen)`. This is valid only as the
+/// whole operand of a `(not ...)`.
+fn parenthesized_media_type_parser() -> TokenParser<MediaQueryRule> {
+  in_parens(basic_media_type_parser()).map(
+    |key| MediaQueryRule::MediaKeyword(MediaKeyword::new(key, false, false)),
+    Some("parenthesized_media_type"),
+  )
+}
+
+/// A `not` in parentheses, as in `(not (color))` or `(not screen and
+/// (color))`.
+///
+/// The operand is a list, or one item of the kinds in [`NOT_OPERAND_KINDS`],
+/// or a media type in parentheses. A media type in parentheses must be the
+/// whole operand, so `(not (all) and (color))` does not parse. Whitespace can
+/// come before `)`, but not after `(`.
+///
+/// This parser also gives the list reading of its text, where the text has
+/// one. See [`list_reading`].
+fn parenthesized_not_parser() -> TokenParser<MediaItem> {
+  TokenParser::new(
+    |tokens| {
+      expect_token(tokens, &SimpleToken::LeftParen, "Expected `(`")?;
+      expect_not_keyword(tokens)?;
+
+      // Inside the depth budget, because the operand can hold more
+      // parentheses. The flag tells if the operand is a list without
+      // parentheses.
+      let (operand, operand_is_list) = tokens.with_depth(|tokens| {
+        if let Ok(media_type) = (parenthesized_media_type_parser().run)(tokens) {
+          return Ok((media_type, false));
+        }
+
+        match parse_media_rules(tokens)? {
+          MediaRules::List(rule) => Ok((rule, true)),
+          MediaRules::Single(item) => {
+            let item = read_alone(item);
+            if NOT_OPERAND_KINDS.contains(&item.kind) {
+              Ok((item.rule, false))
+            } else {
+              Err(item_cannot_stand_alone())
+            }
+          },
+        }
+      })?;
+
+      let space_before_close = matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace)));
+      skip_whitespace(tokens);
+      expect_token(tokens, &SimpleToken::RightParen, "Expected `)`")?;
+
+      // A list in parentheses cannot have whitespace before `)`.
+      if operand_is_list
+        && !space_before_close
+        && let Some(rule) = list_reading(&operand)
+      {
+        return Ok(MediaItem {
+          rule,
+          kind: ItemKind::List,
+        });
+      }
+
+      Ok(MediaItem {
+        rule: MediaQueryRule::Not(MediaNotRule::new(operand)),
+        kind: ItemKind::Not,
+      })
+    },
+    "parenthesized_not_parser",
+  )
+}
+
+/// The list reading of the text of a `(not ...)`, where the text has one.
+///
+/// The text `(not screen or (color))` is also a list in parentheses, whose
+/// first item is `not screen`. That reading exists when the operand is a list
+/// without parentheses and its first item is a media type without `not`.
+/// Only an `or` list gives a different rule: for an `and` list, both readings
+/// give `not (screen and (color))`. Thus this function changes only an `or`
+/// list.
+fn list_reading(operand: &MediaQueryRule) -> Option<MediaQueryRule> {
+  let MediaQueryRule::Or(or_rules) = operand else {
+    return None;
+  };
+
+  let mut or_rules = or_rules.clone();
+  match or_rules.rules.first_mut() {
+    Some(MediaQueryRule::MediaKeyword(first)) if !first.not => {
+      first.not = true;
+      Some(MediaQueryRule::Or(or_rules))
+    },
+    _ => None,
+  }
+}
+
+/// A bare `not` at the start of a query, as in `not (min-width: 100px)`.
+///
+/// It takes one item of the kinds in [`BARE_NOT_OPERAND_KINDS`]. A list after
+/// it must be in parentheses, so `not (a) and (b)` does not parse. A media type
+/// after `not`, as in `not screen`, is read by [`media_keyword_parser`].
 fn leading_not_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
-    |tokens| parse_not_rule(tokens, NotForm::Bare),
+    |tokens| {
+      expect_not_keyword(tokens)?;
+
+      let item = tokens.with_depth(|tokens| (media_item_parser().run)(tokens))?;
+      if !BARE_NOT_OPERAND_KINDS.contains(&item.kind) {
+        return Err(item_cannot_stand_alone());
+      }
+
+      Ok(MediaQueryRule::Not(MediaNotRule::new(item.rule)))
+    },
     "leading_not_parser",
   )
 }
 
-/// The two places a `not` can stand, which take different operands.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum NotForm {
-  /// A bare `not` takes one condition. A list after it must be in
-  /// parentheses, so `not (a) and (b)` does not parse. `only` cannot follow
-  /// it.
-  Bare,
-  /// A `not` in parentheses takes a list joined by `and` or by `or`, as in
-  /// `(not screen and (color))`. The list can start with `only`, as in `(not
-  /// only screen and (color))`.
-  Parenthesized,
-}
-
-impl NotForm {
-  /// The parser for the operand of this form.
-  fn operand_parser(self) -> TokenParser<MediaQueryRule> {
-    match self {
-      NotForm::Bare => normal_rule_parser(),
-      NotForm::Parenthesized => or_combinator_parser(),
-    }
-  }
-}
-
-/// Parse `not`, the whitespace after it, and the rule it negates.
-fn parse_not_rule(tokens: &mut TokenList, form: NotForm) -> Result<MediaQueryRule, CssParseError> {
-  // The first token must be the `not` keyword.
-  let not_token = tokens
-    .consume_next_token()
-    .ok()
-    .flatten()
-    .ok_or(CssParseError::ParseError {
-      message: "Expected 'not' keyword".to_string(),
-    })?;
-  if let SimpleToken::Ident(keyword) = not_token {
-    if keyword != "not" {
-      return Err(CssParseError::ParseError {
-        message: format!("Expected 'not', got '{}'", keyword),
-      });
-    }
-  } else {
-    return Err(CssParseError::ParseError {
-      message: format!("Expected identifier, got {:?}", not_token),
-    });
-  }
-
-  // Whitespace must follow `not`.
-  let whitespace_token =
-    tokens
-      .consume_next_token()
-      .ok()
-      .flatten()
-      .ok_or(CssParseError::ParseError {
-        message: "Expected whitespace after 'not'".to_string(),
-      })?;
-  if !matches!(whitespace_token, SimpleToken::Whitespace) {
-    return Err(CssParseError::ParseError {
-      message: format!("Expected whitespace, got {:?}", whitespace_token),
-    });
-  }
-
-  if form == NotForm::Bare
-    && let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
-    && keyword == "only"
-  {
-    return Err(CssParseError::ParseError {
-      message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
-    });
-  }
-
-  // Parse the operand inside the depth budget. The operand of a `not` can be
-  // another `not`. A chain of bare `not` keywords adds one stack frame for
-  // each keyword, and a scan for parentheses does not see it.
-  //
-  // A media type standing alone is refused, so `(not all)`, `(not screen)`
-  // and `(not only screen)` do not parse, but `(not (all))` and `(not all and
-  // (color))` do. A type on its own is not a condition.
-  let starts_bare = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(_))));
-  let operand = tokens.with_depth(|tokens| (form.operand_parser().run)(tokens))?;
-
-  if starts_bare && matches!(operand, MediaQueryRule::MediaKeyword(_)) {
-    return Err(CssParseError::ParseError {
-      message: "A media type after `not` must be in parentheses".to_string(),
-    });
-  }
-
-  Ok(MediaQueryRule::Not(MediaNotRule::new(operand)))
-}
-
-/// Parse what follows the `(` of a `(not ...)` rule, up to and including
-/// the `)`.
-fn parse_parenthesized_not_body(tokens: &mut TokenList) -> Result<MediaQueryRule, CssParseError> {
-  let not_rule = parse_not_rule(tokens, NotForm::Parenthesized)?;
-
-  skip_whitespace(tokens);
-
-  if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
-    let _ = tokens.consume_next_token(); // consume ')'
-    Ok(not_rule)
-  } else {
-    Err(CssParseError::ParseError {
-      message: "Expected closing parenthesis after parenthesized NOT expression".to_string(),
-    })
-  }
-}
-
-/// This parser specifically handles "(not ...)" patterns
-fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
+/// One query of a comma list that does not start with a bare `not`: a list,
+/// or one item of any kind.
+fn normal_rule_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
-      // Expect opening parenthesis
-      if let Ok(Some(SimpleToken::LeftParen)) = tokens.peek() {
-        let _ = tokens.consume_next_token(); // consume '('
-
-        // Skip optional whitespace
-        skip_whitespace(tokens);
-
-        parse_parenthesized_not_body(tokens)
-      } else {
-        Err(CssParseError::ParseError {
-          message: "Expected opening parenthesis for parenthesized NOT expression".to_string(),
-        })
-      }
+      Ok(match parse_media_rules(tokens)? {
+        MediaRules::List(rule) => rule,
+        MediaRules::Single(item) => read_alone(item).rule,
+      })
     },
-    "parenthesized_not_parser",
+    "normal_rule_parser",
   )
+}
+
+/// One query of a comma list. A bare `not` is tried first. When it reads its
+/// operand, the query ends there.
+fn media_query_segment_parser() -> TokenParser<MediaQueryRule> {
+  TokenParser::one_of(vec![leading_not_parser(), normal_rule_parser()])
 }
 
 /// Parse a whole media query: a comma-separated list of conditions.
@@ -2460,10 +2757,14 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
 /// disjuncts, and the last-media-query-wins transform distributes its negations
 /// over whatever the top-level `Or` holds. Getting the nesting wrong there
 /// changes the emitted rule text, and with it the class name.
+///
+/// One comma after the last query is read and dropped, so `(color),` is
+/// `(color)`. A comma that is not followed by a query ends the list, and the
+/// caller refuses the text after it, as in `(color),,`.
 fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
-      let mut segments = vec![(or_combinator_parser().run)(tokens)?];
+      let mut segments = vec![(media_query_segment_parser().run)(tokens)?];
 
       loop {
         let checkpoint = tokens.save_position();
@@ -2476,7 +2777,15 @@ fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
 
         let _ = tokens.consume_next_token();
         skip_whitespace(tokens);
-        segments.push((or_combinator_parser().run)(tokens)?);
+
+        let after_comma = tokens.save_position();
+        match (media_query_segment_parser().run)(tokens) {
+          Ok(segment) => segments.push(segment),
+          Err(_) => {
+            let _ = tokens.restore_position(after_comma);
+            break;
+          },
+        }
       }
 
       Ok(collapse_single_rule(segments, |segments| {
@@ -2506,285 +2815,6 @@ fn collapse_single_rule(
     Ok([only]) => only,
     Err(rules) => combine(rules),
   }
-}
-
-/// Parse OR-separated media query rules (comma-separated OR "or" keyword)
-fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
-  TokenParser::new(
-    |tokens| {
-      let mut rules = Vec::new();
-
-      // Parse the first rule
-      // Read once from the first list: past the guards below, both are false
-      // for every operand, because an operand that made either true returned.
-      let first = parse_and_list(tokens)?;
-      let first_combinability = first.combinability;
-      rules.push(first.rule);
-
-      // Parse additional OR rules. A comma is a disjunction too, but it binds
-      // more loosely and is handled a level up.
-      loop {
-        let checkpoint = tokens.save_position();
-
-        // Skip optional whitespace
-        skip_whitespace(tokens);
-
-        // Check for "or" keyword
-        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
-          && keyword == "or"
-        {
-          // Both sides of the disjunction have to be spellings CSS defines,
-          // and the left one is only judged now: `(a) and (b)` on its own is a
-          // fine condition, and only becomes uncombinable once an `or` follows.
-          first_combinability.refuse_as_or_operand()?;
-
-          let _ = tokens.consume_next_token(); // consume "or"
-          skip_whitespace(tokens);
-
-          let operand = parse_and_list(tokens)?;
-          operand.combinability.refuse_as_or_operand()?;
-
-          rules.push(operand.rule);
-          continue;
-        }
-
-        // No more OR patterns found, restore position and break
-        let _ = tokens.restore_position(checkpoint);
-        break;
-      }
-
-      // If we only have one rule, return it directly
-      Ok(collapse_single_rule(rules, |rules| {
-        MediaQueryRule::Or(MediaOrRules::new(rules))
-      }))
-    },
-    "or_combinator_parser",
-  )
-}
-
-/// What one `and` list at a level turned out to be.
-///
-/// Neither flag can be recovered from `rule`. A parenthesized `((a) and (b))`
-/// is also an `And`, and a parenthesized `(not (a))` is also a `Not` -- and both
-/// of those may be combined freely, precisely because their parentheses say
-/// where they bind. What CSS restricts is the unparenthesized spelling, which
-/// only the parse knows it saw.
-struct AndList {
-  rule: MediaQueryRule,
-  combinability: Combinability,
-}
-
-/// The two unparenthesized spellings CSS restricts.
-///
-/// Kept together, and kept `Copy`, because they are always asked about together
-/// and because the answer has to outlive the rule being moved out of the list
-/// that carried them.
-#[derive(Clone, Copy)]
-struct Combinability {
-  /// An `and` keyword joined this list, with no parentheses around it.
-  joined_by_and: bool,
-  /// The list is a bare `not <media-in-parens>`. CSS makes that the whole
-  /// condition -- `<media-condition> = <media-not> | ...` -- so nothing may be
-  /// combined with it at this level.
-  is_bare_negation: bool,
-}
-
-impl Combinability {
-  /// Refuse a list CSS does not let stand as an operand of an `or`.
-  ///
-  /// One condition takes `and`s or `or`s and never both --
-  /// `<media-in-parens> [ <media-and>* | <media-or>* ]` -- and a bare `not` is
-  /// the whole condition rather than an operand in one. Accepting either would
-  /// mean inventing a precedence the language does not define, and emitting a
-  /// query that means something the author did not write.
-  ///
-  /// Asked of every operand of a disjunction, the first one included, which is
-  /// why it is one function rather than the same pair of tests written twice.
-  fn refuse_as_or_operand(self) -> Result<(), CssParseError> {
-    if self.joined_by_and {
-      return Err(uncombinable(MIXED_COMBINATORS));
-    }
-
-    if self.is_bare_negation {
-      return Err(uncombinable(COMBINED_NEGATION));
-    }
-
-    Ok(())
-  }
-}
-
-/// Whether the next thing in the stream is a bare `not` keyword.
-///
-/// Peeked rather than inferred, and paired with the rule that comes back: a
-/// leading `not` may still turn out to be a media type query such as
-/// `not screen and (min-width: 1px)`, which is valid and combines normally.
-/// Only a leading `not` that produced a `Not` rule is the restricted spelling.
-fn peeks_bare_not(tokens: &mut TokenList) -> bool {
-  let checkpoint = tokens.save_position();
-  skip_whitespace(tokens);
-
-  let found = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(keyword))) if keyword == "not");
-
-  let _ = tokens.restore_position(checkpoint);
-  found
-}
-
-/// One condition takes `and`s or `or`s, never both.
-const MIXED_COMBINATORS: &str = "`and` and `or` cannot be mixed without parentheses";
-
-/// A bare `not` is the whole condition, not an operand in one.
-const COMBINED_NEGATION: &str = "a `not` condition cannot be combined without parentheses";
-
-/// The error a spelling CSS does not define earns.
-fn uncombinable(reason: &'static str) -> CssParseError {
-  CssParseError::ParseError {
-    message: reason.to_string(),
-  }
-}
-
-/// Parse an `and`-separated list of media query rules.
-fn parse_and_list(tokens: &mut TokenList) -> Result<AndList, CssParseError> {
-  let leading_not = peeks_bare_not(tokens);
-  let first_rule = (normal_rule_parser().run)(tokens)?;
-  let is_bare_negation = leading_not && matches!(first_rule, MediaQueryRule::Not(_));
-
-  let mut rules = vec![first_rule];
-  let mut joined_by_and = false;
-
-  // Parse additional AND rules
-  while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-    // Check if next non-whitespace token is "and"
-    let checkpoint = tokens.save_position();
-    skip_whitespace(tokens);
-
-    // Check for "and" keyword
-    let is_and = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(keyword))) if keyword == "and");
-    if !is_and {
-      let _ = tokens.restore_position(checkpoint);
-      break;
-    }
-
-    if is_bare_negation {
-      return Err(uncombinable(COMBINED_NEGATION));
-    }
-
-    let _ = tokens.consume_next_token(); // consume "and"
-    skip_whitespace(tokens);
-
-    // One position does take a bare negation: straight after a media type's
-    // `and`, where `<media-query> = [not | only]? <media-type>
-    // [ and <media-condition-without-or> ]?` and a
-    // `<media-condition-without-or>` may be a `<media-not>`. Only there, and
-    // only immediately -- `screen and (a) and not (b)` is back inside a
-    // condition, where an operand must be parenthesized.
-    let follows_a_media_type = matches!(rules.as_slice(), [MediaQueryRule::MediaKeyword(_)]);
-
-    let operand_leading_not = peeks_bare_not(tokens);
-    let rule = (normal_rule_parser().run)(tokens)?;
-    if operand_leading_not && !follows_a_media_type && matches!(rule, MediaQueryRule::Not(_)) {
-      return Err(uncombinable(COMBINED_NEGATION));
-    }
-
-    rules.push(rule);
-    joined_by_and = true;
-  }
-
-  // If we only have one rule, return it directly
-  Ok(AndList {
-    rule: collapse_single_rule(rules, and_list_rule),
-    combinability: Combinability {
-      joined_by_and,
-      is_bare_negation,
-    },
-  })
-}
-
-/// The rule for an `and` list of two or more rules.
-///
-/// A leading `not` negates the whole query, so `not screen and (a)` is
-/// `not (screen and (a))`, and not `(not screen) and (a)`.
-fn and_list_rule(mut rules: Vec<MediaQueryRule>) -> MediaQueryRule {
-  if let Some(MediaQueryRule::MediaKeyword(first)) = rules.first_mut()
-    && first.not
-  {
-    first.not = false;
-    return MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::And(MediaAndRules::new(
-      rules,
-    ))));
-  }
-  MediaQueryRule::And(MediaAndRules::new(rules))
-}
-
-/// Normal rule parser that combines all rule types
-fn normal_rule_parser() -> TokenParser<MediaQueryRule> {
-  TokenParser::one_of(vec![
-    // Media keyword parser must come first to handle "not screen", "only print" etc.
-    // as MediaKeyword rules, not as separate NOT rules
-    media_keyword_parser(),
-    // Parenthesized NOT parser for "(not ...)" patterns
-    parenthesized_not_parser(),
-    // Leading not parser for cases where NOT is not part of media keywords
-    leading_not_parser(),
-    // Parenthesized expressions parser for complex nested cases
-    parenthesized_expression_parser(),
-    // Double inequality parser: (500px <= width <= 1000px)
-    double_inequality_rule_parser(),
-    // Combined inequality parser: (width <= 1250px) and (1250px >= width)
-    combined_inequality_parser(),
-    // Word rule parser for (color), (monochrome), (grid), (color-index)
-    media_word_rule_parser(),
-    // Pair parser for (key: value) patterns like (min-width: 768px)
-    simple_pair_parser(media_rule_value_parser()),
-  ])
-}
-
-/// Parse parenthesized expressions, including complex NOT expressions
-/// Handles: (not (max-width: 1024px)), ((min-width: 500px) and (max-width:
-/// 600px))
-fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
-  TokenParser::new(
-    |tokens| {
-      // Expect opening parenthesis
-      if let Ok(Some(SimpleToken::LeftParen)) = tokens.peek() {
-        let _ = tokens.consume_next_token(); // consume '('
-
-        // Skip optional whitespace
-        skip_whitespace(tokens);
-
-        // Try to parse a NOT expression first
-        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
-          && keyword == "not"
-        {
-          return parse_parenthesized_not_body(tokens);
-        }
-
-        // The `or` parser rather than the `and` one, because a parenthesized
-        // condition may hold either -- `((a) or (b)) and (c)` is a query the
-        // reference implementation accepts and CSS defines, and reading only
-        // `and` here refused it. Comma stops at the parenthesis, which is why
-        // this is not the comma parser.
-        let inner_expression = tokens.with_depth(|tokens| (or_combinator_parser().run)(tokens))?;
-
-        // Skip optional whitespace before closing
-        skip_whitespace(tokens);
-
-        // Expect closing parenthesis
-        if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
-          let _ = tokens.consume_next_token(); // consume ')'
-          Ok(inner_expression)
-        } else {
-          Err(CssParseError::ParseError {
-            message: "Expected closing parenthesis after parenthesized expression".to_string(),
-          })
-        }
-      } else {
-        Err(CssParseError::ParseError {
-          message: "Expected opening parenthesis for parenthesized expression".to_string(),
-        })
-      }
-    },
-    "parenthesized_expression_parser",
-  )
 }
 
 #[cfg(test)]

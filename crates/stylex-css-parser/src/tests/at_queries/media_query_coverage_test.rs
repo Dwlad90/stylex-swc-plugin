@@ -805,20 +805,18 @@ fn and_combinator_no_ident_after_whitespace_stops() {
 }
 
 // ---------------------------------------------------------------------------
-// Parenthesized expression parser
+// Parentheses
 // ---------------------------------------------------------------------------
 
 #[test]
-fn parenthesized_expression_no_paren_errors() {
-  // Tested internally through normal_rule_parser → should fail
-  // (The parenthesized_expression_parser returns Err when no leading paren)
-  // This is covered via the error paths that fall through all parsers
+fn a_bare_length_is_refused() {
+  // No item parser reads a length without parentheses.
   let result = MediaQuery::parser().parse_to_end("@media 300px");
   assert!(result.is_err());
 }
 
 #[test]
-fn parenthesized_expression_inner_and_rule_succeeds() {
+fn parenthesized_list_inner_and_rule_succeeds() {
   // ((min-width: 300px) and (max-width: 600px)) → AND inside parens
   let result =
     MediaQuery::parser().parse_to_end("@media ((min-width: 300px) and (max-width: 600px))");
@@ -826,9 +824,8 @@ fn parenthesized_expression_inner_and_rule_succeeds() {
 }
 
 #[test]
-fn parenthesized_expression_no_closing_paren_characterization() {
-  // Characterizes behavior when parenthesized expression is missing outer closing paren.
-  // The parenthesized_expression_parser expects a closing ')' at the end.
+fn parenthesized_list_no_closing_paren_characterization() {
+  // A list in parentheses has no outer `)`. This test records the result.
   let result =
     MediaQuery::parser().parse_to_end("@media ((min-width: 300px) and (max-width: 600px)");
   // Exercise the code path regardless of outcome
@@ -836,11 +833,10 @@ fn parenthesized_expression_no_closing_paren_characterization() {
 }
 
 #[test]
-fn parenthesized_expression_with_not_inside_succeeds() {
-  // (not (min-width: 300px)) inside complex query
+fn a_parenthesized_not_after_a_media_type_succeeds() {
+  // A `(not ...)` is an item, so it can follow a media type and `and`.
   let result = MediaQuery::parser().parse_to_end("@media screen and (not (min-width: 300px))");
-  // This might parse via parenthesized_expression_parser's inner not path
-  let _ = result; // We just want to exercise the code path
+  assert!(result.is_ok(), "{result:?}");
 }
 
 // ---------------------------------------------------------------------------
@@ -1353,7 +1349,7 @@ fn only_modifier_alone_parses_successfully() {
 }
 
 #[test]
-fn double_not_in_parenthesized_expression_cancels() {
+fn a_bare_not_of_a_not_cancels() {
   // @media not (not (min-width: 300px)) → double not → just (min-width: 300px)
   let q = parsed("@media not (not (min-width: 300px))");
   // Double NOT should cancel out
@@ -1377,18 +1373,17 @@ fn and_combinator_with_non_and_keyword_stops_parsing() {
 }
 
 #[test]
-fn media_query_rule_parser_passes_through_or_combinator() {
-  // Verify that media_query_rule_parser = or_combinator_parser
-  // (covered by calling parse_to_end with OR queries)
+fn media_query_rule_parser_reads_a_comma_list() {
+  // Each comma segment is one query.
   let result = MediaQuery::parser().parse_to_end("@media (min-width: 300px), (max-width: 800px)");
   assert!(result.is_ok());
 }
 
 #[test]
-fn parenthesized_expression_not_path_with_no_not_keyword() {
-  // ((min-width: 300px)) → parenthesized_expression_parser handles it
+fn one_condition_in_extra_parentheses_is_refused() {
+  // Parentheses hold a list of two or more conditions.
   let result = MediaQuery::parser().parse_to_end("@media ((min-width: 300px))");
-  assert!(result.is_ok());
+  assert!(result.is_err());
 }
 
 #[test]
@@ -1736,7 +1731,7 @@ fn not_of_a_contradictory_range_normalizes_to_all() {
 }
 
 // ---------------------------------------------------------------------------
-// Additional tests for lines in or_combinator that were not covered
+// Additional tests for `or` lists
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1893,7 +1888,7 @@ fn merge_intervals_max_height_only() {
 }
 
 // ---------------------------------------------------------------------------
-// Test or_combinator_parser with 3+ rules via "or" keyword
+// An `or` list of three or more rules
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -2413,139 +2408,103 @@ fn parenthesized_not_parser_missing_close_paren() {
   ]);
   let result = (parser.run)(&mut token_list);
   assert!(
-    matches!(&result, Err(error) if error.to_string().contains("Expected closing parenthesis")),
+    matches!(&result, Err(error) if error.to_string().contains("Expected `)`")),
     "{result:?}"
   );
 }
 
 // ---------------------------------------------------------------------------
-// or_combinator_parser — after-comma failure
+// Comma list — a trailing comma
 // ---------------------------------------------------------------------------
 
 #[test]
-fn or_combinator_trailing_comma_fails() {
-  // '@media screen,' — comma at end, no rule after → and_combinator fails →
-  // ? Err branch
-  let result = MediaQuery::parser().parse_to_end("@media screen,");
-  assert!(result.is_err());
-}
-
-// ---------------------------------------------------------------------------
-// parenthesized_expression_parser — NOT branch paths and main-branch paths
-// Call parenthesized_expression_parser() directly to bypass one_of ordering
-// ---------------------------------------------------------------------------
-
-#[test]
-fn parenthesized_expression_not_branch_no_whitespace_after_not() {
-  // Custom token list: ( not screen — no whitespace between 'not' and 'screen'
-  // triggers the else (Expected whitespace after 'not')
-  let parser = parenthesized_expression_parser();
-  let mut token_list = token_list_from(vec![
-    SimpleToken::LeftParen,
-    SimpleToken::Ident("not".to_string()),
-    SimpleToken::Ident("screen".to_string()), // no whitespace before screen
-    SimpleToken::RightParen,
-  ]);
-  let result = (parser.run)(&mut token_list);
-  assert!(result.is_err());
-}
-
-#[test]
-fn parenthesized_expression_not_branch_leading_not_fails() {
-  // '(not 100px)' — leading_not_parser fails for '100px' → ? Err
-  let result = parenthesized_expression_parser().parse_to_end("(not 100px)");
-  assert!(result.is_err());
-}
-
-#[test]
-fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
-  // '(not (screen) )' — whitespace before ')' exercises loop body
-  // Direct call bypasses parenthesized_not_parser (which also handles this case)
-  let rule = match parenthesized_expression_parser().parse_to_end("(not (screen) )") {
-    Ok(rule) => rule,
-    Err(error) => panic!("failed to parse (not (screen) ): {error:?}"),
-  };
-  match rule {
-    MediaQueryRule::Not(n) => match n.rule.as_ref() {
-      MediaQueryRule::MediaKeyword(kw) => assert_eq!(kw.key, "screen"),
-      other => panic!("Expected MediaKeyword, got {:?}", other),
-    },
-    other => panic!("Expected Not, got {:?}", other),
+fn a_trailing_comma_is_dropped() {
+  // One comma after the last query is read and dropped.
+  for (query, printed) in [
+    ("@media screen,", "@media screen"),
+    ("@media (color),", "@media (color)"),
+    ("@media (color), ", "@media (color)"),
+    ("@media (color) ,", "@media (color)"),
+    ("@media not (color),", "@media (not (color))"),
+    ("@media (color),(grid),", "@media (color), (grid)"),
+  ] {
+    assert_eq!(parsed(query).to_string(), printed, "{query}");
   }
 }
 
 #[test]
-fn parenthesized_expression_not_branch_with_close_paren() {
-  // '(not (screen))' — direct call exercises success path
-  let rule = match parenthesized_expression_parser().parse_to_end("(not (screen))") {
-    Ok(rule) => rule,
-    Err(error) => panic!("failed to parse (not (screen)): {error:?}"),
-  };
-  match rule {
-    MediaQueryRule::Not(n) => match n.rule.as_ref() {
-      MediaQueryRule::MediaKeyword(kw) => assert_eq!(kw.key, "screen"),
-      other => panic!("Expected MediaKeyword, got {:?}", other),
-    },
-    other => panic!("Expected Not, got {:?}", other),
+fn misplaced_commas_are_refused() {
+  for query in [
+    "@media (color),,",
+    "@media , (color)",
+    "@media (color), garbage",
+  ] {
+    assert!(
+      MediaQuery::parser().parse_to_end(query).is_err(),
+      "{query} parsed"
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// parenthesized_list_parser
+// ---------------------------------------------------------------------------
+
+#[test]
+fn parenthesized_list_parser_reads_an_and_list_and_an_or_list() {
+  for list in [
+    "((min-width: 100px) and (max-width: 200px))",
+    "((color) or (hover: hover))",
+  ] {
+    assert!(
+      parenthesized_list_parser().parse_to_end(list).is_ok(),
+      "{list}"
+    );
   }
 }
 
 #[test]
-fn parenthesized_expression_not_branch_refuses_a_bare_media_type() {
-  // The same refusal on the path through leading_not_parser.
+fn parenthesized_list_parser_refuses_one_item() {
+  // One item alone in parentheses is not a list.
+  let result = parenthesized_list_parser().parse_to_end("((min-width: 100px))");
   assert!(
-    parenthesized_expression_parser()
-      .parse_to_end("(not all)")
-      .is_err()
-  );
-}
-
-#[test]
-fn parenthesized_expression_not_branch_missing_close_paren() {
-  // Custom token list: (not (screen) — EOF without ')' → Err
-  let parser = parenthesized_expression_parser();
-  let mut token_list = token_list_from(vec![
-    SimpleToken::LeftParen,
-    SimpleToken::Ident("not".to_string()),
-    SimpleToken::Whitespace,
-    SimpleToken::LeftParen,
-    SimpleToken::Ident("screen".to_string()),
-    SimpleToken::RightParen,
-    // no RightParen — EOF
-  ]);
-  let result = (parser.run)(&mut token_list);
-  assert!(
-    matches!(&result, Err(error) if error.to_string().contains("Expected closing parenthesis")),
+    matches!(&result, Err(error) if error.to_string().contains("two or more conditions")),
     "{result:?}"
   );
 }
 
 #[test]
-fn parenthesized_expression_main_branch_whitespace_before_close_paren() {
-  // '((min-width: 100px) )' — whitespace before outer ')' exercises loop at 1920-1922
-  let result = parenthesized_expression_parser().parse_to_end("((min-width: 100px) )");
-  assert!(result.is_ok());
+fn parenthesized_list_parser_refuses_whitespace_inside_the_parentheses() {
+  for list in ["( (color) and (grid))", "((color) and (grid) )"] {
+    assert!(
+      parenthesized_list_parser().parse_to_end(list).is_err(),
+      "{list}"
+    );
+  }
 }
 
 #[test]
-fn parenthesized_expression_main_branch_missing_close_paren() {
-  // Custom token list: ((min-width: 100px) — EOF without outer ')' → Err
-  let parser = parenthesized_expression_parser();
+fn parenthesized_list_parser_missing_close_paren() {
+  // Custom token list: ((color) and (grid) — EOF without the outer ')'
+  let parser = parenthesized_list_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
     SimpleToken::LeftParen,
-    SimpleToken::Ident("min-width".to_string()),
-    SimpleToken::Colon,
+    SimpleToken::Ident("color".to_string()),
+    SimpleToken::RightParen,
     SimpleToken::Whitespace,
-    SimpleToken::Dimension {
-      value: 100.0,
-      unit: "px".to_string(),
-    },
+    SimpleToken::Ident("and".to_string()),
+    SimpleToken::Whitespace,
+    SimpleToken::LeftParen,
+    SimpleToken::Ident("grid".to_string()),
     SimpleToken::RightParen,
     // no outer RightParen — EOF
   ]);
   let result = (parser.run)(&mut token_list);
-  assert!(result.is_err());
+  assert!(
+    matches!(&result, Err(error) if error.to_string().contains("Expected `)`")),
+    "{result:?}"
+  );
 }
 
 // ---------------------------------------------------------------------------

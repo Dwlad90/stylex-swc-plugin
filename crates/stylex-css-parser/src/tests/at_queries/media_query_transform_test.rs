@@ -2036,25 +2036,45 @@ mod malformed_queries {
     assert!(refuses_query("@media (min-width: 100px) "));
   }
 
-  /// Nesting is walked once per level rather than searched, so a depth that
-  /// makes the reference implementation backtrack for minutes is answered here
-  /// in milliseconds — twelve levels take it twenty seconds and sixteen do not
-  /// finish in thirty.
+  /// Nesting is read once for each level, so a deep query takes
+  /// milliseconds. A parser that tries each reading again can take minutes on
+  /// the same query.
   ///
-  /// Sixty-four levels is the budget, so this is the deepest query that still
-  /// compiles, and what it compiles to is the query with the wrapping gone.
+  /// Sixty-four levels of parentheses is the budget, so this is the deepest
+  /// query that still compiles. Its 63 negations cancel in pairs, and one stays.
   #[test]
   fn nesting_up_to_the_budget_is_read_without_backtracking() {
     let deep = format!(
-      "@media {}min-width: 100px{}",
-      "(".repeat(64),
-      ")".repeat(64)
+      "@media {}(min-width: 100px){}",
+      "(not ".repeat(63),
+      ")".repeat(63)
     );
 
     assert_eq!(
       transformed_keys(json!({ "color": { "default": "black", deep: "red" } })),
-      vec!["default", "@media (min-width: 100px)"]
+      vec!["default", "@media (not (min-width: 100px))"]
     );
+  }
+
+  /// The text `(not screen and X )` reads as a `not`. It does not read as a
+  /// list, because a list cannot have whitespace before `)`. The parser
+  /// reads `X` one time. If it read `X` again for each reading, the work
+  /// would double at each level, and this query would not finish.
+  #[test]
+  fn a_deep_not_with_space_before_its_close_is_read_once() {
+    let deep = format!(
+      "@media {}(color){}",
+      "(not screen and ".repeat(63),
+      " )".repeat(63)
+    );
+    assert!(!refuses_query(&deep));
+
+    let past = format!(
+      "@media {}(color){}",
+      "(not screen and ".repeat(64),
+      " )".repeat(64)
+    );
+    assert!(refuses_query(&past));
   }
 
   /// One level further is refused rather than compiled.
@@ -2068,31 +2088,29 @@ mod malformed_queries {
   #[test]
   fn nesting_past_the_budget_is_refused_rather_than_fatal() {
     let past = format!(
-      "@media {}min-width: 100px{}",
-      "(".repeat(65),
-      ")".repeat(65)
+      "@media {}(min-width: 100px){}",
+      "(not ".repeat(64),
+      ")".repeat(64)
     );
     assert!(refuses_query(&past));
 
     let far_past = format!(
-      "@media {}min-width: 100px{}",
-      "(".repeat(5000),
+      "@media {}(min-width: 100px){}",
+      "(not ".repeat(5000),
       ")".repeat(5000)
     );
     assert!(refuses_query(&far_past));
   }
 
-  /// A chain of `not` keywords is refused, and it is refused by the budget
-  /// rather than by luck.
+  /// A chain of bare `not` keywords is refused, and the parser does not
+  /// recurse on it.
   ///
-  /// This is the nesting that costs no parenthesis: the operand of a bare `not`
-  /// is a whole rule, so `not not (…)` recurses once per keyword while a scan
-  /// for parentheses sees depth one. Before the parser charged its own frames,
-  /// twenty thousand of these took the process down with a segfault and no
-  /// diagnostic -- a stack overflow is not unwindable, so neither
-  /// `catch_unwind` around compilation ever saw it.
+  /// A bare `not` takes one item, and a bare `not` is not an item. So the
+  /// parser stops at the second `not`. A parser that recursed once for each
+  /// keyword could overflow the stack, which aborts the process with no
+  /// diagnostic.
   #[test]
-  fn a_chain_of_not_keywords_is_refused_by_the_budget() {
+  fn a_chain_of_not_keywords_is_refused_without_recursion() {
     let past = format!("@media {}(min-width: 1px)", "not ".repeat(64));
     assert!(refuses_query(&past));
 
@@ -2100,12 +2118,11 @@ mod malformed_queries {
     assert!(refuses_query(&far_past));
   }
 
-  /// The escaped spelling costs the same frame as the plain one.
+  /// The escaped spelling is refused like the plain one.
   ///
-  /// `n\6ft` is decoded by the tokenizer to `Ident("not")` and recurses
-  /// identically, so a guard that read the raw text would have to
-  /// over-approximate every escape to catch it. Charging the frame where it is
-  /// entered needs to know nothing about how the keyword was spelled.
+  /// The tokenizer decodes `n\6ft` to `Ident("not")`, so the parser reads the
+  /// same chain. A guard that read the raw text would have to know each
+  /// escape.
   #[test]
   fn an_escaped_not_chain_is_refused_like_a_plain_one() {
     let past = format!("@media {}(min-width: 1px)", "n\\6ft ".repeat(64));
@@ -2554,28 +2571,22 @@ mod combinators_css_does_not_define {
     ));
   }
 
-  /// Straight after a media type's `and` is the one place a bare `not` is a
-  /// query: `<media-query> = [not | only]? <media-type>
-  /// [ and <media-condition-without-or> ]?`, and a
-  /// `<media-condition-without-or>` may be a `<media-not>`.
-  ///
-  /// Only immediately, though. One more operand and the tail is a condition
-  /// again, where an operand has to be parenthesized.
-  ///
-  /// This is the second place the two compilers disagree by choice: the
-  /// official compiler refuses all of these, and refusing valid CSS to match it
-  /// would cost an author a query they are entitled to write.
+  /// A bare `not` stands only at the start of a query. After a media type and
+  /// `and`, the negated condition must be in parentheses.
   #[test]
-  fn a_media_type_takes_one_bare_negation_after_its_and() {
-    assert!(!refuses_query(
+  fn a_bare_not_after_a_media_type_is_refused() {
+    assert!(refuses_query(
       "@media screen and not (orientation: portrait)"
     ));
-    assert!(!refuses_query(
+    assert!(refuses_query(
       "@media not screen and not (orientation: portrait)"
     ));
-
     assert!(refuses_query(
       "@media screen and (orientation: portrait) and not (monochrome)"
+    ));
+
+    assert!(!refuses_query(
+      "@media screen and (not (orientation: portrait))"
     ));
   }
 
@@ -2598,25 +2609,15 @@ mod combinators_css_does_not_define {
     }
   }
 
-  /// Nesting parentheses around a single condition stays accepted, and this is
-  /// the one shape where the two compilers still disagree — deliberately.
-  /// `( <media-condition> )` is what CSS says a condition in parentheses is,
-  /// and a condition may itself be one, so `((min-width: 1px))` is valid.
-  /// Refusing it to match would mean rejecting correct CSS.
+  /// Parentheses hold a list of two or more conditions. One condition in its
+  /// own extra parentheses is refused.
   #[test]
-  fn nested_parentheses_around_one_condition_stay_accepted() {
-    assert_eq!(
-      transformed_keys(json!({
-        "color": { "default": "black", "@media ((min-width: 1px))": "red" }
-      })),
-      vec!["default", "@media (min-width: 1px)"]
-    );
+  fn parentheses_around_one_condition_are_refused() {
+    assert!(refuses_query("@media ((min-width: 1px))"));
+    assert!(refuses_query("@media (((((min-width: 1px)))))"));
 
-    assert_eq!(
-      transformed_keys(json!({
-        "color": { "default": "black", "@media (((((min-width: 1px)))))": "red" }
-      })),
-      vec!["default", "@media (min-width: 1px)"]
-    );
+    assert!(!refuses_query(
+      "@media ((min-width: 1px) and (max-width: 2px))"
+    ));
   }
 }

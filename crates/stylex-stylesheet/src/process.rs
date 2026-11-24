@@ -153,9 +153,10 @@ fn resolve_constants(
 }
 
 /// The deepest chain of constants that `resolve_constant` follows. Real
-/// sheets chain two or three constants. V8 runs out of stack near 10,000
-/// links, so past this limit the reference decides: it resolves the chain, or
-/// it throws its own `RangeError`.
+/// sheets chain two or three constants. With the default stack, V8 can run
+/// out of stack after approximately 4,500 links. That number changes with the
+/// platform and the JIT tier. Past this limit the reference decides: it
+/// resolves the chain, or it throws its own `RangeError`.
 pub(crate) const MAX_CONSTANT_DEPTH: usize = 256;
 
 /// `resolveConstant`: a constant's value with every reference to another

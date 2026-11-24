@@ -123,21 +123,13 @@ impl StylesPreRule {
     sort_at_rules(&unsorted_at_rules)
   }
 
-  /// The `var(--…)` keys of a key path.
+  /// The `var(--…)` keys of a key path, in authored order.
   ///
-  /// Sorted here, which is a divergence and predates this file's current shape:
-  /// upstream's `get constRules()` returns the filtered path **unsorted**, and
-  /// only `convertStyleToClassName` sorts, for the hash. `generateCSSRule`
-  /// receives the unsorted list and nests the declaration in that order, so two
-  /// `var(--…)` keys written out of alphabetical order nest one way here and the
-  /// other way in Babel. The class name is unaffected — both sides re-sort the
-  /// combined list before hashing — so the emitted rule differs in nesting order
-  /// alone. Left as it is rather than changed alongside unrelated work; the sort
-  /// is also redundant with the one the caller does.
+  /// The list is not sorted. The rule text wraps the declaration in these keys
+  /// in this order, the first key innermost. Only the class name hash reads a
+  /// sorted list, and `convert_style_to_class_name` sorts it there.
   fn get_const_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
-    let unsorted_const_rules = Self::select_key_path(key_path, |key| key.starts_with("var(--"));
-
-    sort_at_rules(&unsorted_const_rules)
+    Self::select_key_path(key_path, |key| key.starts_with("var(--"))
   }
   pub(crate) fn new(property: &str, value: PreRuleValue, key_path: Option<Vec<String>>) -> Self {
     let property_str = property.to_string();
@@ -188,16 +180,13 @@ impl PreRule for StylesPreRule {
   }
 
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult {
-    let Some((_, class_name, rule)) = convert_style_to_class_name(
+    let (_, class_name, rule) = convert_style_to_class_name(
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
       &mut self.const_rules,
       state,
-    ) else {
-      // The value carries no CSS text, so there is no declaration to name.
-      return CompiledResult::Null;
-    };
+    );
 
     let mut classes_to_original_paths = IndexMap::new();
 

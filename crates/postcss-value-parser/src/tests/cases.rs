@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 961 values: the differential harness's whole corpus, plus
+/// 973 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -778,9 +778,24 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"spin\" 0..4\nspace \" \" 4..5\nword \"1s\" 5..7",
   },
   ParserCase {
+    input: "0S",
+    output: "0S",
+    ast: "word \"0S\" 0..2",
+  },
+  ParserCase {
     input: "ignore",
     output: "ignore",
     ast: "word \"ignore\" 0..6",
+  },
+  ParserCase {
+    input: "x",
+    output: "x",
+    ast: "word \"x\" 0..1",
+  },
+  ParserCase {
+    input: "y",
+    output: "y",
+    ast: "word \"y\" 0..1",
   },
   ParserCase {
     input: "radial-gradient(circle, red, blue)",
@@ -843,6 +858,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"{body}\" 1..7",
   },
   ParserCase {
+    input: "URL(/img/logo.png)",
+    output: "URL(/img/logo.png)",
+    ast: "function \"URL\" 0..18 before=\"\" after=\"\" nodes=4\n  div \"/\" 4..5 before=\"\" after=\"\"\n  word \"img\" 5..8\n  div \"/\" 8..9 before=\"\" after=\"\"\n  word \"logo.png\" 9..17",
+  },
+  ParserCase {
     input: "URL(a}b)",
     output: "URL(a}b)",
     ast: "function \"URL\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"a}b\" 4..7",
@@ -851,6 +871,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "Url(a}b)",
     output: "Url(a}b)",
     ast: "function \"Url\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"a}b\" 4..7",
+  },
+  ParserCase {
+    input: "Url(https://cdn.example.com/v0.5/hero.jpg)",
+    output: "Url(https://cdn.example.com/v0.5/hero.jpg)",
+    ast: "function \"Url\" 0..42 before=\"\" after=\"\" nodes=9\n  word \"https\" 4..9\n  div \":\" 9..10 before=\"\" after=\"\"\n  div \"/\" 10..11 before=\"\" after=\"\"\n  div \"/\" 11..12 before=\"\" after=\"\"\n  word \"cdn.example.com\" 12..27\n  div \"/\" 27..28 before=\"\" after=\"\"\n  word \"v0.5\" 28..32\n  div \"/\" 32..33 before=\"\" after=\"\"\n  word \"hero.jpg\" 33..41",
   },
   ParserCase {
     input: "\\url(a}b)",
@@ -866,6 +891,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "blurl(a}b)",
     output: "blurl(a}b)",
     ast: "function \"blurl\" 0..10 before=\"\" after=\"\" nodes=1\n  word \"a}b\" 6..9",
+  },
+  ParserCase {
+    input: "image-set(url(0.5x.png) 1x, url(1x.png) 2x)",
+    output: "image-set(url(0.5x.png) 1x, url(1x.png) 2x)",
+    ast: "function \"image-set\" 0..43 before=\"\" after=\"\" nodes=7\n  function \"url\" 10..23 before=\"\" after=\"\" nodes=1\n    word \"0.5x.png\" 14..22\n  space \" \" 23..24\n  word \"1x\" 24..26\n  div \",\" 26..28 before=\"\" after=\" \"\n  function \"url\" 28..39 before=\"\" after=\"\" nodes=1\n    word \"1x.png\" 32..38\n  space \" \" 39..40\n  word \"2x\" 40..42",
   },
   ParserCase {
     input: "linear-gradient(red,blue),url(http://example.com/a.png)",
@@ -936,6 +966,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "url('a)b.png')calc(1px)",
     output: "url('a)b.png')calc(1px)",
     ast: "function \"url\" 0..14 before=\"\" after=\"\" nodes=1\n  string \"a)b.png\" 4..13 quote=\"'\"\nfunction \"calc\" 14..23 before=\"\" after=\"\" nodes=1\n  word \"1px\" 19..22",
+  },
+  ParserCase {
+    input: "url(0.5x.png)",
+    output: "url(0.5x.png)",
+    ast: "function \"url\" 0..13 before=\"\" after=\"\" nodes=1\n  word \"0.5x.png\" 4..12",
   },
   ParserCase {
     input: "url(a(b(c)).png) 10px",
@@ -1923,11 +1958,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"open-quote\" 0..10\nspace \" \" 10..11\nstring \"hello\" 11..18 quote=\"\\\"\"\nspace \" \" 18..19\nword \"close-quote\" 19..30",
   },
   ParserCase {
-    input: "x",
-    output: "x",
-    ast: "word \"x\" 0..1",
-  },
-  ParserCase {
     input: "🎉",
     output: "🎉",
     ast: "word \"🎉\" 0..4",
@@ -1946,6 +1976,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "notch",
     output: "notch",
     ast: "word \"notch\" 0..5",
+  },
+  ParserCase {
+    input: "URL(/cursors/grab.cur), pointer",
+    output: "URL(/cursors/grab.cur), pointer",
+    ast: "function \"URL\" 0..22 before=\"\" after=\"\" nodes=4\n  div \"/\" 4..5 before=\"\" after=\"\"\n  word \"cursors\" 5..12\n  div \"/\" 12..13 before=\"\" after=\"\"\n  word \"grab.cur\" 13..21\ndiv \",\" 22..24 before=\"\" after=\" \"\nword \"pointer\" 24..31",
   },
   ParserCase {
     input: "e-resize",
@@ -2358,6 +2393,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "string \"\\\"content\\\"\" 0..11 quote=\"'\"",
   },
   ParserCase {
+    input: "0FR 1fr",
+    output: "0FR 1fr",
+    ast: "word \"0FR\" 0..3\nspace \" \" 3..4\nword \"1fr\" 4..7",
+  },
+  ParserCase {
     input: "0fr",
     output: "0fr",
     ast: "word \"0fr\" 0..3",
@@ -2693,6 +2733,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"calc\" 0..25 before=\"\" after=\"\" nodes=5\n  function \"\" 5..18 before=\"\" after=\"\" nodes=5\n    word \"100%\" 6..10\n    space \" \" 10..11\n    word \"-\" 11..12\n    space \" \" 12..13\n    word \"50px\" 13..17\n  space \" \" 18..19\n  word \"*\" 19..20\n  space \" \" 20..21\n  word \"0.5\" 21..24",
   },
   ParserCase {
+    input: "url(0.5x.svg) 0px 0.5em",
+    output: "url(0.5x.svg) 0px 0.5em",
+    ast: "function \"url\" 0..13 before=\"\" after=\"\" nodes=1\n  word \"0.5x.svg\" 4..12\nspace \" \" 13..14\nword \"0px\" 14..17\nspace \" \" 17..18\nword \"0.5em\" 18..23",
+  },
+  ParserCase {
     input: "calc(100dvh - var(--header-height, 0px))",
     output: "calc(100dvh - var(--header-height, 0px))",
     ast: "function \"calc\" 0..40 before=\"\" after=\"\" nodes=5\n  word \"100dvh\" 5..11\n  space \" \" 11..12\n  word \"-\" 12..13\n  space \" \" 13..14\n  function \"var\" 14..39 before=\"\" after=\"\" nodes=3\n    word \"--header-height\" 18..33\n    div \",\" 33..35 before=\"\" after=\" \"\n    word \"0px\" 35..38",
@@ -2823,6 +2868,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"0turn\" 0..5",
   },
   ParserCase {
+    input: "rotate(0DEG)",
+    output: "rotate(0DEG)",
+    ast: "function \"rotate\" 0..12 before=\"\" after=\"\" nodes=1\n  word \"0DEG\" 7..11",
+  },
+  ParserCase {
     input: "rotate(0rad)",
     output: "rotate(0rad)",
     ast: "function \"rotate\" 0..12 before=\"\" after=\"\" nodes=1\n  word \"0rad\" 7..11",
@@ -2931,6 +2981,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "0.01s",
     output: "0.01s",
     ast: "word \"0.01s\" 0..5",
+  },
+  ParserCase {
+    input: "0MS",
+    output: "0MS",
+    ast: "word \"0MS\" 0..3",
   },
   ParserCase {
     input: "0ms",
@@ -3241,6 +3296,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "max(100px, 200px)",
     output: "max(100px, 200px)",
     ast: "function \"max\" 0..17 before=\"\" after=\"\" nodes=3\n  word \"100px\" 4..9\n  div \",\" 9..11 before=\"\" after=\" \"\n  word \"200px\" 11..16",
+  },
+  ParserCase {
+    input: "max(1px, 2px) calc(0px + 1%)",
+    output: "max(1px, 2px) calc(0px + 1%)",
+    ast: "function \"max\" 0..13 before=\"\" after=\"\" nodes=3\n  word \"1px\" 4..7\n  div \",\" 7..9 before=\"\" after=\" \"\n  word \"2px\" 9..12\nspace \" \" 13..14\nfunction \"calc\" 14..28 before=\"\" after=\"\" nodes=5\n  word \"0px\" 19..22\n  space \" \" 22..23\n  word \"+\" 23..24\n  space \" \" 24..25\n  word \"1%\" 25..27",
   },
   ParserCase {
     input: "min(100%, 500px)",
@@ -4939,7 +4999,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 672 words paired with their number/unit split, `None` standing for a
+/// 690 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5124,7 +5184,9 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("anim", None),
   ("1s", Some(("1", "s"))),
   ("spin", None),
+  ("0S", Some(("0", "S"))),
   ("ignore", None),
+  ("y", None),
   ("circle", None),
   ("#F7F5F6", None),
   ("black", None),
@@ -5136,7 +5198,17 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--background-color", None),
   ("white", None),
   ("{body}", None),
+  ("img", None),
+  ("logo.png", None),
   ("a}b", None),
+  ("https", None),
+  ("cdn.example.com", None),
+  ("v0.5", None),
+  ("hero.jpg", None),
+  ("0.5x.png", Some(("0.5", "x.png"))),
+  ("1x", Some(("1", "x"))),
+  ("1x.png", Some(("1", "x.png"))),
+  ("2x", Some(("2", "x"))),
   ("http://example.com/a.png", None),
   ("right", None),
   ("no-repeat", None),
@@ -5284,6 +5356,9 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("squircle", None),
   ("bevel", None),
   ("notch", None),
+  ("cursors", None),
+  ("grab.cur", None),
+  ("pointer", None),
   ("e-resize", None),
   ("ne-resize", None),
   ("nw-resize", None),
@@ -5332,6 +5407,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("content", None),
   ("sidebar", None),
   ("column", None),
+  ("0FR", Some(("0", "FR"))),
   ("auto", None),
   ("fr", None),
   ("100px", Some(("100", "px"))),
@@ -5368,6 +5444,8 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--x16dnrjz", None),
   ("-.24px", Some(("-.24", "px"))),
   ("-0.5px", Some(("-0.5", "px"))),
+  ("0.5x.svg", Some(("0.5", "x.svg"))),
+  ("0.5em", Some(("0.5", "em"))),
   ("100dvh", Some(("100", "dvh"))),
   ("--header-height", None),
   ("-.5", Some(("-.5", ""))),
@@ -5386,6 +5464,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("underline", None),
   ("0grad", Some(("0", "grad"))),
   ("0turn", Some(("0", "turn"))),
+  ("0DEG", Some(("0", "DEG"))),
   ("45deg", Some(("45", "deg"))),
   ("grad", None),
   ("rad", None),
@@ -5395,6 +5474,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-300px", Some(("-300", "px"))),
   ("-.9s", Some(("-.9", "s"))),
   ("0.01s", Some(("0.01", "s"))),
+  ("0MS", Some(("0", "MS"))),
   ("0ms", Some(("0", "ms"))),
   ("1000ms", Some(("1000", "ms"))),
   ("10ms", Some(("10", "ms"))),
@@ -5421,7 +5501,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("*3", None),
   ("00\\\\", Some(("00", "\\\\"))),
   ("10%-.5px", Some(("10", "%-.5px"))),
-  ("y", None),
   ("1px\\u30002px", Some(("1", "px\\u30002px"))),
   ("3%", Some(("3", "%"))),
   ("/", None),
@@ -5430,6 +5509,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   (";height", None),
   ("1px-.5px", Some(("1", "px-.5px"))),
   ("42", Some(("42", ""))),
+  ("1%", Some(("1", "%"))),
   ("500px", Some(("500", "px"))),
   ("%", None),
   ("ABC", None),
@@ -5499,9 +5579,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-WEBKIT-BOX", None),
   ("linear", None),
   ("--webkit-not-a-prefix", None),
-  ("1x", Some(("1", "x"))),
   ("b.png", None),
-  ("2x", Some(("2", "x"))),
   ("progid", None),
   ("startColorstr=#FF000000", None),
   ("1px!important", Some(("1", "px!important"))),

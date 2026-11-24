@@ -1,36 +1,27 @@
-//! The operand of a short-circuiting form that never runs, as the fold's guard
-//! sees it.
+//! The operand of a short-circuiting form that the operator does not return.
 //!
-//! The guard reads every leaf of an expression to decide whether the whole of it
-//! could fold, and reading one has effects beyond the answer — see the crate
-//! glossary's *Dead operand*. So `enabled && colors.glow` with `enabled` false
-//! must leave no import behind and must not refuse the call it sits in.
+//! The logical operators evaluate both sides before they pick one, so a theme
+//! read on the losing side of `&&`, `||` or `??` still queues its compensating
+//! import. A conditional evaluates only the arm it takes, so a theme read on
+//! the other arm queues nothing. A losing side that cannot be folded does not
+//! refuse the expression when the other side decides it.
 //!
-//! Runtime injection is on throughout, so each snapshot records the rule text
-//! beside the class name; the import list above it is the half these cases are
-//! really about, and the one a CSS-only assertion would miss.
-//!
-//! Every class name and rule below is `@stylexjs/babel-plugin@0.19.0`'s own for
-//! the same module. The *import lists* are deliberately not, where a dead theme
-//! read is involved: the reference implementation evaluates both sides of a
-//! logical expression under forked states, so it queues the compensating import
-//! for a token no stylesheet reads. This compiler's logical node has been lazy
-//! for that reason since it was written — the same module with no call in it
-//! emits no such import here already — and these cases are the fold's guard
-//! agreeing with the evaluator it stands in front of.
+//! Runtime injection is on in all cases but one, so each snapshot records the
+//! rule text beside the class name; the import list above it is the half these
+//! cases are really about, and the one a CSS-only assertion would miss.
 
 use crate::utils::prelude::*;
+use swc_core::common::FileName;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A theme read on the branch that never runs
 // ─────────────────────────────────────────────────────────────────────────────
 
-// The reported shape: a token read behind a compile-time-false guard, inside an
-// expression the fold claims. The stylesheet says `color:red` and the module
-// gets no `import "tokens.stylex";` — the token never reached the stylesheet, so
-// nothing has to keep the file that defines it alive.
+// A token read behind a compile-time-false guard, inside an expression the fold
+// claims. The stylesheet says `color:red`, and the module gets
+// `import "tokens.stylex";` because the losing operand was still evaluated.
 stylex_test!(
-  a_dead_theme_read_leaves_no_import,
+  a_theme_read_on_a_losing_operand_queues_its_import,
   |tr| theme_import_transform_with(tr.comments.clone(), |b| b.with_treeshake_compensation(true)),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -43,12 +34,36 @@ stylex_test!(
 );
 
 // The same module with compensation off, which is the setting that decides
-// whether an import is ever added at all. Nothing here could add one, and that
-// is the point: pinned beside the case above so a fix that had merely stopped
-// compensating would be visible as the different thing it is.
+// whether an import is ever added at all. Runtime injection turns compensation
+// on in the test builder, so this case is built without it.
 stylex_test!(
   a_dead_theme_read_with_no_compensation,
-  |tr| theme_import_transform_with(tr.comments.clone(), |b| b),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_treeshake_compensation(false)
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from 'tokens.stylex';
+    const enabled = false;
+    export const styles = stylex.create({
+      a: { color: [(enabled && colors.glow) || 'red'].join('') },
+    });
+  "#
+);
+
+// The same module with runtime injection on and compensation off. The option
+// turns injection on without the builder shortcut, which also turns
+// compensation on. The rule is injected, and no theme import is added.
+stylex_test!(
+  a_dead_theme_read_with_no_compensation_and_runtime_injection,
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_treeshake_compensation(false)
+  }),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { colors } from 'tokens.stylex';
@@ -83,12 +98,12 @@ stylex_test!(
   "#
 );
 
-// Every short-circuiting form, each with the token on the side that never runs:
-// `&&` behind a falsy guard, `||` behind a truthy one, `??` behind a value that
-// is neither `null` nor `undefined`, and `?:` on both of its arms. One
-// namespace each so the import list is one answer for all five.
+// Every logical operator, each with the token on its losing side: `&&` behind
+// a falsy guard, `||` behind a truthy one, and `??` behind a value that is
+// neither `null` nor `undefined`. Each still reads the token, so the import is
+// queued once for the namespace.
 stylex_test!(
-  every_short_circuiting_form_skips_its_dead_operand,
+  every_logical_operator_reads_its_losing_operand,
   |tr| theme_import_transform_with(tr.comments.clone(), |b| b.with_treeshake_compensation(true)),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -99,6 +114,21 @@ stylex_test!(
       and: { color: [(off && colors.glow) || 'red'].join('') },
       or: { color: [on || colors.glow].join('') },
       nullish: { color: [on ?? colors.glow].join('') },
+    });
+  "#
+);
+
+// A conditional evaluates only the arm it takes, so a token on either other arm
+// is never read and no import is queued.
+stylex_test!(
+  a_conditional_skips_the_arm_it_does_not_take,
+  |tr| theme_import_transform_with(tr.comments.clone(), |b| b.with_treeshake_compensation(true)),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from 'tokens.stylex';
+    const off = false;
+    const on = 'red';
+    export const styles = stylex.create({
       conditionalCons: { color: [on ? 'red' : colors.glow].join('') },
       conditionalAlt: { color: [off ? colors.glow : on].join('') },
     });
@@ -247,6 +277,21 @@ stylex_test!(
     const off = false;
     export const styles = stylex.create({
       a: { color: [(off && 'x'.repeat(400000000)) || 'red'].join('') },
+    });
+  "#
+);
+
+// A `keyframes` call on the losing side is still evaluated, so its rule is
+// still declared: `@keyframes xbjjx1r-B{from{color:red;}}` beside
+// `.x1wt5zd5{animation-name:x}`.
+stylex_test!(
+  a_losing_keyframes_call_still_declares_its_rule,
+  |tr| build_test_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      or: { animationName: 'x' || stylex.keyframes({ from: { color: 'red' } }) },
+      nullish: { animationName: 'x' ?? stylex.keyframes({ from: { color: 'red' } }) },
     });
   "#
 );

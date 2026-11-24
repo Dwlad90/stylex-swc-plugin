@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     dyn: (zi)=>[
-            {
-                kY2c9j: zi != null ? "xr3buco" : zi,
+            zi !== undefined && {
+                kY2c9j: zi != null ? "xr3buco" : "",
                 $$css: true
             },
             {

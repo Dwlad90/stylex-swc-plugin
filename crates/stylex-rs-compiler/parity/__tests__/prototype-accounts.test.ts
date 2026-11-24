@@ -116,7 +116,7 @@ describe('the link to the corpus', () => {
     });
   }
 
-  const account = accountNamed('a read that escapes onto the function graph');
+  const account = accountNamed('a read of the prototype chain');
 
   test('a row that has been deleted is reported', () => {
     const without = corpus.filter(entry => entry.id !== account.recordedBy);

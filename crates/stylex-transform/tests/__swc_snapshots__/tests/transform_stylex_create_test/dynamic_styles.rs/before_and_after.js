@@ -19,9 +19,12 @@ _inject2({
 });
 export const styles = {
     foo: (a, b)=>[
-            {
-                kxBb7d: a != null ? "xaigonn" : a,
-                kB1Fuz: b != null ? "x1p1099i" : b,
+            a !== undefined && {
+                kxBb7d: a != null ? "xaigonn" : "",
+                $$css: true
+            },
+            b !== undefined && {
+                kB1Fuz: b != null ? "x1p1099i" : "",
                 $$css: true
             },
             {

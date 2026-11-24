@@ -7,11 +7,10 @@ _inject2({
 });
 export const fade = "xbjjx1r-B";
 _inject2({
-    ltr: "@position-try --x1rdsnup {position-anchor:position-anchor;position-anchor:--a;}",
-    priority: 0,
-    rtl: "@position-try --x1rdsnup {position-anchor:--a;}"
+    ltr: "@position-try --xsgi8eb {position-anchor:--a;}",
+    priority: 0
 });
-export const fallback = "--x1rdsnup";
+export const fallback = "--xsgi8eb";
 _inject2({
     ltr: "::view-transition-group(*.x1tp323t){color:red;}",
     priority: 1

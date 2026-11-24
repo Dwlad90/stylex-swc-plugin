@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     a: (Infinity)=>[
-            {
-                kzqmXN: Infinity != null ? "x5lhr3w" : Infinity,
+            Infinity !== undefined && {
+                kzqmXN: Infinity != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

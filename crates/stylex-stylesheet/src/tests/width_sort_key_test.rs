@@ -188,7 +188,15 @@ fn a_media_type_beside_the_bound_constrains_no_width() {
 #[test]
 fn a_negated_query_has_no_bound() {
   assert_eq!(bound_of("@media (not (min-width: 1000px))"), None);
+}
+
+/// A leading `not` negates the whole query, the bound too: `not screen and
+/// (min-width: 1000px)` is `not (screen and (min-width: 1000px))`. So it has
+/// no bound, and a negated media type alone has none either.
+#[test]
+fn a_leading_not_negates_the_bound_beside_it() {
   assert_eq!(bound_of("@media not screen and (min-width: 1000px)"), None);
+  assert_eq!(bound_of("@media not screen"), None);
 }
 
 /// `does not sort a min-width paired with a negated max-width`: the
@@ -317,6 +325,21 @@ fn an_or_query_has_no_bound() {
   );
   assert_eq!(
     bound_of("@media (min-width: 500px) or (hover: hover)"),
+    None
+  );
+}
+
+/// The printed form of a breakpoint ladder holds `(not all)` branches. The
+/// parser refuses `(not all)`, so the query has no bound, though only one
+/// branch can match.
+#[test]
+fn a_ladder_query_with_not_all_branches_has_no_bound() {
+  assert_eq!(
+    bound_of("@media ((not all) or (not all)) or ((not all) or ((min-width: 1440px)))"),
+    None
+  );
+  assert_eq!(
+    bound_of("@media (not all) or ((min-width: 1200px) and (max-width: 1439px))"),
     None
   );
 }

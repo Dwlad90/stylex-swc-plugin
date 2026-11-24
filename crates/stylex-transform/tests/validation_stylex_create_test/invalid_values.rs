@@ -2950,18 +2950,12 @@ stylex_test_panic!(
   "#
 );
 
-// `stylex.env` read with no `env` option set. The name is a key of the StyleX
-// namespace whichever way the compiler is configured, so the member step finds
-// it and has to say that the *option* is missing rather than that the property
-// is — a sentence about an unknown property would send an author looking in
-// their source instead of their config.
-//
-// Pinned because it is a branch of the namespace lookup and nothing held it: the
-// configured half of `env` has thirty-odd cases in
-// `transform_stylex_create_test::env` and the unconfigured half had none.
+// `stylex.env` read with no `env` option set. An unset option is an empty
+// object, so the read is `undefined`, and a style value cannot be `undefined`.
+// A fallback such as `stylex.env.theme ?? 'red'` folds.
 stylex_test_panic!(
   the_env_object_read_without_the_env_option_is_refused,
-  "The stylex.env object is not configured.",
+  "A style value can only contain an array, string or number.",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -2969,16 +2963,11 @@ stylex_test_panic!(
   "#
 );
 
-// Called rather than read, where the sentence above used to be *lost*: the
-// member step refused, and the call step then refused the callee it was handed
-// without carrying the reason, so the author was told a call expression is
-// unsupported and heard nothing about the option. It was pinned as it behaved
-// rather than as it ought to, so that a change improving it would report as a
-// moved snapshot rather than pass quietly. This is that move: the call step now
-// carries the receiver's own refusal, so both spellings name the option.
+// Called rather than read: the empty object has no function to call, and the
+// refusal names the property.
 stylex_test_panic!(
-  an_env_call_without_the_env_option_names_the_option,
-  "The stylex.env object is not configured.",
+  an_env_call_without_the_env_option_is_refused,
+  "a > color > The property 'getTheme' was not found in the stylex.env configuration.",
   r#"
     import * as stylex from '@stylexjs/stylex';
 

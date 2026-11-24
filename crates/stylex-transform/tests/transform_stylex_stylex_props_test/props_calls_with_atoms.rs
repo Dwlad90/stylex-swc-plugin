@@ -87,6 +87,18 @@ stylex_test!(
 );
 
 stylex_test!(
+  dynamic_style_local,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      color: (c) => ({ color: c }),
+    });
+    stylex.props(styles.color(color));
+  "#
+);
+
+stylex_test!(
   inline_static_inline_dynamic_coexist,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
@@ -359,17 +371,12 @@ stylex_test!(
   "#
 );
 
-// A value that reads as empty declares nothing, so the atom compiles to a
-// namespace holding no class and injects no rule. `_` is the leading underscore
-// the value reader strips, which leaves the empty string.
-//
-// Answering nothing is intended rather than merely what happens. A declaration
-// with no value is what `stylex.create({ root: { display: "" } })` answers here
-// too -- the property is compiled to `null` and no rule is injected -- and
-// `@stylexjs/babel-plugin` 0.19.0 has no answer of its own to compare with: the
-// same source stops it with `Cannot read properties of undefined`.
-stylex_test!(
-  inline_static_with_an_empty_value_declares_nothing,
+// `_` is the leading underscore the value reader strips, which leaves the empty
+// string. An empty value has nothing to normalize, so the build fails, as the
+// reference does, and as `stylex.create({ root: { display: "" } })` does.
+stylex_test_panic!(
+  inline_static_with_an_empty_value_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
@@ -393,5 +400,33 @@ stylex_test!(
     import stylex from 'stylex';
     import css from '@stylexjs/atoms';
     stylex.props(css.display.flex);
+  "#
+);
+
+// `animation` is a shorthand that the default style resolution does not
+// expand. The default validation mode drops it without a message, so the atom
+// declares no property and injects no rule. The reference does the same.
+stylex_test!(
+  inline_static_with_an_unsupported_shorthand_injects_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.animation.none, css.color.red);
+  "#
+);
+
+// Under `application-order`, a shorthand sets each of its longhands to `null`,
+// so the compiled atom holds `null` values beside the class name. The reference
+// does the same.
+stylex_test!(
+  inline_static_shorthand_under_application_order_keeps_null_longhands,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::ApplicationOrder)
+  }),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.margin['10px']);
   "#
 );

@@ -27,15 +27,6 @@ _Avoid_: small hash, truncated hash
 which is how a style within a `stylex.create` namespace gets its class name.
 _Avoid_: style hash, namespace hash
 
-**Blank CSS text**:
-A string that spells no CSS value at all, via `is_blank_css_text`. The test is
-every byte at or below 32, so a C0 control is blank as well as a space. A
-property whose value is blank CSS text is left undeclared, because `color:` is
-not something a browser accepts. Named against
-[CSS text](../stylex-structures/CONTEXT.md), which is what a value spells when
-it is not blank.
-_Avoid_: empty value, blank string, whitespace check
-
 **Attribute name spelling**:
 `kebab_case` — the name a property takes in a `style` attribute, which is not
 the name it takes in a stylesheet. Every ASCII capital takes a hyphen before it
@@ -43,10 +34,10 @@ and the whole name is lowercased, so `marginTop` is `margin-top` in both and
 `ABCDef` is `-abcdef` in a stylesheet and `-a-b-c-def` here.
 
 `dashify` is the stylesheet half. The two are kept apart because the StyleX
-runtime keeps them apart, and a **custom property** is where they differ most: a
-stylesheet hands `--myColor` back untouched, and an attribute writes
-`--my-color`. Both answers are the runtime's, so both are **observable** — the
-attribute text reaches the page.
+runtime keeps them apart. A **custom property** is not converted by either
+caller: a stylesheet and an attribute both keep `--myColor` as written. The name
+is case-sensitive, so the attribute must set the property that the stylesheet
+reads.
 _Avoid_: hyphenate, snake case, dasherize
 
 **JS float read**:

@@ -10,8 +10,8 @@ const _temp2 = {
 export const styles = {
     spreadFirst: (w)=>[
             _temp,
-            {
-                kzqmXN: w != null ? "x5lhr3w" : w,
+            w !== undefined && {
+                kzqmXN: w != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {
@@ -20,8 +20,8 @@ export const styles = {
         ],
     spreadLast: (w)=>[
             _temp2,
-            {
-                kzqmXN: w != null ? "x5lhr3w" : w,
+            w !== undefined && {
+                kzqmXN: w != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

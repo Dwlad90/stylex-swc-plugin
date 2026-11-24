@@ -1,13 +1,17 @@
 use std::rc::Rc;
 
-use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
+use stylex_ast::ast::convertors::{
+  convert_lit_to_string, key_value_name, normalize_expr, normalize_expr_mut,
+};
 
+use swc_core::common::util::take::Take;
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
-    JSXAttrValue, Lit, ObjectLit, Prop, PropName, PropOrSpread,
+    AwaitExpr, BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
+    JSXAttrValue, Lit, MetaPropExpr, MetaPropKind, ObjectLit, Prop, PropName, PropOrSpread, Super,
+    ThisExpr, YieldExpr,
   },
-  visit::{VisitMut, VisitMutWith, VisitWith},
+  visit::{Visit, VisitMut, VisitMutWith, VisitWith},
 };
 
 use crate::shared::{
@@ -238,7 +242,7 @@ pub(crate) fn stylex_merge(
         state: &mut *state,
         hoist_expression,
       };
-      arg_path.expr.visit_mut_with(&mut object_hoister);
+      object_hoister.hoist_in_argument(&mut arg_path.expr);
     }
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
@@ -311,15 +315,155 @@ struct CompiledStyleObjectHoister<'a> {
   hoist_expression: fn(Expr, &mut StateManager) -> Ident,
 }
 
-impl VisitMut for CompiledStyleObjectHoister<'_> {
-  fn visit_mut_expr(&mut self, expr: &mut Expr) {
-    expr.visit_mut_children_with(self);
+impl CompiledStyleObjectHoister<'_> {
+  /// Hoists the compiled style objects in one argument of the call.
+  ///
+  /// An argument that is itself an object is the only object checked. Any
+  /// other argument is searched for objects at every depth.
+  fn hoist_in_argument(&mut self, arg: &mut Expr) {
+    let arg = normalize_expr_mut(arg);
 
-    if let Expr::Object(object) = expr
-      && object_has_css_marker(object)
-    {
-      *expr = Expr::Ident((self.hoist_expression)(expr.clone(), self.state));
+    if arg.is_object() {
+      self.hoist_object(arg);
+    } else {
+      arg.visit_mut_children_with(self);
     }
+  }
+
+  /// Hoists `expr` if it is a compiled style object that can move to program
+  /// level, and tells whether it did.
+  fn hoist_object(&mut self, expr: &mut Expr) -> bool {
+    let Expr::Object(object) = expr else {
+      return false;
+    };
+
+    if !object_has_css_marker(object) || !can_hoist_object(object, self.state) {
+      return false;
+    }
+
+    *expr = Expr::Ident((self.hoist_expression)(expr.take(), self.state));
+
+    true
+  }
+}
+
+impl VisitMut for CompiledStyleObjectHoister<'_> {
+  /// Outer objects come first. A hoisted object is not searched again, and an
+  /// object that stays is searched for compiled objects inside it.
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    if !self.hoist_object(expr) {
+      expr.visit_mut_children_with(self);
+    }
+  }
+}
+
+/// Whether every name the object reads is visible at program level, so the
+/// object can move there.
+///
+/// Each property must be a plain or shorthand property. A computed key must
+/// not read a hidden value anywhere in its expression. A value must be a
+/// literal, a name or a template literal, and it must not read a hidden value.
+/// See [`reads_a_value_hidden_from_a_hoist`] for what that is. A global is
+/// visible everywhere, so it passes.
+///
+/// This is stricter than the reference. Its `canHoistObject` accepts any
+/// template literal and any computed key that is not a bare name. So an object
+/// that reads a parameter in `${size}` or in `[map.key]` moves, and the module
+/// throws a `ReferenceError` when it loads. An object that reads `${this.k}`
+/// in a method moves too, and then reads another value. An object that reads a
+/// binding that its own statement or a later one declares moves in front of
+/// that declaration, where the name has no value yet. And an object that reads
+/// a binding that is assigned again keeps the value it read when the module
+/// loaded. These departures from the reference are deliberate: each one
+/// changes the output only where the reference output throws or reads the
+/// wrong value.
+fn can_hoist_object(object: &ObjectLit, state: &StateManager) -> bool {
+  object.props.iter().all(|prop| {
+    let PropOrSpread::Prop(prop) = prop else {
+      return false;
+    };
+
+    match prop.as_ref() {
+      Prop::Shorthand(ident) => !hides_its_value_from_a_hoist(ident, state),
+      Prop::KeyValue(key_value) => {
+        let key_is_visible = match &key_value.key {
+          PropName::Computed(computed) => !reads_a_value_hidden_from_a_hoist(&computed.expr, state),
+          _ => true,
+        };
+        let value_is_visible = match normalize_expr(&key_value.value) {
+          Expr::Lit(_) => true,
+          value @ (Expr::Ident(_) | Expr::Tpl(_)) => {
+            !reads_a_value_hidden_from_a_hoist(value, state)
+          },
+          _ => false,
+        };
+
+        key_is_visible && value_is_visible
+      },
+      _ => false,
+    }
+  })
+}
+
+/// Whether `expr` reads a value that is not the same at program level.
+///
+/// That is a name that [`hides_its_value_from_a_hoist`], or a value the
+/// enclosing function gives: `this`, `super`, `new.target`, `await` and
+/// `yield`. A property name after a dot is not a read of a binding, so
+/// `map.key` tests only `map`.
+fn reads_a_value_hidden_from_a_hoist(expr: &Expr, state: &StateManager) -> bool {
+  let mut search = HiddenRead {
+    state,
+    found: false,
+  };
+  expr.visit_with(&mut search);
+  search.found
+}
+
+/// Whether the name `ident` reads a value that a hoisted declaration does not
+/// see: `arguments`, a binding below program level, a program-level binding
+/// that is not declared yet in front of the statement that holds the object,
+/// or a binding that is assigned again. A hoisted declaration reads its value
+/// once, when the module loads.
+fn hides_its_value_from_a_hoist(ident: &Ident, state: &StateManager) -> bool {
+  ident.sym == "arguments"
+    || state.is_enclosed_binding(ident)
+    || state.is_undeclared_program_binding(ident)
+    || state.has_binding_reassignment(ident)
+}
+
+/// Records whether the walk visits a read that [`reads_a_value_hidden_from_a_hoist`]
+/// refuses.
+struct HiddenRead<'a> {
+  state: &'a StateManager,
+  found: bool,
+}
+
+impl Visit for HiddenRead<'_> {
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.found |= hides_its_value_from_a_hoist(ident, self.state);
+  }
+
+  fn visit_this_expr(&mut self, _: &ThisExpr) {
+    self.found = true;
+  }
+
+  fn visit_super(&mut self, _: &Super) {
+    self.found = true;
+  }
+
+  fn visit_await_expr(&mut self, _: &AwaitExpr) {
+    self.found = true;
+  }
+
+  fn visit_yield_expr(&mut self, _: &YieldExpr) {
+    self.found = true;
+  }
+
+  /// `import.meta` is the same everywhere in the module, so only
+  /// `new.target` counts.
+  fn visit_meta_prop_expr(&mut self, meta: &MetaPropExpr) {
+    self.found |= meta.kind == MetaPropKind::NewTarget;
   }
 }
 

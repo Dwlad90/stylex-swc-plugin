@@ -13,8 +13,8 @@ _inject2({
 });
 export const styles = {
     dyn: (zIndex)=>[
-            {
-                kMv6JI: firstThatWorks(zIndex, 'serif') != null ? "xk2v41j" : firstThatWorks(zIndex, 'serif'),
+            firstThatWorks(zIndex, 'serif') !== undefined && {
+                kMv6JI: firstThatWorks(zIndex, 'serif') != null ? "xk2v41j" : "",
                 $$css: true
             },
             {

@@ -396,7 +396,7 @@ stylex_test!(
   "#
 );
 
-// `content` is the property whose blank string is *not* blank CSS text, so an
+// On `content`, a blank string is quoted and so still spells a value. An
 // absence on it has to be told apart from `''`.
 stylex_test!(
   an_absence_on_content_is_not_a_blank_string,
@@ -494,15 +494,12 @@ stylex_test!(
   "#
 );
 
-// An absence beside a blank string. Both spell nothing in the emitted CSS, and
-// both leave their property present and unset -- so this pins that the two
-// arrive there by different routes and still agree.
-//
-// The reference implementation crashes on the blank neighbour rather than
-// reaching this answer; that divergence predates this change and is tracked
-// with the other blank-value entries in the parity corpus.
-stylex_test!(
-  an_absence_beside_a_blank_neighbour,
+// An absence beside a blank string. The absence is accepted, but the blank
+// neighbour has nothing to normalize, so the build fails, as the reference
+// does. `an_absence_beside_an_important_neighbour` holds the accepted half.
+stylex_test_panic!(
+  a_blank_neighbour_of_an_absence_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';

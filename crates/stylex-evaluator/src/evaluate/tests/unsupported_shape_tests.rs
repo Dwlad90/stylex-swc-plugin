@@ -16,7 +16,7 @@
 use super::source_evaluation::*;
 use stylex_ast::ast::convertors::convert_atom_to_string;
 use stylex_constants::constants::evaluation_errors::{
-  NON_CONSTANT, SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
+  BLOCKED_PROPERTY_ACCESS, NON_CONSTANT, SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
 };
 use stylex_state::evaluate_result_value::EvaluateResultValue;
 use swc_core::ecma::ast::{Expr, Lit};
@@ -56,13 +56,13 @@ fn a_method_call_on_a_receiver_kind_with_no_folds_refuses() {
 /// `({}).constructor()` is `Object()`, which answers a plain object — a value
 /// the fold could carry. It is refused anyway: `constructor` is the first step
 /// off the value that was written and onto the language's function graph, where
-/// two reads reach `Function`. The rule is argued at `ESCAPING_PROPERTIES`, and
+/// two reads reach `Function`. The rule is argued at `BLOCKED_PROPERTIES`, and
 /// what it costs is this one call, whose answer no declaration uses.
 ///
 /// The value it would have folded to is still reachable, written as itself.
 #[test]
-fn a_constructor_call_that_answers_a_plain_object_refuses_with_the_escaping_rule() {
-  assert_deopt_reason_contains("({}).constructor()", "Cannot fold a read of 'constructor'");
+fn a_constructor_call_that_answers_a_plain_object_refuses_with_the_prototype_chain_rule() {
+  assert_deopt_reason_contains("({}).constructor()", BLOCKED_PROPERTY_ACCESS);
   assert_folds("({}).valueOf()");
 }
 

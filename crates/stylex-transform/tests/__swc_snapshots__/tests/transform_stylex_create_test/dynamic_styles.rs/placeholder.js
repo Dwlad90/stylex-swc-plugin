@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     foo: (color)=>[
-            {
-                k8Qsv1: color != null ? "x1mzl164" : color,
+            color !== undefined && {
+                k8Qsv1: color != null ? "x1mzl164" : "",
                 $$css: true
             },
             {

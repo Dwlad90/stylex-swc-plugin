@@ -6,8 +6,8 @@ const _temp = {
 export const styles = {
     root: (width)=>[
             _temp,
-            {
-                kY2c9j: width > 1 != null ? "xr3buco" : width > 1,
+            width > 1 !== undefined && {
+                kY2c9j: width > 1 != null ? "xr3buco" : "",
                 $$css: true
             },
             {

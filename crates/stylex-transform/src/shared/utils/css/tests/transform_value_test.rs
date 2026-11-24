@@ -246,3 +246,28 @@ mod transform_value_content_property_tests {
     }
   }
 }
+
+#[cfg(test)]
+mod transform_value_cached_tests {
+  use crate::shared::utils::css::common::{transform_value, transform_value_cached};
+  use stylex_state::state_manager::StateManager;
+  use stylex_structures::raw_value::TRawValue;
+
+  /// A colon can be in a key and in a value. The key `a` with the value `x:sy`
+  /// and the key `a:sx` with the value `y` are different declarations, so the
+  /// second call must not get the value of the first call from the cache.
+  #[test]
+  fn a_colon_in_the_key_does_not_share_a_cache_entry() {
+    let mut state = StateManager::default();
+    let declarations = [
+      ("a", TRawValue::from("x:sy")),
+      ("a:sx", TRawValue::from("y")),
+    ];
+
+    for (key, value) in &declarations {
+      let expected = transform_value(key, value, &state);
+
+      assert_eq!(transform_value_cached(key, value, &mut state), expected);
+    }
+  }
+}

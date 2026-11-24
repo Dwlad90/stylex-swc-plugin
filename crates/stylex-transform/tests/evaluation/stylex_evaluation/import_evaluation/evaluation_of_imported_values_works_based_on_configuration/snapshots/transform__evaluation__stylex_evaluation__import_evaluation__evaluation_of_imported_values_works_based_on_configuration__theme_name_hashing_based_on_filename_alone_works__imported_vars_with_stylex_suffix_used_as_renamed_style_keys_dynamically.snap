@@ -17,8 +17,8 @@ _inject2({
 });
 export const styles = {
     color: (color)=>[
-            {
-                "--__hashed_var__11epo5g": color != null ? "__hashed_var__1kf7ake" : color,
+            color !== undefined && {
+                "--__hashed_var__11epo5g": color != null ? "__hashed_var__1kf7ake" : "",
                 $$css: true
             },
             {

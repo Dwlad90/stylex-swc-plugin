@@ -2,7 +2,7 @@
 Transform function tests.
 */
 
-use crate::css_types::transform_function::TransformFunction;
+use crate::css_types::transform_function::{Scale, TransformFunction};
 
 #[cfg(test)]
 mod test_css_type_transform_function {
@@ -365,6 +365,20 @@ mod test_css_type_transform_function {
         .parse_to_end("scale(0.5)")
         .unwrap();
       assert!(result.to_string().contains("scale"));
+
+      // Negative values must be preserved (e.g. scale(-1) flips/mirrors).
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("scale(-1)")
+          .unwrap(),
+        TransformFunction::Scale(Scale::new(-1.0, None))
+      );
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("scale(-1.5, -2)")
+          .unwrap(),
+        TransformFunction::Scale(Scale::new(-1.5, Some(-2.0)))
+      );
     }
 
     #[test]

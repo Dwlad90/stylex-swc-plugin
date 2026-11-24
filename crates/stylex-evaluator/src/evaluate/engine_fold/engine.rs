@@ -10,7 +10,11 @@
 //! back with a throw named for the method that raised it, and print a call as
 //! the source the engine parses.
 
-use std::{cell::RefCell, mem::ManuallyDrop};
+use std::{
+  cell::RefCell,
+  hash::{Hash, Hasher},
+  mem::ManuallyDrop,
+};
 
 use boa_engine::{
   Context, JsError, JsResult, JsValue, Script, Source, object::builtins::JsFunction,
@@ -29,11 +33,13 @@ use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_binding_ident, create_ident,
 };
 use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engine_threw};
-use stylex_utils::hash::stable_hash_unspanned_call;
+use stylex_utils::hash::{stable_hash_unspanned_call, stable_hash_wide};
 
 use super::Decline;
 use super::backstop::{self, BACKSTOP_SOURCE, Backstops};
+use super::losing_operand::{Change, ChangeKind, Changed, EITHER_SOURCE, Recorded, Rewrite};
 use super::math;
+use super::sequence;
 use super::theme::{compile_traps, var_group_traps};
 use stylex_diagnostics::code_frame::print_module;
 
@@ -158,12 +164,87 @@ impl FoldKey {
   /// The key for `call` printed under a parameter list whose shape hashes to
   /// `parameters` — see [`Transport::parameters_key`](super::transport::Transport::parameters_key)
   /// for what that stands for.
-  pub(super) fn new(call: &CallExpr, parameters: u128) -> Self {
+  ///
+  /// `changes` is where the printed source changes a node (see
+  /// [`losing_operand`](super::losing_operand)). It changes the printed text,
+  /// so it is part of the key. Most folds have none, and their key is the
+  /// parameters hash alone.
+  pub(super) fn new(call: &CallExpr, parameters: u128, changes: &[Changed]) -> Self {
+    let parameters = match changes.is_empty() {
+      true => parameters,
+      false => stable_hash_wide(&(parameters, KeyedChanges(changes))),
+    };
+
     Self {
       call: stable_hash_unspanned_call(call),
       parameters,
     }
   }
+}
+
+/// The changes as the memo key reads them: the position and the kind of each
+/// one, hashed in order without a list of their own.
+struct KeyedChanges<'c>(&'c [Changed]);
+
+impl Hash for KeyedChanges<'_> {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.0.len().hash(state);
+
+    for changed in self.0 {
+      changed.position.hash(state);
+      changed.kind.hash(state);
+    }
+  }
+}
+
+/// A fold as the engine is asked for it: the memo key, the printer that the
+/// memo calls on a miss, and the put-off refusals that a throw of the printed
+/// source is read against (see [`threw_in_fold`]).
+pub(super) struct FoldScript<'c, P> {
+  key: FoldKey,
+  print: P,
+  pub(super) put_offs: PutOffs<'c>,
+}
+
+impl<P: FnOnce() -> Printed> FoldScript<'static, P> {
+  /// A fold whose printer changes no node.
+  pub(super) fn new(key: FoldKey, print: P) -> Self {
+    Self {
+      key,
+      print,
+      put_offs: PutOffs {
+        changes: &[],
+        recorded: None,
+      },
+    }
+  }
+}
+
+impl<P: FnOnce() -> Printed> FoldScript<'_, P> {
+  /// The same fold, whose printer changes the nodes `changes`, which the guard
+  /// recorded in `recorded`.
+  pub(super) fn changing<'c>(
+    self,
+    changes: &'c [Changed],
+    recorded: &'c Recorded,
+  ) -> FoldScript<'c, P> {
+    FoldScript {
+      key: self.key,
+      print: self.print,
+      put_offs: PutOffs {
+        changes,
+        recorded: Some(recorded),
+      },
+    }
+  }
+}
+
+/// The nodes a printed fold changed, and the declines the guard recorded for
+/// them, which a throw of the printed source is read against.
+#[derive(Clone, Copy)]
+pub(super) struct PutOffs<'c> {
+  changes: &'c [Changed],
+  recorded: Option<&'c Recorded>,
 }
 
 /// A thread's engine and the [fold memo] that may only live as long as it does.
@@ -242,7 +323,9 @@ impl Engine {
   /// engine that kept function source would fold a spelling no other build
   /// produces, which is worse than declining the fold.
   pub(super) fn new() -> Result<ManuallyDrop<Self>, Decline> {
-    Self::started_on(NO_FUNCTION_SOURCE, &var_group_traps(), BACKSTOP_SOURCE)
+    let prelude = [NO_FUNCTION_SOURCE, EITHER_SOURCE].concat();
+
+    Self::started_on(&prelude, &var_group_traps(), BACKSTOP_SOURCE)
   }
 
   /// The same engine, built from three written sources rather than from the
@@ -315,19 +398,18 @@ impl Engine {
   /// build that a deopt would only leave to the runtime.
   pub(super) fn eval(
     &mut self,
-    key: FoldKey,
-    print: impl FnOnce() -> Printed,
+    fold: FoldScript<'_, impl FnOnce() -> Printed>,
     method: &Atom,
   ) -> Result<(JsValue, bool), Decline> {
-    let compiled = match self.memo.get(&key) {
+    let compiled = match self.memo.get(&fold.key) {
       Some(compiled) => compiled.clone(),
-      None => self.compile(key, print(), method)?,
+      None => self.compile(fold.key, (fold.print)(), method)?,
     };
 
     let value = compiled
       .script
       .evaluate(&mut self.context)
-      .map_err(|error| threw(method, &error))?;
+      .map_err(|error| threw_in_fold(method, &error, fold.put_offs))?;
 
     Ok((value, compiled.binds_the_checks))
   }
@@ -372,6 +454,35 @@ pub(super) fn threw(method: &Atom, error: &JsError) -> Decline {
   Decline::rule(engine_threw(method, &error.to_string()))
 }
 
+/// A throw of the printed source of a fold.
+///
+/// A thrown number that is the position of a put-off refusal in `put_offs` is
+/// the decline the guard recorded for it (see
+/// [`losing_operand`](super::losing_operand)). Any other throw is a throw in
+/// the engine's own words.
+///
+/// The decline can give the call back after a compiler function filed a rule.
+/// The dispatch below then evaluates the call again and files the rule again.
+/// A rule is kept by its name, so the build holds it once.
+pub(super) fn threw_in_fold(method: &Atom, error: &JsError, put_offs: PutOffs) -> Decline {
+  let recorded = error
+    .as_opaque()
+    .and_then(JsValue::as_number)
+    .and_then(|thrown| {
+      put_offs
+        .changes
+        .iter()
+        .find(|changed| changed.kind == ChangeKind::PutOff && changed.position as f64 == thrown)
+    })
+    .zip(put_offs.recorded)
+    .and_then(|(changed, recorded)| recorded.get(&changed.span));
+
+  match recorded {
+    Some(Change::PutOff(decline)) => decline.clone(),
+    _ => threw(method, error),
+  }
+}
+
 /// A read across the bridge, with a throw carried in the engine's words.
 ///
 /// Reading a property runs a getter and writing one can be refused, so both
@@ -400,8 +511,23 @@ pub(super) fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Resu
 ///
 /// Called only where [`Engine::eval`] misses its memo, which is what makes the
 /// clone and the emitter walk below a per-shape cost rather than a per-fold one.
-pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
+///
+/// `changes` names the nodes the printer changes: the logical operators
+/// that run their right operand always, and the parts that hold a put-off
+/// refusal. They are changed first, while the trees still hold the spans that
+/// name them.
+pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>, changes: &[Changed]) -> Printed {
   let mut folded = Expr::Call(call.clone());
+
+  let mut rewrite = Rewrite::new(changes);
+
+  rewrite.apply(&mut folded);
+
+  for param in &mut params {
+    if let Pat::Assign(declared) = param {
+      rewrite.apply(&mut declared.right);
+    }
+  }
 
   // The call and each declaration crossing as a default are rewritten one tree
   // at a time, because what a tree binds is read from that tree — see
@@ -452,6 +578,7 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
 /// native that computes it as Node does (see [`math`]), and with
 /// the fold's two checks put in. Answers whether the tree needs the checks.
 fn prepared_for_the_engine(tree: &mut Expr) -> bool {
+  sequence::last_operand_of_each_sequence(tree);
   math::exponentiation_as_native_calls(tree);
 
   backstop::checked(tree)

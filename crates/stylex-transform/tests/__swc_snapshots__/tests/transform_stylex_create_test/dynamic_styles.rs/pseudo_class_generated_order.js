@@ -32,7 +32,7 @@ _inject2({
 export const styles = {
     root: (hover, active, focus)=>[
             {
-                kMwMTN: (hover != null ? "x1qvlgnj " : hover) + (active != null ? "xx746rz " : active) + (focus != null ? "x152n5rj " : focus) + "x126ychx",
+                kMwMTN: (hover != null ? "x1qvlgnj " : "") + (active != null ? "xx746rz " : "") + (focus != null ? "x152n5rj " : "") + "x126ychx",
                 $$css: true
             },
             {

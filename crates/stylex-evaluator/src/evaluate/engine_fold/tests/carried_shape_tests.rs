@@ -240,14 +240,20 @@ fn built_and_read(source: &str, read: &str) -> String {
   let name = Atom::from(CARRIED);
   let method = Atom::from(METHOD);
 
-  transport.carry(&name, Crossing::Value(value_of(source)));
+  let carried = transport.carry(
+    &name,
+    Crossing::Value(value_of(source)),
+    Depth::full(LEVELS),
+  );
+
+  assert!(carried.is_ok(), "`{}` was not carried", source);
 
   let arguments = match transport.arguments(
     &mut context,
     &method,
     Depth::full(LEVELS),
     &builder,
-    &FxHashMap::default(),
+    &DottedPrefixes::default(),
   ) {
     Ok(arguments) => arguments,
     Err(Decline::Rule(reason)) => panic!("`{}` did not cross: {}", source, reason),
@@ -349,21 +355,24 @@ fn a_group_that_will_not_build_declines_the_fold() {
   let name = Atom::from(CARRIED);
   let method = Atom::from(METHOD);
 
-  transport.carry(
+  let carried = transport.carry(
     &name,
     Crossing::Value(EvaluateResultValue::ThemeRef(ThemeRef::new(
       "vars.stylex.js",
       "vars",
       "x",
     ))),
+    Depth::full(LEVELS),
   );
+
+  assert!(carried.is_ok(), "the group was not carried");
 
   let declined = transport.arguments(
     &mut context,
     &method,
     Depth::full(LEVELS),
     &builder,
-    &FxHashMap::default(),
+    &DottedPrefixes::default(),
   );
 
   match declined {

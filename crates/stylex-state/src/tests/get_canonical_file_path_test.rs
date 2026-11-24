@@ -10,6 +10,35 @@ mod get_canonical_file_path {
 
   #[test]
   fn get_canonical_file_path_with_name() {
+    // A file, as a caller passes. A folder is read as an entry of its parent.
+    let fixture_path = fixture_path("package_json_with_name").join("vars.stylex.js");
+
+    let stage_manager = StateManager::default();
+
+    let canonical_path = stage_manager
+      .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
+
+    assert_eq!(canonical_path, "package_json_with_name:vars.stylex.js");
+  }
+
+  #[test]
+  fn get_canonical_file_path_without_name() {
+    // A file, as a caller passes. A folder is read as an entry of its parent.
+    let fixture_path = fixture_path("package_json_without_name").join("vars.stylex.js");
+
+    let stage_manager = StateManager::default();
+
+    let canonical_path = stage_manager
+      .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
+
+    assert_eq!(canonical_path, "_unknown_name_:vars.stylex.js");
+  }
+
+  /// A folder is read as an entry of its parent, so its own `package.json`
+  /// does not name it. The search starts in the parent and finds the package
+  /// of this crate.
+  #[test]
+  fn get_canonical_file_path_of_a_folder_is_named_by_the_package_of_its_parent() {
     let fixture_path = fixture_path("package_json_with_name");
 
     let stage_manager = StateManager::default();
@@ -17,19 +46,10 @@ mod get_canonical_file_path {
     let canonical_path = stage_manager
       .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
 
-    assert_eq!(canonical_path, "package_json_with_name:.");
-  }
-
-  #[test]
-  fn get_canonical_file_path_without_name() {
-    let fixture_path = fixture_path("package_json_without_name");
-
-    let stage_manager = StateManager::default();
-
-    let canonical_path = stage_manager
-      .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
-
-    assert_eq!(canonical_path, "_unknown_name_:.");
+    assert_eq!(
+      canonical_path,
+      "@stylexswc/state:src/tests/fixtures/package_json_with_name"
+    );
   }
 
   #[test]

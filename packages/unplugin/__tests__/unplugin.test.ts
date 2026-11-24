@@ -93,6 +93,24 @@ async function runWebpackLikeCssInjection(
     await collectStyleXRules(pluginInstance);
   }
 
+  const { assets, compilation } = await injectIntoCssAssets(
+    pluginInstance,
+    framework,
+    initialAssets
+  );
+
+  return { assets, compilation, transformCss };
+}
+
+/**
+ * Runs the webpack-like placeholder injection of a plugin instance over a set
+ * of CSS assets, and returns the assets after it.
+ */
+async function injectIntoCssAssets(
+  pluginInstance: TestPluginInstance,
+  framework: 'webpack' | 'rspack',
+  initialAssets: Record<string, string>
+) {
   type MockAssets = Record<string, ReturnType<typeof createMockCssAsset>>;
 
   let processAssetsCallback: ((assets: MockAssets) => Promise<void>) | undefined;
@@ -156,7 +174,7 @@ async function runWebpackLikeCssInjection(
   applyBundlerHook(compiler);
   await processAssetsCallback?.(assets);
 
-  return { assets, compilation, transformCss };
+  return { assets, compilation };
 }
 
 /** The code a `transform` hook returned, whatever shape it answered with. */
@@ -219,6 +237,12 @@ describe('@stylexswc/unplugin', () => {
       await expect(runTransform({}, 'const noop = 1;')).resolves.toBeNull();
     });
 
+    test('still transforms built-in imports when a custom importSource is set', async () => {
+      await expect(
+        runTransform({ rsOptions: { importSources: ['custom-stylex'] } }, stylexSource)
+      ).resolves.not.toBeNull();
+    });
+
     test('transforms a file that uses the sx prop without importing', async () => {
       const result = await runTransform({}, FORWARDS_THE_SX_PROP);
 
@@ -232,6 +256,60 @@ describe('@stylexswc/unplugin', () => {
         runTransform({ rsOptions: { sxPropName: false } }, FORWARDS_THE_SX_PROP)
       ).resolves.toBeNull();
     });
+  });
+
+  test('clears collected CSS when a module drops its StyleX import', async () => {
+    const plugin = unplugin.raw(
+      { useCssPlaceholder: true, rsOptions: { dev: true, runtimeInjection: false } },
+      { framework: 'webpack' } as UnpluginContextMeta
+    );
+    const pluginInstance = (Array.isArray(plugin) ? plugin[0] : plugin) as TestPluginInstance;
+    const mockContext = createMockContext() as UnpluginBuildContext & UnpluginContext;
+
+    if (typeof pluginInstance.buildStart !== 'function') {
+      throw new Error('buildStart is not a function');
+    }
+
+    if (typeof pluginInstance.transform !== 'function') {
+      throw new Error('Transform is not a function');
+    }
+
+    const transform = pluginInstance.transform.bind(mockContext);
+
+    // The CSS that the plugin puts at the marker, from the rules it holds now.
+    const collectCss = async () => {
+      const { assets } = await injectIntoCssAssets(pluginInstance, 'webpack', {
+        'app.css': '@stylex;',
+      });
+
+      return assets['app.css']?.source().toString() ?? '';
+    };
+
+    pluginInstance.buildStart.call(mockContext);
+
+    const id = '/virtual/import-removal-example.ts';
+    const original = `import * as stylex from '@stylexjs/stylex';
+export const styles = stylex.create({
+  marker: { outlineWidth: 37, outlineOffset: 71 },
+});
+`;
+
+    await transform(original, id);
+    expect(await collectCss()).toEqual(expect.stringContaining('37px'));
+    expect(await collectCss()).toEqual(expect.stringContaining('71px'));
+
+    await transform(
+      'import * as stylex from "@stylexjs/stylex";\nexport const styles = null;\n',
+      id
+    );
+    expect(await collectCss()).toBe('');
+
+    await transform(original, id);
+    expect(await collectCss()).toEqual(expect.stringContaining('37px'));
+
+    const result = await transform('export const styles = null;\n', id);
+    expect(result).toBeNull();
+    expect(await collectCss()).toBe('');
   });
 
   test('writes fallback CSS asset when no CSS bundle entry exists', async () => {

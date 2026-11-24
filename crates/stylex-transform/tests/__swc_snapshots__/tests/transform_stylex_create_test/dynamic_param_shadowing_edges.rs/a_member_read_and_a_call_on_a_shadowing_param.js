@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     member: (zIndex)=>[
-            {
-                kY2c9j: zIndex._10 != null ? "xr3buco" : zIndex._10,
+            zIndex._10 !== undefined && {
+                kY2c9j: zIndex._10 != null ? "xr3buco" : "",
                 $$css: true
             },
             {
@@ -30,8 +30,8 @@ export const styles = {
             }
         ],
     called: (zIndex)=>[
-            {
-                kY2c9j: zIndex() != null ? "xr3buco" : zIndex(),
+            zIndex() !== undefined && {
+                kY2c9j: zIndex() != null ? "xr3buco" : "",
                 $$css: true
             },
             {

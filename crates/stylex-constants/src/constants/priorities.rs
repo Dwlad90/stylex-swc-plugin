@@ -70,3 +70,50 @@ pub static AT_RULE_PRIORITIES: phf::Map<&'static str, &'static f64> = phf_map! {
 };
 
 pub static PSEUDO_ELEMENT_PRIORITY: f64 = 5000.0;
+
+/// The priority of a key that names no at-rule, pseudo or property that the
+/// tables know: an attribute selector, a `defineConsts` placeholder
+/// (`var(--x)`) or an unknown at-rule.
+pub const DEFAULT_PRIORITY: f64 = 3000.0;
+
+/// The priority of a pseudo-class that is not in [`PSEUDO_CLASS_PRIORITIES`].
+pub const UNKNOWN_PSEUDO_CLASS_PRIORITY: f64 = 40.0;
+
+/// The priority of a custom property (`--x`), which is 1, or of a key that
+/// starts with an at-rule of [`AT_RULE_PRIORITIES`]. `None` for any other key.
+/// No at-rule of the table starts another, so the order of the search does not
+/// change the answer.
+pub fn get_at_rule_priority(key: &str) -> Option<f64> {
+  if key.starts_with("--") {
+    return Some(1.0);
+  }
+
+  AT_RULE_PRIORITIES
+    .entries()
+    .find(|(at_rule, _)| key.starts_with(**at_rule))
+    .map(|(_, priority)| **priority)
+}
+
+/// The priority of a chain of pseudo parts (`:hover::after`): the sum of the
+/// parts. `None` for one part or none, and for a chain with a functional
+/// pseudo-class, such as `:not(.x)`.
+pub fn compound_pseudo_priority(parts: &[&str]) -> Option<f64> {
+  if parts.len() <= 1 || parts.iter().any(|part| part.contains('(')) {
+    return None;
+  }
+
+  let total = parts
+    .iter()
+    .map(|part| {
+      if part.starts_with("::") {
+        PSEUDO_ELEMENT_PRIORITY
+      } else {
+        PSEUDO_CLASS_PRIORITIES
+          .get(*part)
+          .map_or(UNKNOWN_PSEUDO_CLASS_PRIORITY, |priority| **priority)
+      }
+    })
+    .sum();
+
+  Some(total)
+}

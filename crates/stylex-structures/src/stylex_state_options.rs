@@ -120,10 +120,9 @@ thread_local! {
   /// The default options, built once for the thread.
   ///
   /// Read wherever a value must resolve the same way however the module is
-  /// compiled: the hash a keyframes name is taken from, the text a position-try
-  /// name is taken from, and the name of the default marker. Each of those built
-  /// a set of its own for every call, and a set carries two owned strings and an
-  /// empty shared env object.
+  /// compiled: the hash a keyframes name is taken from and the name of the
+  /// default marker. Each of those built a set of its own for every call, and a
+  /// set carries two owned strings and an empty shared env object.
   ///
   /// Thread-local rather than static, because the options hold an `Rc` and so
   /// cannot be shared between threads.

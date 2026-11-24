@@ -4,17 +4,17 @@ export const styles = {
         size?: 'xlarge' | 'large' | 'medium' | 'small';
     })=>[
             {
-                kaIpWk: {
+                xlarge: 16,
+                large: 12,
+                medium: 8,
+                small: 8
+            }[opt?.size ?? 'large'] !== undefined && {
+                kaIpWk: ({
                     xlarge: 16,
                     large: 12,
                     medium: 8,
                     small: 8
-                }[opt?.size ?? 'large'] != null ? "x7yrpt8" : ({
-                    xlarge: 16,
-                    large: 12,
-                    medium: 8,
-                    small: 8
-                })[opt?.size ?? 'large'],
+                })[opt?.size ?? 'large'] != null ? "x7yrpt8" : "",
                 $$css: true
             },
             {

@@ -28,6 +28,8 @@
 //! carries the class name it produced. The cases that diverge say which way and
 //! why.
 
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+
 use crate::utils::transform::{assert_folds, assert_refuses, fold_module as fold};
 
 /// The one-argument arrow most cases below call.
@@ -496,7 +498,7 @@ fn an_escaping_read_inside_a_called_declaration_refuses() {
   assert_refuses(
     "const inner = (y) => y.constructor;",
     "content: [inner('a')].join(''),",
-    "Cannot fold a read of 'constructor' at compile time.",
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 

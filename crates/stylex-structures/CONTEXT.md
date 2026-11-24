@@ -13,11 +13,9 @@ unchanged.
 _Avoid_: declaration, property-value, tuple
 
 **CSS text**:
-What a value spells once it reaches a stylesheet, via `as_css_text`. On a
-**Pair** that is the whole `key:value;`, and `None` where either half is
-[blank CSS text](../stylex-utils/CONTEXT.md) — `top:` is not valid CSS, so
-nothing is emitted rather than an empty declaration. On a `TRawValue` it is the
-value half alone, and always exists.
+What a value spells once it reaches a stylesheet. A **Pair** writes the whole
+`key:value;` into a buffer with `push_css_text`, and keeps each half as it is.
+On a `TRawValue` it is the value half alone, via `as_css_text`.
 _Avoid_: declaration, serialized pair, rule text
 
 **Order pair**:

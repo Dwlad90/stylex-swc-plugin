@@ -19,8 +19,8 @@ _inject2({
 });
 export const styles = {
     "0": (w)=>[
-            {
-                kzqmXN: w != null ? "x5lhr3w" : w,
+            w !== undefined && {
+                kzqmXN: w != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {
@@ -28,8 +28,8 @@ export const styles = {
             }
         ],
     named: (c)=>[
-            {
-                kMwMTN: c != null ? "x14rh7hd" : c,
+            c !== undefined && {
+                kMwMTN: c != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

@@ -19,9 +19,12 @@ _inject2({
 });
 export const styles = {
     root: (bgColor, otherColor)=>[
-            {
-                "--background-color": bgColor != null ? "xwn82o0" : bgColor,
-                "--otherColor": otherColor != null ? "xp3hsad" : otherColor,
+            bgColor !== undefined && {
+                "--background-color": bgColor != null ? "xwn82o0" : "",
+                $$css: true
+            },
+            otherColor !== undefined && {
+                "--otherColor": otherColor != null ? "xp3hsad" : "",
                 $$css: true
             },
             {

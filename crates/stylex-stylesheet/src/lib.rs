@@ -5,7 +5,7 @@
 //! (`packages/@stylexjs/babel-plugin/src/index.js`), function by function and
 //! in its order, so that a change upstream maps onto one function here. The
 //! commit the port follows is named in `CONTEXT.md` (the one `@stylexjs/babel-plugin`
-//! 0.19.1 was published from); the output is the same string that version
+//! 0.19.2 was published from); the output is the same string that version
 //! writes, byte for byte. The matrix test in `tests/` holds the order against
 //! the plugin's own answers.
 //!

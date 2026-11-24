@@ -28,11 +28,22 @@ export type SxPropNameOption = string | false;
 
 /** What the scan needs to know about the resolved plugin options. */
 export interface ModuleSelectionOptions {
-  /** The import sources the compiler is configured to recognise. */
+  /** The import sources configured on top of the built-in ones. */
   readonly importSources?: readonly ModuleImportSource[];
   /** The `sx` shorthand prop name, as the user configured it. */
   readonly sxPropName?: SxPropNameOption;
 }
+
+/**
+ * The text that finds the import sources the compiler always recognises.
+ *
+ * The compiler adds the configured sources to `stylex` and `@stylexjs/stylex`;
+ * it does not replace them. The scan must do the same. If it read the
+ * configured list alone, adding a custom source would drop every module that
+ * imports `@stylexjs/stylex`. Both names contain `stylex`, so one search finds
+ * either.
+ */
+const BUILT_IN_IMPORT_SOURCE_TEXT = 'stylex';
 
 /**
  * The prop name the compiler uses when the option is left out.
@@ -237,6 +248,26 @@ function mentionsSxProp(sourceCode: string, sxPropName: SxPropNameOption | undef
 }
 
 /**
+ * Folds the `stylexImports` plugin option into the compiler options.
+ *
+ * The webpack-family plugins and the Turbopack loader take import sources in
+ * two options: `stylexImports`, and `rsOptions.importSources`, which wins. The
+ * compiler reads only the second. Hand the result to both the scan and the
+ * compiler: when the scan read `stylexImports` apart from the compiler
+ * options, the two disagreed, and a module the compiler recognises was
+ * skipped.
+ *
+ * @param rsOptions the compiler options, as the user configured them
+ * @param stylexImports the `stylexImports` plugin option
+ */
+export function withStylexImports<T extends ModuleSelectionOptions>(
+  rsOptions: T,
+  stylexImports: T['importSources']
+): T {
+  return { ...rsOptions, importSources: rsOptions.importSources ?? stylexImports };
+}
+
+/**
  * Decide whether a module source is worth handing to the compiler.
  *
  * This is a text scan, not a parse: a mention inside a string or a comment
@@ -251,10 +282,10 @@ export function shouldProcessSource(sourceCode: string, options: ModuleSelection
   const { importSources, sxPropName } = options;
 
   // The import half answers first, because a substring sweep is the cheaper of
-  // the two. An empty list simply matches nothing; it no longer decides the
-  // whole answer, because the prop transform does not read the import sources.
+  // the two. The built-in sources are searched before the configured ones.
   const mentionsAnyImportSource =
-    importSources?.some(importSource => mentionsImportSource(sourceCode, importSource)) ?? false;
+    sourceCode.includes(BUILT_IN_IMPORT_SOURCE_TEXT) ||
+    (importSources?.some(importSource => mentionsImportSource(sourceCode, importSource)) ?? false);
 
   return mentionsAnyImportSource || mentionsSxProp(sourceCode, sxPropName);
 }

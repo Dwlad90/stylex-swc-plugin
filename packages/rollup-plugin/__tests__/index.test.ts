@@ -23,15 +23,25 @@ describe('@stylexswc/rollup-plugin', () => {
     vi.unstubAllEnvs();
   });
 
-  async function runStylex(options: PluginOptions) {
+  async function runStylex(
+    options: PluginOptions,
+    fixture = 'index.js',
+    pluginsBefore: rollup.Plugin[] = []
+  ) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
       // Remove stylex runtime from bundle
-      external: ['stylex', '@stylexjs/stylex', '@stylexjs/stylex/lib/stylex-inject'],
-      input: path.resolve(__dirname, '__fixtures__/index.js'),
+      external: [
+        'stylex',
+        '@stylexjs/stylex',
+        '@stylexjs/stylex/lib/stylex-inject',
+        'custom-stylex',
+      ],
+      input: path.resolve(__dirname, '__fixtures__', fixture),
       plugins: [
         nodeResolve(),
         commonjs(),
+        ...pluginsBefore,
         stylexPlugin({
           useCSSLayers: true,
           ...options,
@@ -63,6 +73,24 @@ describe('@stylexswc/rollup-plugin', () => {
       await bundle.close();
     }
   }
+
+  it('still transforms built-in imports when a custom importSource is set', async () => {
+    const { css } = await runStylex({
+      fileName: 'stylex.css',
+      rsOptions: { importSources: ['custom-stylex'] },
+    });
+
+    expect(css).toContain('display: flex;');
+  });
+
+  it('transforms a module that imports from a custom importSource', async () => {
+    const { css } = await runStylex(
+      { fileName: 'stylex.css', rsOptions: { importSources: ['custom-stylex'] } },
+      'customSource.js'
+    );
+
+    expect(css).toContain('color: red;');
+  });
 
   it('extracts CSS and removes stylex.inject calls', async () => {
     const { css, js } = await runStylex({ fileName: 'stylex.css' });
@@ -109,6 +137,74 @@ describe('@stylexswc/rollup-plugin', () => {
     const { css } = await runStylex({ fileName: 'stylex.css' });
 
     expect(css).toMatch(/display:\s*-webkit-flex/);
+  });
+
+  it('applies the include filter to every module, not only the first', async () => {
+    // `index.js` is transformed first and imports `otherStyles.js`. The filter
+    // excludes the second file, so its styles must not reach the sheet.
+    const rsOptions = { include: [/index\.js$/] };
+    const { css } = await runStylex({ fileName: 'stylex.css', rsOptions });
+
+    expect(css).toContain('display: flex;');
+    expect(css).not.toContain('width: 100%;');
+    expect(rsOptions.include).toEqual([/index\.js$/]);
+  });
+
+  it('reads each module through its own source map', async () => {
+    // A plugin before StyleX moves each module down by a different number of
+    // lines and returns the map back. The debug annotations must name the
+    // original lines, which they can only do when each module gets its own map.
+    const linesBefore = (id: string) => (id.endsWith('index.js') ? 3 : 9);
+    const shiftLines: rollup.Plugin = {
+      name: 'shift-lines',
+      transform(code, id) {
+        const shift = linesBefore(id);
+        const lineCount = code.split('\n').length;
+        // Each line maps to the start of the same line in the original file.
+        const mappings =
+          ';'.repeat(shift) +
+          ['AAAA', ...Array.from({ length: lineCount - 1 }, () => 'AACA')].join(';');
+
+        return {
+          code: '\n'.repeat(shift) + code,
+          map: { mappings, names: [], sources: [id], version: 3 },
+        };
+      },
+    };
+    const annotations = (js: string | undefined) => js?.match(/\$\$css: "[^"]+"/g);
+    const rsOptions = { debug: true, runtimeInjection: true };
+
+    const { js: plainJs } = await runStylex({ rsOptions });
+    const { js: shiftedJs } = await runStylex({ rsOptions }, 'index.js', [shiftLines]);
+
+    expect(annotations(plainJs)?.length).toBeGreaterThan(1);
+    expect(annotations(shiftedJs)).toEqual(annotations(plainJs));
+  });
+
+  it('builds again from the cache when a module gave no rules', async () => {
+    // The second build reads every module from the cache. `plain.js` has no
+    // StyleX, so its cached meta holds no rules.
+    const build = (cache?: rollup.RollupCache) =>
+      rollup.rollup({
+        cache,
+        external: ['stylex'],
+        input: path.resolve(__dirname, '__fixtures__', 'withPlainModule.js'),
+        plugins: [stylexPlugin({ lightningcssOptions: { minify: false } })],
+      });
+
+    const first = await build();
+    await first.close();
+
+    const second = await build(first.cache);
+
+    try {
+      const { output } = await second.generate({ format: 'esm' });
+      const sheet = output.find(file => file.fileName === 'stylex.css');
+
+      expect(sheet?.type === 'asset' && String(sheet.source)).toContain('color: red;');
+    } finally {
+      await second.close();
+    }
   });
 
   it('declares browserslist as a runtime dependency', () => {

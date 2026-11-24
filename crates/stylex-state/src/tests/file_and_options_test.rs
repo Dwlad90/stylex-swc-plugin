@@ -387,10 +387,10 @@ fn the_env_option_reaches_the_function_map_both_ways() {
   assert_eq!(function_map.member_expressions.len(), 1);
 }
 
-/// A project that configures no `env` adds nothing, so a module that never
-/// reads one pays no lookup for it.
+/// A project that configures no `env` still has one: an empty object, so each
+/// of its keys reads as `undefined` and a named `env` import resolves.
 #[test]
-fn a_project_with_no_env_adds_nothing_to_the_function_map() {
+fn a_project_with_no_env_registers_an_empty_env() {
   use swc_core::atoms::Atom;
 
   use stylex_structures::named_import_source::ImportSources;
@@ -407,8 +407,8 @@ fn a_project_with_no_env_adds_nothing_to_the_function_map() {
 
   state.apply_stylex_env(&mut function_map);
 
-  assert!(function_map.identifiers.is_empty());
-  assert!(function_map.member_expressions.is_empty());
+  assert!(function_map.identifiers.contains_key(&Atom::from("env")));
+  assert_eq!(function_map.member_expressions.len(), 1);
 }
 
 /// The parsed source file and its map are handed in by the host, and holding

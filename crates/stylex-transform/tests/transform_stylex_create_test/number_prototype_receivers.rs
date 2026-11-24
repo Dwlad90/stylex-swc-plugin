@@ -21,6 +21,8 @@
 //! agreement with the reference compiler rather than agreement with this
 //! compiler's own previous answer.
 
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+
 use crate::utils::{
   prelude::*,
   transform::{assert_folds, assert_refuses},
@@ -749,13 +751,15 @@ fn to_locale_string_is_refused_on_a_number() {
 ///
 /// `n.constructor` is `Number`, whose own `constructor` compiles a string into a
 /// function, and `call`, `apply` and `bind` are what turn an unapplied method
-/// back into a call. The reference compiler folds all of these; refusing them is
-/// the boundary that keeps arbitrary code out of the compiler, and it holds for
-/// a number receiver exactly as it does for a string one.
+/// back into a call. The reference refuses `constructor` with the same
+/// prototype-chain sentence and folds `call` and `apply`. Refusing them is the
+/// boundary that keeps arbitrary code out of the compiler, and it holds for a
+/// number receiver exactly as it does for a string one.
 #[test]
 fn a_read_that_escapes_a_number_is_refused() {
+  assert_refuses(N, "content: n.constructor('5'),", BLOCKED_PROPERTY_ACCESS);
+
   let cases: &[(&str, &str)] = &[
-    ("content: n.constructor('5'),", "constructor"),
     ("content: n.toString.call(n),", "call"),
     ("content: n.toString.apply(n),", "apply"),
   ];

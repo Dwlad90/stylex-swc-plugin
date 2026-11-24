@@ -229,8 +229,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             "--orange-theme-color": "xufgesz",
             $$css: "components/main.js:71"
           },
-          dynamic: color => [{
-            "color-kMwMTN": color != null ? "x14rh7hd" : color,
+          dynamic: color => [color !== undefined && {
+            "color-kMwMTN": color != null ? "x14rh7hd" : "",
             $$css: "components/main.js:74"
           }, {
             "--x-color": color != null ? color : undefined
@@ -319,8 +319,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             "--orange-theme-color": "xufgesz",
             $$css: "main.js:71"
           },
-          dynamic: color => [{
-            "color-kMwMTN": color != null ? "x14rh7hd" : color,
+          dynamic: color => [color !== undefined && {
+            "color-kMwMTN": color != null ? "x14rh7hd" : "",
             $$css: "main.js:74"
           }, {
             "--x-color": color != null ? color : undefined
@@ -335,6 +335,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer priority1, priority2, priority3, priority4;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -343,6 +344,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -369,6 +371,74 @@ describe('@stylexjs/babel-plugin', ()=>{
         }"
       `);
         });
+        test('custom properties stay inside @layer alongside priority-0 at-rules', ()=>{
+            const { metadata } = transformSync(`
+          import * as stylex from '@stylexjs/stylex';
+          const fade = stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
+          const styles = stylex.create({
+            card: {
+              animationName: fade,
+              '--card-padding': '16px',
+              color: 'red',
+            },
+          });
+        `, {
+                babelrc: false,
+                plugins: [
+                    [
+                        stylexPlugin,
+                        {
+                            dev: false
+                        }
+                    ]
+                ]
+            });
+            expect(stylexPlugin.processStylexRules(metadata.stylex, {
+                useLayers: true,
+                enableLTRRTLComments: false
+            })).toMatchInlineSnapshot(`
+        "
+        @layer priority1, priority2;
+        @keyframes x18re5ia-B{from{opacity:0;}to{opacity:1;}}
+        @layer priority1{
+        .x1vtiyio{--card-padding:16px}
+        }
+        @layer priority2{
+        .xqcmdr3{animation-name:x18re5ia-B}
+        .x1e2nbdu{color:red}
+        }"
+      `);
+        });
+        test.each([
+            '@keyframes fade{from{opacity:0}to{opacity:1}}',
+            '@property --card-padding{syntax:"<length>";inherits:false;initial-value:0px}',
+            '@position-try --fallback{top:0}'
+        ])('keeps %s unlayered with and without custom properties', (atRule)=>{
+            const rules = [
+                [
+                    'atRule',
+                    {
+                        ltr: atRule,
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            expect(stylexPlugin.processStylexRules(rules, true)).toBe(`\n@layer priority1;\n${atRule}`);
+            const customProperty = [
+                'customProperty',
+                {
+                    ltr: '.custom{--card-padding:16px}',
+                    rtl: null
+                },
+                1
+            ];
+            expect(stylexPlugin.processStylexRules([
+                customProperty,
+                ...rules,
+                customProperty
+            ], true)).toBe(`\n@layer priority1;\n${atRule}\n@layer priority1{\n.custom{--card-padding:16px}\n}`);
+        });
         test('useLayers with before option', ()=>{
             const { metadata } = transform(fixture);
             expect(stylexPlugin.processStylexRules(metadata, {
@@ -384,6 +454,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer reset, typography, priority1, priority2, priority3, priority4;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -392,6 +463,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -433,6 +505,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer priority1, priority2, priority3, priority4, overrides, xds.theme;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -441,6 +514,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -484,6 +558,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer reset, priority1, priority2, priority3, priority4, xds.theme;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -492,6 +567,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -530,6 +606,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer stylex.priority1, stylex.priority2, stylex.priority3, stylex.priority4;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer stylex.priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -538,6 +615,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer stylex.priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -583,6 +661,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer reset, typography, stylex.priority1, stylex.priority2, stylex.priority3, stylex.priority4, xds.theme;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer stylex.priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -591,6 +670,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer stylex.priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -636,6 +716,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer xds.reset, xds.typography, xds.base.priority1, xds.base.priority2, xds.base.priority3, xds.base.priority4, xds.theme;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer xds.base.priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -644,6 +725,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer xds.base.priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -683,6 +765,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         @layer priority1, priority2, priority3, priority4;
         @property --x-color { syntax: "*"; inherits: false;}
         @keyframes x35atj5-B{0%{box-shadow:1px 2px 3px 4px red;color:yellow;}100%{box-shadow:10px 20px 30px 40px green;color:var(--orange-theme-color);}}
+        @layer priority1{
         :root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
         :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
         @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
@@ -691,6 +774,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x4hn0rr.x4hn0rr, .x4hn0rr.x4hn0rr:root{--x1ec7iuc:20px;--xypjos2:10px;--x19twipt:5px;}
         .x1coplze.x1coplze, .x1coplze.x1coplze:root{--xpqh4lw:lightblue;}
         .xufgesz{--orange-theme-color:red}
+        }
         @layer priority2{
         .xymmreb{margin:10px 20px}
         .x1s2izit{padding:var(--x1ec7iuc)}
@@ -763,8 +847,8 @@ describe('@stylexjs/babel-plugin', ()=>{
             "--orange-theme-color": "xufgesz",
             $$css: "main.js:71"
           },
-          dynamic: color => [{
-            "color-kMwMTN": color != null ? "x14rh7hd" : color,
+          dynamic: color => [color !== undefined && {
+            "color-kMwMTN": color != null ? "x14rh7hd" : "",
             $$css: "main.js:74"
           }, {
             "--x-color": color != null ? color : undefined
@@ -921,6 +1005,141 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x1{float:var(--stylex-logical-start)}
         }"
       `);
+        });
+        test('substitutes a constant value containing `$&` verbatim', ()=>{
+            const rules = [
+                [
+                    'a',
+                    {
+                        constKey: 'a',
+                        constVal: 'var(--b)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'b',
+                    {
+                        constKey: 'b',
+                        constVal: '$&',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'x1',
+                    {
+                        ltr: '.x1{content:var(--a)}',
+                        rtl: null
+                    },
+                    3000
+                ]
+            ];
+            expect(stylexPlugin.processStylexRules(rules, {
+                useLayers: false
+            })).toMatchInlineSnapshot('".x1{content:$&}"');
+        });
+        test('substitutes a constant value containing `$&` with no alias chain', ()=>{
+            const rules = [
+                [
+                    'b',
+                    {
+                        constKey: 'b',
+                        constVal: '$&',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'x1',
+                    {
+                        ltr: '.x1{content:var(--b)}',
+                        rtl: null
+                    },
+                    3000
+                ]
+            ];
+            expect(stylexPlugin.processStylexRules(rules, {
+                useLayers: false
+            })).toMatchInlineSnapshot('".x1{content:$&}"');
+        });
+        test('substitutes constant values containing other `$` sequences verbatim', ()=>{
+            const rules = [
+                [
+                    'a1',
+                    {
+                        constKey: 'a1',
+                        constVal: 'var(--b1)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'b1',
+                    {
+                        constKey: 'b1',
+                        constVal: '$$',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'a2',
+                    {
+                        constKey: 'a2',
+                        constVal: 'var(--b2)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'b2',
+                    {
+                        constKey: 'b2',
+                        constVal: '$`',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'a3',
+                    {
+                        constKey: 'a3',
+                        constVal: 'var(--b3)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'b3',
+                    {
+                        constKey: 'b3',
+                        constVal: "$'",
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'x1',
+                    {
+                        ltr: '.x1{--p1:var(--a1);--p2:var(--a2);--p3:var(--a3)}',
+                        rtl: null
+                    },
+                    3000
+                ]
+            ];
+            expect(stylexPlugin.processStylexRules(rules, {
+                useLayers: false
+            })).toMatchInlineSnapshot('".x1{--p1:$$;--p2:$`;--p3:$\'}"');
         });
         test('legacy-expand-shorthands duplicates theme selectors for higher precedence', ()=>{
             const { _code, metadata } = transform(`

@@ -175,17 +175,17 @@ fn a_registered_style_reaches_the_metadata() {
   );
 }
 
-/// Registering the same style twice records it once: the metadata is a set of
-/// rules, and two calls that produce one rule inject it once.
+/// Registering the same style twice records it twice: each call records the
+/// rules it produced, as the host reads them call by call.
 #[test]
-fn one_style_registered_twice_is_recorded_once() {
+fn one_style_registered_twice_is_recorded_twice() {
   let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
   let styles = regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None);
 
   state.register_styles(&call_expr("create"), &styles, &object_expr(), None);
   state.register_styles(&call_expr("create"), &styles, &object_expr(), None);
 
-  assert_eq!(state.metadata().get("stylex").map(|set| set.len()), Some(1));
+  assert_eq!(state.metadata().get("stylex").map(Vec::len), Some(2));
 }
 
 /// With no runtime injection configured, the style is still recorded -- the
@@ -457,6 +457,81 @@ fn the_nested_rules_come_first_and_are_carried_once() {
   assert_eq!(
     second.keys().map(|key| key.as_str()).collect::<Vec<_>>(),
     vec!["xju2f9n"]
+  );
+}
+
+/// A rule filed on a copy of the state reaches the state, after the rules it
+/// already held, and the filing count follows. A copy that filed nothing
+/// changes nothing.
+#[test]
+fn rules_filed_on_a_copy_are_kept() {
+  let mut state = state_with(None);
+
+  state
+    .other_injected_css_rules
+    .extend(regular_style("xfade-B", "@keyframes xfade-B{}", None));
+
+  let mut copy = state.clone();
+
+  copy
+    .other_injected_css_rules
+    .extend(regular_style("xspin-B", "@keyframes xspin-B{}", None));
+
+  state.keep_rules_filed_on(&copy);
+
+  assert_eq!(state.other_injected_css_rules.len(), 1);
+
+  copy.note_nested_rule_filed();
+  state.keep_rules_filed_on(&copy);
+
+  assert_eq!(
+    state
+      .other_injected_css_rules
+      .keys()
+      .map(|key| key.as_str())
+      .collect::<Vec<_>>(),
+    vec!["xfade-B", "xspin-B"]
+  );
+  assert_eq!(state.nested_rules_filed(), copy.nested_rules_filed());
+}
+
+/// A rule the state already holds keeps its own value and its position. Only
+/// the rules that are new on the copy are added.
+#[test]
+fn a_rule_the_state_held_is_not_replaced_by_the_copy() {
+  let mut state = state_with(None);
+
+  state
+    .other_injected_css_rules
+    .extend(regular_style("xfade-B", "@keyframes xfade-B{}", None));
+  state
+    .other_injected_css_rules
+    .extend(regular_style("xspin-B", "@keyframes xspin-B{}", None));
+
+  let held = Rc::clone(&state.other_injected_css_rules["xfade-B"]);
+  let mut copy = state.clone();
+
+  copy
+    .other_injected_css_rules
+    .extend(regular_style("xfade-B", "@keyframes xfade-B{}", None));
+  copy
+    .other_injected_css_rules
+    .extend(regular_style("xgrow-B", "@keyframes xgrow-B{}", None));
+  copy.note_nested_rule_filed();
+
+  state.keep_rules_filed_on(&copy);
+
+  assert!(Rc::ptr_eq(
+    &state.other_injected_css_rules["xfade-B"],
+    &held
+  ));
+  assert_eq!(
+    state
+      .other_injected_css_rules
+      .keys()
+      .map(|key| key.as_str())
+      .collect::<Vec<_>>(),
+    vec!["xfade-B", "xspin-B", "xgrow-B"]
   );
 }
 

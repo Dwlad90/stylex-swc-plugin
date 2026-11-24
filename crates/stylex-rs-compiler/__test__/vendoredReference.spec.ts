@@ -11,7 +11,7 @@ import { describe, expect, test } from 'vitest';
 import type { ProcessStylexRulesConfig, StyleXRule } from '../dist/index.js';
 import { GUARDED_GLOBALS, UNGUARDED_GLOBALS } from '../dist/process-stylex-rules/built-ins.js';
 import { createReferenceProcessStylexRules } from '../dist/process-stylex-rules/reference.js';
-import { mediaQueryWidthBound } from '../dist/transform.js';
+import { getPriority, mediaQueryWidthBound } from '../dist/transform.js';
 import { loadBabelPlugin } from '../parity/lib/compilers.js';
 import { PROCESS_STYLEX_RULES_CASES, stylesheetFixturesDir } from '../parity/lib/fixtures.js';
 import { withLfEndings } from '../parity/lib/text.js';
@@ -31,7 +31,7 @@ interface RecordedCase {
 }
 
 const packageDir = path.resolve(__dirname, '..');
-const reference = createReferenceProcessStylexRules(mediaQueryWidthBound);
+const reference = createReferenceProcessStylexRules(mediaQueryWidthBound, getPriority);
 const { processStylexRules: babelProcessStylexRules } = loadBabelPlugin();
 const fixture = JSON.parse(
   fs.readFileSync(path.join(stylesheetFixturesDir(packageDir), PROCESS_STYLEX_RULES_CASES), 'utf8')
@@ -95,6 +95,19 @@ describe('the vendored reference', () => {
 
     expect(reference(rules)).toBe(babelProcessStylexRules(rules));
     expect(reference(rules.toReversed())).toBe(babelProcessStylexRules(rules.toReversed()));
+  });
+
+  test('adds no ancestor or specificity to a @position-try block that would get one', () => {
+    // An RTL twin, and a block in the second group after a rule of negative
+    // priority: each would get an ancestor and a `:not(#\#)` if it were a rule.
+    const rules: StyleXRule[] = [
+      ['xn', { ltr: '.xn{color:red}', rtl: null }, -2000],
+      ['--xp', { ltr: '@position-try --xp {left:0;}', rtl: '@position-try --xp {right:0;}' }, 0],
+    ];
+
+    for (const config of [false, { useLayers: false, legacyDisableLayers: false }]) {
+      expect(reference(rules, config)).toBe(babelProcessStylexRules(rules, config));
+    }
   });
 
   test('reads a media query the parser rejects as one with no bound', () => {

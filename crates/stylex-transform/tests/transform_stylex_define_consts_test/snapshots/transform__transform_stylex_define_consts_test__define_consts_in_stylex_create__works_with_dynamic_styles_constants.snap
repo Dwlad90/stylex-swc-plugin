@@ -11,8 +11,8 @@ const _temp = {
 export const styles = {
     node: (padding)=>[
             _temp,
-            {
-                kmVPX3: padding != null ? "x1fozly0" : padding,
+            padding !== undefined && {
+                kmVPX3: padding != null ? "x1fozly0" : "",
                 $$css: true
             },
             {

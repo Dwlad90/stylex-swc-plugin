@@ -2,6 +2,14 @@
 
 use postcss_value_parser::{Dimension, Node, NodeKind, ValueParser, unit};
 
+use super::is_url_function;
+
+/// Whether [`walk_dimensions`] visits the words inside a `url()` call.
+pub(super) enum UrlContents {
+  Skip,
+  Visit,
+}
+
 /// Visits every word node that splits into a number and a unit.
 ///
 /// [`super::timings`] and [`super::font_size_px_to_rem`] open with the same
@@ -28,12 +36,19 @@ use postcss_value_parser::{Dimension, Node, NodeKind, ValueParser, unit};
 /// rewrite hands the assignment back here, where the split is already done
 /// with. It also states the shape both callers already had: read, decide,
 /// build a string only when there is something to change.
-pub(super) fn walk_dimensions<F>(ast: &mut ValueParser, mut visit: F)
+///
+/// `url_contents` is the one point where the two callers differ in what they
+/// visit: timings stay out of a `url()`, the font-size conversion does not.
+pub(super) fn walk_dimensions<F>(ast: &mut ValueParser, url_contents: UrlContents, mut visit: F)
 where
   F: FnMut(&str, Dimension<'_>) -> Option<String>,
 {
   ast.walk(
     |node: &mut Node, _| {
+      if matches!(url_contents, UrlContents::Skip) && is_url_function(node) {
+        return false;
+      }
+
       if node.kind != NodeKind::Word {
         return true;
       }

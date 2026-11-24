@@ -13,8 +13,8 @@ _inject2({
 });
 export const styles = {
     dyn: (zIndex)=>[
-            {
-                kY2c9j: zIndex != null ? "xr3buco" : zIndex,
+            zIndex !== undefined && {
+                kY2c9j: zIndex != null ? "xr3buco" : "",
                 $$css: true
             },
             {

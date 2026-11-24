@@ -11,8 +11,8 @@
 //! them beside its own assertions rather than restating them.
 
 use swc_core::{
-  common::{FileName, SourceFile, SourceMap, Spanned, sync::Lrc},
-  ecma::ast::Expr,
+  common::{DUMMY_SP, FileName, SourceFile, SourceMap, Spanned, sync::Lrc},
+  ecma::ast::{BinExpr, BinaryOp, Expr, ParenExpr},
 };
 use swc_ecma_parser::{
   EsSyntax, Parser, StringInput, Syntax, TsSyntax, lexer::Lexer, parse_file_as_expr,
@@ -128,6 +128,30 @@ fn parse_expr_under(source: &str, syntax: Syntax) -> Expr {
     &source[..parsed_end],
     source
   );
+
+  expr
+}
+
+/// `a || (a || (... || a))`, nested `levels` deep and built without the parser.
+///
+/// For a case about a walk of this crate on a tree deeper than a test thread
+/// can recurse. The parser recurses on the thread stack, so it cannot build a
+/// tree that deep on a small thread. A tree this deep also drops by recursion,
+/// so a case must not drop it on a small thread.
+pub(crate) fn deep_or(levels: usize) -> Expr {
+  let mut expr = parse_expr("a");
+
+  for _ in 0..levels {
+    expr = Expr::Bin(BinExpr {
+      span: DUMMY_SP,
+      op: BinaryOp::LogicalOr,
+      left: Box::new(parse_expr("a")),
+      right: Box::new(Expr::Paren(ParenExpr {
+        span: DUMMY_SP,
+        expr: Box::new(expr),
+      })),
+    });
+  }
 
   expr
 }

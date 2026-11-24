@@ -40,12 +40,6 @@ pub static THEME_ROOT_SELECTOR: Lazy<regex::Regex> = Lazy::new(|| {
     .expect("Theme root selector regex is valid")
 });
 
-// CSS dimension units including modern viewport and container units
-pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^-?\d+(?:px|%|em|rem|ex|ch|vh|vw|vmin|vmax|dvh|dvw|lvh|lvw|svh|svw|cqw|cqh|cqi|cqb|cqmin|cqmax)?$")
-    .expect("Length unit tester regex is valid")
-});
-
 // The character class is spelled out rather than written as `[\w-]`: `\w` is
 // Unicode-aware here but ASCII-only in the `/^var\(--[a-zA-Z0-9-_]+\)$/` this
 // mirrors, so `[\w-]` also accepted names like `var(--épaisseur)`.
@@ -94,6 +88,16 @@ pub static ANY_SIBLING_SELECTOR: Lazy<Regex> = Lazy::new(|| {
 pub static PSEUDO_PART_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"::[a-zA-Z-]+|:[a-zA-Z-]+(?:\([^)]*\))?").expect("Pseudo part regex is valid")
 });
+
+/// The pseudo parts of `text`, in order: `:hover::after` gives `:hover` and
+/// `::after`. A match that the regex engine gives up on is left out.
+pub fn pseudo_parts(text: &str) -> Vec<&str> {
+  PSEUDO_PART_REGEX
+    .find_iter(text)
+    .flatten()
+    .map(|part| part.as_str())
+    .collect()
+}
 
 // Matches .stylex or .consts file imports with optional extensions (.ts, .js,
 // .tsx, .jsx)

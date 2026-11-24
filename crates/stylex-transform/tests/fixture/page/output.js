@@ -50,7 +50,7 @@ const { foo, ...a } = {
 export default function Home() {
     const { className, style } = {
         className: "input__s.main x1e2nbdu x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x1lmef92 input__s.title x1swossr xif65rj",
-        "data-style-src": "tests/fixture/page/input.stylex.js:5; tests/fixture/page/input.stylex.js:19"
+        "data-style-src": "@stylexswc/transform:tests/fixture/page/input.stylex.js:5; @stylexswc/transform:tests/fixture/page/input.stylex.js:19"
     };
     return <main className={className} style={style}>
       Main

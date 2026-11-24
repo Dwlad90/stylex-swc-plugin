@@ -84,14 +84,14 @@ fn assert_case(name: &str) {
 
 #[test]
 fn the_fixture_holds_every_test_of_the_reference_file() {
-  assert_eq!(fixture().cases.len(), 36);
+  assert_eq!(fixture().cases.len(), 43);
   assert_eq!(
     fixture()
       .cases
       .iter()
       .map(|case| case.calls.len())
       .sum::<usize>(),
-    45
+    55
   );
 }
 
@@ -120,6 +120,35 @@ fn all_rules_uselayers_false() {
 #[test]
 fn all_rules_uselayers_true() {
   assert_case("all rules (useLayers:true)");
+}
+
+/// `custom properties stay inside @layer alongside priority-0 at-rules`
+#[test]
+fn custom_properties_stay_inside_layer_alongside_priority_0_at_rules() {
+  assert_case("custom properties stay inside @layer alongside priority-0 at-rules");
+}
+
+/// `keeps %s unlayered with and without custom properties`, for `@keyframes`
+#[test]
+fn keeps_keyframes_unlayered_with_and_without_custom_properties() {
+  assert_case(
+    "keeps @keyframes fade{from{opacity:0}to{opacity:1}} unlayered with and without custom properties",
+  );
+}
+
+/// `keeps %s unlayered with and without custom properties`, for `@property`
+#[test]
+fn keeps_property_unlayered_with_and_without_custom_properties() {
+  assert_case(
+    r#"keeps @property --card-padding{syntax:"<length>";inherits:false;initial-value:0px} unlayered with and without custom properties"#,
+  );
+}
+
+/// `keeps %s unlayered with and without custom properties`, for
+/// `@position-try`
+#[test]
+fn keeps_position_try_unlayered_with_and_without_custom_properties() {
+  assert_case("keeps @position-try --fallback{top:0} unlayered with and without custom properties");
 }
 
 /// `useLayers with before option`
@@ -180,6 +209,24 @@ fn legacy_expand_shorthands_with_logical_styles_polyfill() {
 #[test]
 fn logical_float_vars_are_emitted_when_the_float_comes_from_a_constant() {
   assert_case("logical float vars are emitted when the float comes from a constant");
+}
+
+/// `substitutes a constant value containing `$&` verbatim`
+#[test]
+fn substitutes_a_constant_value_containing_dollar_amp_verbatim() {
+  assert_case("substitutes a constant value containing `$&` verbatim");
+}
+
+/// `substitutes a constant value containing `$&` with no alias chain`
+#[test]
+fn substitutes_a_constant_value_containing_dollar_amp_with_no_alias_chain() {
+  assert_case("substitutes a constant value containing `$&` with no alias chain");
+}
+
+/// `substitutes constant values containing other `$` sequences verbatim`
+#[test]
+fn substitutes_constant_values_containing_other_dollar_sequences_verbatim() {
+  assert_case("substitutes constant values containing other `$` sequences verbatim");
 }
 
 /// `legacy-expand-shorthands duplicates theme selectors for higher precedence`
@@ -338,7 +385,7 @@ fn a_hole_a_nan_priority_and_a_numeric_class_name_read_as_the_plugin_reads_them(
   for (config, expected) in [
     (
       true,
-      "\n@layer priority1, priority2;\n.x1{a:0}\n@layer priority2{\n.x2{a:0}\n.x12{b:0}\n}",
+      "\n@layer priority1, priority2;\n\n@layer priority2{\n.x2{a:0}\n.x12{b:0}\n}",
     ),
     (false, ".x1{a:0}\n.x2:not(#\\#){a:0}\n.x12:not(#\\#){b:0}"),
   ] {

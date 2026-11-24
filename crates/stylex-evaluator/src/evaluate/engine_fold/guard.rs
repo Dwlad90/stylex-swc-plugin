@@ -11,14 +11,16 @@
 //! carries, and the one thing it deliberately does not, is [`Guard`].
 
 use boa_engine::{Context, JsString, JsValue, object::builtins::JsFunction};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
+  common::{Span, Spanned},
   ecma::ast::{
     ArrayLit, ArrowExpr, ArrowFunctionBody, BinExpr, CallExpr, Callee, CondExpr, Decl, Expr,
     ExprOrSpread, ExprStmt, Ident, IdentName, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
   },
+  ecma::visit::{Visit, VisitWith},
 };
 
 use stylex_ast::ast::convertors::normalize_expr;
@@ -36,18 +38,24 @@ use stylex_utils::swc::get_stmt_node_kind;
 use super::amplification::EntryAmplifier;
 use super::backstop::is_a_reserved_name;
 use super::engine::read;
-use super::transport::{Crossing, Transport};
+use super::losing_operand;
+use super::theme::{DottedPrefixes, DottedPrefixesMark};
+use super::transport::{Crossing, Transport, TransportMark};
 use super::{
   Ceilings, Decline, Depth, lists, refusal_for_a_property_name, refusal_for_a_property_read,
 };
 use crate::growable_stack::{grown_per_level, nesting_of};
 use crate::state::EvaluationState;
 use stylex_state::{
-  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
+  evaluate_result_value::EvaluateResultValue,
+  functions::{FunctionConfigType, FunctionMap},
+  state_manager::StateManager,
 };
 
 use super::super::{
-  engine_stylex_functions::{EngineCallable, Reached, engine_callable},
+  engine_stylex_functions::{
+    Carried, EngineCallable, NamespaceMembers, an_env_read, engine_callable, is_compiler_callable,
+  },
   evaluate_cached,
   helpers::evaluate_result_to_js_boolean,
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
@@ -324,6 +332,10 @@ pub(super) struct Guard<'a> {
   /// Set by a call for its own arguments and dropped everywhere else, so the
   /// arrow that reads it is the one written inside the call that measured it.
   pub(super) callback: Option<Callback>,
+  /// Whether a refusal under the walk is a put-off refusal. True inside a
+  /// right operand that runs only where the engine says so, or that runs
+  /// where it loses. See [`losing_operand`](super::losing_operand).
+  pub(super) puts_off: bool,
 }
 
 impl<'a> Guard<'a> {
@@ -355,6 +367,7 @@ impl<'a> Guard<'a> {
       // The scope being entered is not a call, and only the call an arrow was
       // written inside says how often that arrow runs.
       callback: None,
+      puts_off: self.puts_off,
     }
   }
 }
@@ -373,7 +386,7 @@ pub(super) struct Reader<'a> {
   ///
   /// Per name rather than per fold, because an expression can read two groups
   /// and a path off one says nothing about the other.
-  dotted_prefixes: FxHashMap<Atom, FxHashSet<Atom>>,
+  dotted_prefixes: DottedPrefixes,
   /// How deep the printed source nests through the operand the walk declined to
   /// enter, measured from the top of the expression.
   ///
@@ -381,6 +394,31 @@ pub(super) struct Reader<'a> {
   /// claim has to cover is the deepest text anywhere in the call, and a step
   /// that kept its own answer could only report the branch it happened to be on.
   unentered_nesting: usize,
+  /// The logical operators whose right operand the engine runs even where the
+  /// left one decides, and the parts that hold a put-off refusal, by their
+  /// span. See [`losing_operand`](super::losing_operand).
+  ///
+  /// A span, and not an address, because the walk also reads copies of
+  /// declarations, and a copy that a refused walk drops frees its address. The
+  /// copy of a declaration has the spans of the declaration, so the printer
+  /// finds the operator in either tree.
+  recorded: losing_operand::Recorded,
+  /// Whether each expression the walk asked about calls a compiler function,
+  /// by its span. One search fills the answer for each operand under the one
+  /// it was asked about, so a nest of logical operators is searched once and
+  /// not once for each level. See [`Walk::calls_a_compiler_function`].
+  ///
+  /// Two nodes can have the same span, as an optional chain and its base do.
+  /// Such nodes hold the same subtree, so they have the same answer.
+  compiler_calls: FxHashMap<Span, bool>,
+}
+
+/// Where a [`Reader`] stands, so a walk that refuses can put back what it
+/// carried and recorded. See [`Reader::roll_back`].
+struct ReaderMark {
+  transport: TransportMark,
+  recorded: usize,
+  dotted_prefixes: DottedPrefixesMark,
 }
 
 impl<'a> Reader<'a> {
@@ -402,9 +440,31 @@ impl<'a> Reader<'a> {
       traversal_state,
       fns,
       transport: Transport::new(ceilings),
-      dotted_prefixes: FxHashMap::default(),
+      dotted_prefixes: DottedPrefixes::default(),
       unentered_nesting: 0,
+      recorded: losing_operand::Recorded::default(),
+      compiler_calls: FxHashMap::default(),
     }
+  }
+
+  /// Where the reader stands now.
+  ///
+  /// The theme imports a resolution queued are not part of it. The logical
+  /// node evaluates a losing side too, and its theme reads queue their imports
+  /// whether or not the side folds.
+  fn mark(&self) -> ReaderMark {
+    ReaderMark {
+      transport: self.transport.mark(),
+      recorded: self.recorded.len(),
+      dotted_prefixes: self.dotted_prefixes.mark(),
+    }
+  }
+
+  /// Puts back what the walk carried and recorded since `mark`.
+  fn roll_back(&mut self, mark: ReaderMark) {
+    self.transport.roll_back(mark.transport);
+    self.recorded.truncate(mark.recorded);
+    self.dotted_prefixes.roll_back(mark.dotted_prefixes);
   }
 
   /// The value `expr` resolves to, or `None` where it resolves to nothing.
@@ -706,12 +766,6 @@ impl<'a, 'r> Walk<'a, 'r> {
     Self { guard, reader }
   }
 
-  /// Whether a theme reference crossed inward under any of the names this walk
-  /// resolved.
-  pub(super) fn carried_a_theme_reference(&self) -> bool {
-    self.reader.transport.read_a_theme_reference
-  }
-
   /// How deep the source about to be printed nests.
   ///
   /// The ceiling, which every level the walk entered was spent under, or the
@@ -724,19 +778,88 @@ impl<'a, 'r> Walk<'a, 'r> {
   /// [`growable_stack`](crate::growable_stack) is for, and it is more
   /// than twice what a level costs: the fold nested to the largest configurable
   /// ceiling is pinned in the evaluator's own suite.
+  ///
+  /// A logical operator that runs its losing operand is printed as a call
+  /// with the operand in an arrow, which is two levels more. Each such
+  /// operator adds two, which is more than the text needs when they are not
+  /// nested in each other. A part that holds a put-off refusal is printed as a
+  /// call with one number. It also adds two, which is more than that call
+  /// needs.
   pub(super) fn printed_nesting(&self) -> usize {
-    self.guard.depth.ceiling.max(self.reader.unentered_nesting)
+    let changes = 2 * self.reader.recorded.len();
+
+    self.guard.depth.ceiling.max(self.reader.unentered_nesting) + changes
   }
 
-  /// The names the walk resolved, as the parameters of the printed arrow.
-  pub(super) fn parameters(&self) -> Vec<Pat> {
-    self.reader.transport.parameters()
+  /// The recorded nodes of `call` and of the parameter defaults, with their
+  /// positions. See [`losing_operand::ordinals`].
+  pub(super) fn changes(&self, call: &CallExpr) -> Vec<losing_operand::Changed> {
+    let defaults = self
+      .reader
+      .transport
+      .printed_parameters()
+      .filter_map(|(_, default)| default);
+
+    losing_operand::ordinals(call, defaults, &self.reader.recorded)
   }
 
   /// The same parameters as the hash the fold memo is keyed on, answered
   /// without printing them.
   pub(super) fn parameters_key(&self) -> u128 {
     self.reader.transport.parameters_key()
+  }
+
+  /// The build state of the evaluation, for the scope a compiler function reads
+  /// it through while the engine runs, and apart from it what the walk
+  /// collected for the engine.
+  ///
+  /// Two borrows of separate fields, so the scope can hold the state while the
+  /// fold reads what it collected.
+  pub(super) fn for_the_engine(&mut self) -> (&mut StateManager, Collected<'_>) {
+    let Reader {
+      traversal_state,
+      transport,
+      dotted_prefixes,
+      recorded,
+      ..
+    } = &mut *self.reader;
+
+    let collected = Collected {
+      transport,
+      dotted_prefixes,
+      recorded,
+      depth: self.guard.depth,
+    };
+
+    (traversal_state, collected)
+  }
+}
+
+/// What a walk collected for the engine, read while the build state is in the
+/// scope a compiler function reads it through.
+pub(super) struct Collected<'w> {
+  transport: &'w Transport,
+  dotted_prefixes: &'w DottedPrefixes,
+  recorded: &'w losing_operand::Recorded,
+  depth: Depth,
+}
+
+impl<'w> Collected<'w> {
+  /// The nodes the walk recorded for the printer, with the declines of the
+  /// put-off refusals.
+  pub(super) fn recorded(&self) -> &'w losing_operand::Recorded {
+    self.recorded
+  }
+
+  /// Whether a theme reference crossed inward under any of the names the walk
+  /// resolved.
+  pub(super) fn carried_a_theme_reference(&self) -> bool {
+    self.transport.read_a_theme_reference
+  }
+
+  /// The names the walk resolved, as the parameters of the printed arrow.
+  pub(super) fn parameters(&self) -> Vec<Pat> {
+    self.transport.parameters()
   }
 
   /// The values it resolved, as the arguments that arrow is called with.
@@ -750,13 +873,9 @@ impl<'a, 'r> Walk<'a, 'r> {
     method: &Atom,
     var_group: &JsFunction,
   ) -> Result<Vec<JsValue>, Decline> {
-    self.reader.transport.arguments(
-      engine,
-      method,
-      self.guard.depth,
-      var_group,
-      &self.reader.dotted_prefixes,
-    )
+    self
+      .transport
+      .arguments(engine, method, self.depth, var_group, self.dotted_prefixes)
   }
 }
 
@@ -797,7 +916,25 @@ impl<'r> Walk<'_, 'r> {
   /// in the other. Deliberately narrow: a shape it does not recognise is not a
   /// candidate.
   fn admit_value(&mut self, expr: &Expr) -> Result<(), Decline> {
-    grown_per_level(|| self.nested_value(expr))
+    match self.guard.puts_off {
+      false => grown_per_level(|| self.nested_value(expr)),
+      true => self.admit_or_put_off(expr),
+    }
+  }
+
+  /// Admits `expr`, or records its refusal as a put-off refusal. What the walk
+  /// carried and recorded for `expr` then goes back, because the printed
+  /// source does not hold `expr`.
+  ///
+  /// A node with no span has no stable name for the printer to find it by, so
+  /// its refusal goes to the node above it.
+  fn admit_or_put_off(&mut self, expr: &Expr) -> Result<(), Decline> {
+    let mark = self.reader.mark();
+
+    grown_per_level(|| self.nested_value(expr)).or_else(|refusal| {
+      self.reader.roll_back(mark);
+      self.record_a_put_off(expr.span(), refusal)
+    })
   }
 
   /// One expression, on the room [`admit_value`](Walk::admit_value) asked for,
@@ -851,6 +988,14 @@ impl<'r> Walk<'_, 'r> {
           Some(value) if is_a_carryable_receiver(&value) => {
             self.reader.transport.bind(&ident.sym, value, depth)
           },
+          // The `env` object through a named import, which crosses as an object
+          // of its entries.
+          Some(EvaluateResultValue::EnvObject(env)) => {
+            self
+              .reader
+              .transport
+              .carry(&ident.sym, Crossing::Env(env), depth)
+          },
           // Everything left is a function, or is nothing this module answers for.
           resolved => {
             // A name holding a function, which is what the evaluator answers a
@@ -897,17 +1042,59 @@ impl<'r> Walk<'_, 'r> {
       Expr::Lit(Lit::Regex(_) | Lit::BigInt(_)) => Err(Decline::NotACandidate),
       Expr::Lit(_) => Ok(()),
       Expr::Paren(paren) => self.under(inner).admit_value(&paren.expr),
+      // A sequence is worth its last operand, and the source the engine reads
+      // holds that operand alone. See [`sequence`](super::sequence).
+      Expr::Seq(sequence) => sequence
+        .exprs
+        .last()
+        .map_or(Ok(()), |last| self.under(inner).admit_value(last)),
       Expr::Unary(unary) => self.under(inner).admit_value(&unary.arg),
       // Both operands of an arithmetic or a comparison operator are evaluated, so
       // both are walked. A short-circuiting one evaluates its right operand only
       // where the left one lets it, and the walk stops exactly where the language
       // does — see [`Walk::deciding_value_of`] for when it may tell.
+      //
+      // A logical operator whose right operand calls a compiler function is the
+      // exception: the evaluator runs that operand even where it loses, so the
+      // engine has to run it too. The printed source runs it always — see
+      // [`losing_operand`](super::losing_operand).
+      //
+      // A `??` whose left operand the walk cannot show to decide is printed the
+      // same way, because only the printed helper applies the rule of the
+      // logical node to it: a left operand that is falsy and not nullish
+      // decides nothing.
+      //
+      // Where only the engine can tell if the left operand decides, or where
+      // the right operand runs when it loses, a refusal in the right operand is
+      // a put-off refusal. The parts in front of it still run, and it applies
+      // only where the left operand does not decide.
       Expr::Bin(bin) => {
         self.under(inner).admit_value(&bin.left)?;
 
-        match self.right_operand_runs(bin) {
-          true => self.under(inner).admit_value(&bin.right),
-          false => {
+        let runs = self.right_operand_runs(bin);
+        let op = LogicalOp::of(bin.op);
+        let runs_when_it_loses = op.is_some_and(|op| {
+          (runs != Some(false) && op == LogicalOp::Nullish)
+            || self.calls_a_compiler_function(&bin.right)
+        });
+
+        match (runs, op.filter(|_| runs_when_it_loses)) {
+          (Some(true), None) => self.under(inner).admit_value(&bin.right),
+          (Some(true), Some(op)) => {
+            self.under(inner).admit_value(&bin.right)?;
+            self.record_an_either(bin.span, op)
+          },
+          (None, either) | (Some(false), either @ Some(_)) => {
+            self
+              .under(Guard {
+                puts_off: true,
+                ..inner
+              })
+              .admit_value(&bin.right)?;
+
+            either.map_or(Ok(()), |op| self.record_an_either(bin.span, op))
+          },
+          (Some(false), None) => {
             self.under(inner).never_entered(&bin.right);
 
             Ok(())
@@ -966,6 +1153,18 @@ impl<'r> Walk<'_, 'r> {
         // checked caller — see [`backstop`](super::backstop) and ADR 0010.
         if let MemberProp::Computed(key) = prop {
           self.under(inner).admit_value(&key.expr)?;
+        }
+
+        // `stylex.env` reads the `env` object off the namespace, which is not
+        // a value the module resolves. The namespace crosses as the object
+        // that holds it, so a key the option does not carry reads as
+        // `undefined` in the engine.
+        if let Some((namespace, members)) = self.an_env_read(member) {
+          return self.reader.transport.carry(
+            &namespace,
+            Crossing::Namespace(members),
+            self.guard.depth,
+          );
         }
 
         // A chain of two or more names read off a theme group is one token
@@ -1039,7 +1238,7 @@ impl<'r> Walk<'_, 'r> {
         let callable = self.under(inner).a_stylex_function(call);
 
         match callable {
-          Some(callable) => self.under(inner).admit_a_stylex_function(&callable, call),
+          Some(callable) => self.under(inner).admit_a_stylex_function(callable, call),
           None => self
             .under(inner)
             .admit_call(call, Position::Inside)
@@ -1095,11 +1294,6 @@ impl<'r> Walk<'_, 'r> {
       return;
     }
 
-    let paths = self
-      .reader
-      .dotted_prefixes
-      .entry(name.sym.clone())
-      .or_default();
     let mut path = String::new();
 
     for part in parts.iter().take(parts.len() - 1) {
@@ -1109,26 +1303,34 @@ impl<'r> Walk<'_, 'r> {
 
       path.push_str(part);
 
-      paths.insert(Atom::from(path.as_str()));
+      self
+        .reader
+        .dotted_prefixes
+        .insert(&name.sym, Atom::from(path.as_str()));
     }
   }
 
-  /// Whether `bin`'s right operand is evaluated at all.
+  /// Whether the language evaluates `bin`'s right operand.
   ///
   /// True for every operator that is not short-circuiting, and for one that is
   /// where its left operand does not settle the answer on its own. Which
-  /// operands a short circuit reaches is the operator's own rule, read from
+  /// operand a short circuit keeps is the operator's own rule, read from
   /// [`evaluates_its_right_operand`] rather than restated here, so the walk and
-  /// the fold cannot come to disagree about which side a build reaches.
-  fn right_operand_runs(&mut self, bin: &BinExpr) -> bool {
+  /// the evaluator agree about which side is the answer. They do not agree
+  /// about which side runs: the evaluator runs both. The caller closes that gap
+  /// for a right operand that calls a compiler function, which is the only
+  /// operand whose running the build can see.
+  ///
+  /// `None` where only the engine can tell: a short-circuiting operator whose
+  /// left operand this walk may not read.
+  fn right_operand_runs(&mut self, bin: &BinExpr) -> Option<bool> {
     let Some(op) = LogicalOp::of(bin.op) else {
-      return true;
+      return Some(true);
     };
 
-    match self.deciding_value_of(&bin.left) {
-      Some(left) => evaluates_its_right_operand(op, &left),
-      None => true,
-    }
+    self
+      .deciding_value_of(&bin.left)
+      .map(|left| evaluates_its_right_operand(op, &left))
   }
 
   /// The arm of `test ? cons : alt` the engine evaluates and the arm it does
@@ -1161,6 +1363,10 @@ impl<'r> Walk<'_, 'r> {
   /// scope rather than of the expression, because a name bound one arrow further
   /// out is as much the engine's as the parameter beside it.
   ///
+  /// An operand that calls a compiler function is not read either. Reading it
+  /// runs the function, and the engine runs it again, so the build would get
+  /// the rule twice. Both sides are walked instead, and the engine decides.
+  ///
   /// The operand this reads has already been walked by the caller, so it is read
   /// twice. Both readings go through the evaluator's memo, so the second is a
   /// hash of the subtree and a lookup rather than an evaluation, and it is paid
@@ -1168,10 +1374,86 @@ impl<'r> Walk<'_, 'r> {
   ///
   /// [dead operand]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn deciding_value_of(&mut self, expr: &Expr) -> Option<EvaluateResultValue> {
-    match self.guard.scope.inside_a_callback() {
+    match self.guard.scope.inside_a_callback() || self.calls_a_compiler_function(expr) {
       true => None,
       false => self.reader.resolve(expr),
     }
+  }
+
+  /// The namespace name and what its object holds, where `member` reads the
+  /// `env` object off a namespace the callback does not bind.
+  fn an_env_read(&self, member: &MemberExpr) -> Option<(Atom, NamespaceMembers)> {
+    let (namespace, members) = an_env_read(member, &self.reader.state.functions)?;
+
+    match self.guard.scope.binds(&namespace) {
+      true => None,
+      false => Some((namespace, members)),
+    }
+  }
+
+  /// Whether `expr` calls a compiler function anywhere in it, a callback body
+  /// included, or calls a function the module declares whose body does.
+  ///
+  /// A name a callback binds is not told apart here. Such a call makes the
+  /// walk enter an operand it could leave, which costs a walk and changes no
+  /// answer, because the operand is printed and run only where the walk admits
+  /// it.
+  fn calls_a_compiler_function(&mut self, expr: &Expr) -> bool {
+    let Reader {
+      state,
+      traversal_state,
+      compiler_calls,
+      ..
+    } = &mut *self.reader;
+
+    let mut search = CompilerCalls::new(traversal_state, &state.functions, compiler_calls);
+
+    search.answer(expr);
+
+    search.found
+  }
+
+  /// Records `span` as an operator whose right operand runs where it loses.
+  ///
+  /// An operator with no span has no stable name for the printer to find it
+  /// by. Such a tree is built by a transform and not parsed, and the dispatch
+  /// below answers for it.
+  ///
+  /// It does not replace an entry. See [`Walk::record_a_put_off`] for why no
+  /// entry is there.
+  fn record_an_either(&mut self, span: Span, op: LogicalOp) -> Result<(), Decline> {
+    if span.is_dummy() {
+      return Err(Decline::NotACandidate);
+    }
+
+    self
+      .reader
+      .recorded
+      .entry(span)
+      .or_insert(losing_operand::Change::Either(op));
+
+    Ok(())
+  }
+
+  /// Records `span` as a part that holds a put-off refusal, on the same terms
+  /// as [`Walk::record_an_either`].
+  ///
+  /// It replaces an entry, so a put-off refusal is never lost. No entry is
+  /// there in a parsed tree: the walk of the part rolled back what it recorded,
+  /// and every other node with this span is above or below the part. A node
+  /// below it was walked with the part and rolled back. A node above it is
+  /// recorded after the walk of the part ends.
+  fn record_a_put_off(&mut self, span: Span, refusal: Decline) -> Result<(), Decline> {
+    if span.is_dummy() {
+      return Err(Decline::NotACandidate);
+    }
+
+    self
+      .reader
+      .recorded
+      .insert(span, losing_operand::Change::PutOff(refusal));
+
+    Ok(())
   }
 
   /// Admits a name the module declared a function under, by crossing the
@@ -1194,8 +1476,15 @@ impl<'r> Walk<'_, 'r> {
     // Depth descends here rather than restarting, unlike the walk over a resolved
     // value: a declaration can name a second function whose declaration names the
     // first, and the descent is what bounds a walk that goes round.
+    //
+    // A refusal in the declaration is not a put-off refusal. The declaration is
+    // printed as a parameter default, which runs when the printed arrow binds
+    // its parameters, before any operator decides. So the refusal goes to the
+    // name that reads the declaration, and that name holds the put-off
+    // refusal.
     let outer = Guard {
       scope: Scope::Module,
+      puts_off: false,
       ..self.guard
     };
 
@@ -1203,12 +1492,12 @@ impl<'r> Walk<'_, 'r> {
 
     // Recorded after the walk, so every name the declaration reads is already a
     // parameter ahead of the parameter whose default reads it.
+    let depth = self.guard.depth;
+
     self
       .reader
       .transport
-      .carry(&ident.sym, Crossing::Source(Box::new(declaration)));
-
-    Ok(())
+      .carry(&ident.sym, Crossing::Source(Box::new(declaration)), depth)
   }
 
   /// The [StyleX function the engine may
@@ -1223,7 +1512,11 @@ impl<'r> Walk<'_, 'r> {
       return None;
     };
 
-    let callable = engine_callable(callee, self.reader.traversal_state)?;
+    let callable = engine_callable(
+      callee,
+      self.reader.traversal_state,
+      &self.reader.state.functions,
+    )?;
 
     match self.guard.scope.binds(&callable.name) {
       true => None,
@@ -1251,32 +1544,39 @@ impl<'r> Walk<'_, 'r> {
   /// [applied global]: https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/crates/stylex-evaluator/CONTEXT.md
   fn admit_a_stylex_function(
     &mut self,
-    callable: &EngineCallable,
+    callable: EngineCallable,
     call: &CallExpr,
   ) -> Result<(), Decline> {
     let inside_a_callback = self.guard.scope.inside_a_callback();
 
-    self
-      .admit_arguments(&call.args)
-      .map_err(|declined| match declined {
-        Decline::NotACandidate if inside_a_callback => {
-          Decline::rule(uncoercible_value(callable.function_name()))
-        },
-        declined => declined,
-      })?;
+    // A compiler function with no argument has nothing to read. Outside a
+    // callback the dispatch below owns the call and names that. Inside one, it
+    // is refused like an argument the bridge cannot carry.
+    let arguments = match callable.needs_an_argument && call.args.is_empty() {
+      true => Err(Decline::NotACandidate),
+      false => self.admit_arguments(&call.args),
+    };
+
+    arguments.map_err(|declined| match declined {
+      Decline::NotACandidate if inside_a_callback => {
+        Decline::rule(uncoercible_value(callable.function_name()))
+      },
+      declined => declined,
+    })?;
 
     // A name reached directly holds the function; a namespace holds an object of
     // the properties the engine may call. Both come from the callable itself, so
     // the value under a name is a function of the name and the transport's
     // one-value-per-name rule cannot drop a second naming.
-    let crossing = match callable.reached {
-      Reached::Directly => Crossing::Function(callable.call()),
-      Reached::AsAProperty => Crossing::Namespace,
+    let crossing = match callable.carried {
+      Carried::Native(call) => Crossing::Function(call),
+      Carried::Compiler(call) => Crossing::Compiler(call),
+      Carried::Namespace(members) => Crossing::Namespace(members),
     };
 
-    self.reader.transport.carry(&callable.name, crossing);
+    let depth = self.guard.depth;
 
-    Ok(())
+    self.reader.transport.carry(&callable.name, crossing, depth)
   }
 
   /// Whether a call is one this module can hand to the engine whole.
@@ -1337,7 +1637,33 @@ impl<'r> Walk<'_, 'r> {
       return Err(Decline::NotACandidate);
     };
 
+    // A function entry of the `env` option, called as the outermost call. The
+    // dispatch below owns it, as it owns a call through a bare name, and names
+    // a key the option does not carry. Inside a fold the engine calls it.
+    if position == Position::Outermost && self.is_the_env_object(obj) {
+      return Err(Decline::NotACandidate);
+    }
+
     self.under(guard).admit_a_method_call(obj, method, call)
+  }
+
+  /// Whether `obj` is the `env` object: a name a named import gave it, or a read
+  /// of it off a namespace.
+  fn is_the_env_object(&self, obj: &Expr) -> bool {
+    match normalize_expr(obj) {
+      Expr::Ident(ident) => matches!(
+        self
+          .reader
+          .state
+          .functions
+          .identifiers
+          .get(&ident.sym)
+          .map(Box::as_ref),
+        Some(FunctionConfigType::EnvObject(_))
+      ),
+      Expr::Member(member) => self.an_env_read(member).is_some(),
+      _ => false,
+    }
   }
 
   /// Whether a method call is one the engine can answer.
@@ -1870,10 +2196,7 @@ fn a_global_written_as_a_value(ident: &Ident, state: &StateManager) -> bool {
 /// [`a_global_written_as_a_value`] is: the walk unwraps a parenthesis before it
 /// dispatches, so every caller already holds the name it would have read.
 fn initializer_of<'a>(ident: &Ident, reader: &'a Reader) -> Option<&'a Expr> {
-  reader
-    .traversal_state
-    .declaration_of(ident)
-    .and_then(|declarator| declarator.init.as_deref())
+  initializer_in(ident, reader.traversal_state)
 }
 
 /// Whether the module declares `ident` as a function, which is what makes a name
@@ -1963,6 +2286,221 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
   }
 }
 
+/// The walk of [`Walk::calls_a_compiler_function`].
+///
+/// It does not stop at the first call it finds, so that it can file an answer
+/// for each operand that the guard can ask about. It asks for room at each
+/// level, so a deep operand cannot overflow the stack.
+///
+/// It walks each declaration it follows one time only, so its cost grows with
+/// the calls in the module and not with the paths through them. Declarations
+/// that call each other in a cycle reach the same declarations, so they get
+/// one answer: the answer of the outermost one, when its walk ends.
+struct CompilerCalls<'s> {
+  traversal_state: &'s StateManager,
+  functions: &'s FunctionMap,
+  /// The answers filed so far, by span.
+  answers: &'s mut FxHashMap<Span, bool>,
+  /// Each declaration the search met, by the address of its initializer. The
+  /// address is a key for this search only, while the state is borrowed.
+  met: FxHashMap<*const Expr, Met>,
+  /// The declarations that are [`Met::Waiting`], in the order their walks
+  /// ended, with the span of each initializer.
+  waiting: Vec<(*const Expr, Span)>,
+  /// How many declarations the walk is inside.
+  depth: usize,
+  /// Whether the expression the walk is in calls a compiler function.
+  found: bool,
+  /// The smallest depth of a declaration that the walk met again before its
+  /// walk ended, or [`NO_CUT`]. An answer of `false` under a cut can be short,
+  /// so it is not filed.
+  cut: usize,
+  /// How many declarations the search walked.
+  #[cfg(test)]
+  entered: usize,
+}
+
+/// The value of [`CompilerCalls::cut`] when the walk met no declaration again.
+const NO_CUT: usize = usize::MAX;
+
+/// What the search knows about a declaration it met.
+#[derive(Clone, Copy)]
+enum Met {
+  /// The walk is inside it, at this depth.
+  Following(usize),
+  /// Its walk ended, and it calls the declaration at this depth, which the
+  /// walk is still inside. The two reach each other, so they get one answer.
+  Waiting(usize),
+  /// Whether it calls a compiler function.
+  Settled(bool),
+}
+
+impl<'s> CompilerCalls<'s> {
+  fn new(
+    traversal_state: &'s StateManager,
+    functions: &'s FunctionMap,
+    answers: &'s mut FxHashMap<Span, bool>,
+  ) -> Self {
+    Self {
+      traversal_state,
+      functions,
+      answers,
+      met: FxHashMap::default(),
+      waiting: Vec::new(),
+      depth: 0,
+      found: false,
+      cut: NO_CUT,
+      #[cfg(test)]
+      entered: 0,
+    }
+  }
+
+  /// Walks `expr` and files its answer where the answer is complete.
+  ///
+  /// A tree built without spans has no stable keys, so it is searched each
+  /// time.
+  fn answer(&mut self, expr: &Expr) {
+    let span = expr.span();
+    let key = (!span.is_dummy()).then_some(span);
+
+    if let Some(found) = key.and_then(|key| self.answers.get(&key)) {
+      self.found |= *found;
+
+      return;
+    }
+
+    let outer_found = std::mem::take(&mut self.found);
+    let outer_cut = std::mem::replace(&mut self.cut, NO_CUT);
+
+    expr.visit_with(self);
+
+    // A call found is never a short answer.
+    if let Some(key) = key.filter(|_| self.found || self.cut == NO_CUT) {
+      self.answers.insert(key, self.found);
+    }
+
+    self.found |= outer_found;
+    self.cut = self.cut.min(outer_cut);
+  }
+
+  /// Walks the declaration of `ident`, where the module declares one, because
+  /// a call through the name runs its body.
+  fn follow(&mut self, ident: &Ident) {
+    let Some(init) = initializer_in(ident, self.traversal_state) else {
+      return;
+    };
+    let key = std::ptr::from_ref(init);
+
+    match self.met.get(&key) {
+      Some(Met::Settled(found)) => {
+        self.found |= *found;
+
+        return;
+      },
+      Some(Met::Following(depth) | Met::Waiting(depth)) => {
+        self.cut = self.cut.min(*depth);
+
+        return;
+      },
+      None => {},
+    }
+
+    let depth = self.depth;
+    let waiting_from = self.waiting.len();
+    let outer_found = std::mem::take(&mut self.found);
+    let outer_cut = std::mem::replace(&mut self.cut, NO_CUT);
+
+    #[cfg(test)]
+    {
+      self.entered += 1;
+    }
+
+    self.met.insert(key, Met::Following(depth));
+    self.depth += 1;
+    self.answer(init);
+    self.depth -= 1;
+
+    if self.found || self.cut >= depth {
+      // The answer is complete. The declarations that wait on this one get
+      // the same answer.
+      let found = self.found;
+      let settled = self
+        .waiting
+        .drain(waiting_from..)
+        .chain([(key, init.span())]);
+
+      for (declaration, span) in settled {
+        self.met.insert(declaration, Met::Settled(found));
+
+        if !span.is_dummy() {
+          self.answers.insert(span, found);
+        }
+      }
+
+      // A cut back to this declaration ends here.
+      if self.cut >= depth {
+        self.cut = NO_CUT;
+      }
+    } else {
+      // This declaration, and each one that waits on it, waits on the
+      // declaration further out.
+      let cut = self.cut;
+
+      for (declaration, _) in &self.waiting[waiting_from..] {
+        self.met.insert(*declaration, Met::Waiting(cut));
+      }
+
+      self.met.insert(key, Met::Waiting(cut));
+      self.waiting.push((key, init.span()));
+    }
+
+    self.found |= outer_found;
+    self.cut = self.cut.min(outer_cut);
+  }
+}
+
+impl Visit for CompilerCalls<'_> {
+  fn visit_expr(&mut self, expr: &Expr) {
+    grown_per_level(|| expr.visit_children_with(self));
+  }
+
+  fn visit_stmt(&mut self, stmt: &Stmt) {
+    grown_per_level(|| stmt.visit_children_with(self));
+  }
+
+  // The guard asks about the operands of a logical operator and the test of a
+  // conditional, so only those answers are filed.
+  fn visit_bin_expr(&mut self, bin: &BinExpr) {
+    self.answer(&bin.left);
+    self.answer(&bin.right);
+  }
+
+  fn visit_cond_expr(&mut self, cond: &CondExpr) {
+    self.answer(&cond.test);
+    cond.cons.visit_with(self);
+    cond.alt.visit_with(self);
+  }
+
+  fn visit_call_expr(&mut self, call: &CallExpr) {
+    if let Some(callee) = call.callee.as_expr() {
+      self.found |= is_compiler_callable(callee, self.traversal_state, self.functions);
+
+      if let Expr::Ident(ident) = normalize_expr(callee) {
+        self.follow(ident);
+      }
+    }
+
+    call.visit_children_with(self);
+  }
+}
+
+/// The initializer the module declared `ident` with, where it declared one.
+fn initializer_in<'s>(ident: &Ident, state: &'s StateManager) -> Option<&'s Expr> {
+  state
+    .declaration_of(ident)
+    .and_then(|declarator| declarator.init.as_deref())
+}
+
 /// Whether a *name* may hold this value — a question of its own, and narrower
 /// than what the bridge [carries](super::transport::Crossing::Value). Narrower,
 /// too, than the set of receivers the dispatch below hands straight back to a
@@ -2007,3 +2545,7 @@ mod speculation_tests;
 #[cfg(test)]
 #[path = "tests/shadowed_names_tests.rs"]
 mod shadowed_names_tests;
+
+#[cfg(test)]
+#[path = "tests/compiler_call_search_tests.rs"]
+mod compiler_call_search_tests;

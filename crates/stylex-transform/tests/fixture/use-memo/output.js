@@ -67,7 +67,7 @@ const styles = {
         "input__styles.primary": "input__styles.primary",
         backgroundColor: "xrkmrrc",
         color: "x1awj2ng",
-        $$css: "tests/fixture/use-memo/input.stylex.js:33"
+        $$css: "@stylexswc/transform:tests/fixture/use-memo/input.stylex.js:33"
     },
     root: {
         "input__styles.root": "input__styles.root",
@@ -77,7 +77,7 @@ const styles = {
         paddingLeft: "x5tiur9",
         paddingRight: "x1s7jvk7",
         paddingTop: "xz9dl7a",
-        $$css: "tests/fixture/use-memo/input.stylex.js:37"
+        $$css: "@stylexswc/transform:tests/fixture/use-memo/input.stylex.js:37"
     }
 };
 var _c;

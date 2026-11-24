@@ -2,7 +2,7 @@
 Color CSS type tests.
 */
 
-use crate::css_types::color::Color;
+use crate::css_types::color::{Color, HashColor};
 
 #[cfg(test)]
 mod test_css_type_color {
@@ -72,6 +72,25 @@ mod test_css_type_color {
       }
       assert_eq!(color.to_string(), input);
     }
+  }
+
+  #[test]
+  fn hash_color_channel_getters_expand_3_digit_shorthand() {
+    // The parser accepts 3-digit hex, so each channel doubles its digit
+    // (#f0a is #ff00aa) and does not read a fixed two-digit window.
+    match Color::parse().parse_to_end("#f0a").unwrap() {
+      Color::Hash(ref hash) => assert_eq!(hash.value, "f0a"),
+      _ => stylex_panic!("Expected HashColor for: #f0a"),
+    }
+    let short = HashColor::new("f0a");
+    assert_eq!(short.r(), 255);
+    assert_eq!(short.g(), 0);
+    assert_eq!(short.b(), 170);
+    assert_eq!(short.a(), 1.0);
+    // Full-length hex, with and without alpha, does not change.
+    let full = HashColor::new("ff00aa");
+    assert_eq!([full.r(), full.g(), full.b()], [255, 0, 170]);
+    assert!((HashColor::new("ff00aa80").a() - 128.0 / 255.0).abs() < 1e-9);
   }
 
   #[test]

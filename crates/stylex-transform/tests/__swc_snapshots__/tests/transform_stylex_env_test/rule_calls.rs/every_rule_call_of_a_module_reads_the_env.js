@@ -12,11 +12,10 @@ _inject2({
 });
 export const fadeOut = "x10a9hyr-B";
 _inject2({
-    ltr: "@position-try --x1fv2sc5 {position-anchor:position-anchor;position-anchor:--anchor;top:top;top:#123456;}",
-    priority: 0,
-    rtl: "@position-try --x1fv2sc5 {position-anchor:--anchor;top:#123456;}"
+    ltr: "@position-try --x10d6epx {position-anchor:--anchor;top:#123456;}",
+    priority: 0
 });
-export const anchor = "--x1fv2sc5";
+export const anchor = "--x10d6epx";
 _inject2({
     ltr: "::view-transition-group(*.x1o824iq){color:#123456;}",
     priority: 1

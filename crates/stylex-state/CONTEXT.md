@@ -22,7 +22,8 @@ through: imports, declarations, discovered style objects, caches, and the
 current [transformation cycle](../stylex-enums/CONTEXT.md). One per file, passed
 by mutable reference through the whole visitor. It derives `Clone`, and a
 dynamic style's callback clones it per invocation, which is why the
-binding-write sets, the declared bindings and every candidate index sit behind
+binding-write sets, the declared and enclosed bindings and every candidate index
+sit behind
 `Rc`. The lookup structures it answers its position questions from live in
 [stylex-state-index](../stylex-state-index/CONTEXT.md).
 _Avoid_: context, session, environment, state
@@ -166,6 +167,27 @@ The third kind is a **deep mutation** — a write more than one member hop out,
 `obj` at all and folds the initializer. This refuses instead, but only for a
 binding whose initializer the chain would actually inline.
 _Avoid_: dirty binding, stale binding, nested mutation, transitive write
+
+**Enclosed binding**:
+A [declared binding](../stylex-evaluator/CONTEXT.md#declared-binding) that a
+function, a block, a loop head, a `switch` or a class body holds, so it is not
+visible at [program level](#call-position). Answered by `is_enclosed_binding`
+and keyed by full SWC `Id`. A global and a program-level binding are not
+enclosed. The `stylex.props` merge asks it before it hoists a compiled `$$css`
+object: an object that reads an enclosed binding stays where it is written,
+because the name does not exist where the hoisted object would go.
+_Avoid_: nested binding, local binding, scoped binding
+
+**Undeclared program binding**:
+A program-level binding that the statement the top-level walk reads, or a later
+statement, declares: a `let`, a `const`, a `var`, a class, a `using`, or a
+TypeScript `enum` or namespace. A hoisted declaration goes in front of the
+statement that holds its expression, where such a binding has no value yet.
+So the `stylex.props` merge keeps an object that reads one where it is
+written. A function declaration and an import hold their value before the
+first statement runs, so they are never undeclared. Answered by
+`is_undeclared_program_binding` while the walk runs, and `false` outside it.
+_Avoid_: later binding, forward reference, TDZ binding
 
 **Rule-call function map**:
 The function map a rule call folds its argument with, held on the state for the

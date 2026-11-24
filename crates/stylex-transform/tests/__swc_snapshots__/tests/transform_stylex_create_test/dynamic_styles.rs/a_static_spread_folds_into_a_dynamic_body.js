@@ -7,8 +7,8 @@ const _temp = {
 export const styles = {
     dyn: (w)=>[
             _temp,
-            {
-                kzqmXN: w != null ? "x5lhr3w" : w,
+            w !== undefined && {
+                kzqmXN: w != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

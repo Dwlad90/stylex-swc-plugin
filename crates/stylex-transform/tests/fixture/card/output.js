@@ -24,7 +24,7 @@ _inject2({
 export default function Card() {
     const { className, style } = {
         className: "input__c.base x1e2nbdu input__c.test x15hxx75 x7z7khe",
-        "data-style-src": "tests/fixture/card/input.stylex.js:4; tests/fixture/card/input.stylex.js:8"
+        "data-style-src": "@stylexswc/transform:tests/fixture/card/input.stylex.js:4; @stylexswc/transform:tests/fixture/card/input.stylex.js:8"
     };
     return <article className={className} style={style}>Card</article>;
 }

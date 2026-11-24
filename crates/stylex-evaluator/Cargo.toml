@@ -18,6 +18,7 @@ boa_engine.workspace = true
 indexmap.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
+smallvec.workspace = true
 stacker.workspace = true
 swc_core = { workspace = true, features = [
   "common",

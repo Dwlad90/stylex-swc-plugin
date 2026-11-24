@@ -1,4 +1,4 @@
-use postcss_value_parser::{ValueParser, stringify};
+use postcss_value_parser::{Node, NodeKind, ValueParser, stringify};
 use stylex_macros::stylex_panic;
 
 use crate::css::common::build_error_css_rule;
@@ -14,6 +14,19 @@ pub mod timings;
 pub mod unprefixed_custom_properties;
 pub mod whitespace;
 pub mod zero_dimensions;
+
+/// Whether a node is a `url()` call, in any letter case.
+///
+/// The contents of a `url()` are a resource path, not a value: `url(0.5x.png)`
+/// names a file that `.5x.png` does not. The scanner keeps the contents of a
+/// lowercase `url(` as one word but splits those of `URL(` into words and
+/// separators, so the passes that rewrite words or spacing must not enter it.
+///
+/// An ASCII comparison is enough, because no other character lowercases to
+/// `u`, `r` or `l`.
+fn is_url_function(node: &Node) -> bool {
+  node.kind == NodeKind::Function && node.value.eq_ignore_ascii_case("url")
+}
 
 /// Rejects the value under normalization, quoting the rule it would have built.
 ///

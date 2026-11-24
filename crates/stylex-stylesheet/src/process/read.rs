@@ -121,27 +121,57 @@ impl RuleStyle {
 /// the reference's `Rule` tuple, with the priority read as the reference's
 /// arithmetic reads it (`Number(priority)`: a missing one is `NaN`).
 #[derive(Clone, Debug, PartialEq)]
-pub struct Rule(ClassName, RuleStyle, f64);
+pub struct Rule {
+  class_name: ClassName,
+  style: RuleStyle,
+  priority: f64,
+  /// Whether the priority was a number before it was read. A strict
+  /// comparison (`priority === 0`) needs it: `null` reads as 0 but is not 0.
+  priority_is_number: bool,
+}
 
 impl Rule {
   /// A rule from its three parts, with the priority already read as a number.
   pub fn new(class_name: ClassName, style: RuleStyle, priority: f64) -> Self {
-    Rule(class_name, style, priority)
+    Rule {
+      class_name,
+      style,
+      priority,
+      priority_is_number: true,
+    }
+  }
+
+  /// This rule with a new style and priority. A priority read from a value
+  /// that is not a number stays marked as such, so `priority === 0` still
+  /// fails for it.
+  pub(crate) fn rebuilt(&self, style: RuleStyle, priority: f64) -> Self {
+    Rule {
+      class_name: self.class_name.clone(),
+      style,
+      priority,
+      priority_is_number: self.priority_is_number,
+    }
   }
 
   /// The class name, the first item of the tuple.
   pub fn class_name(&self) -> &ClassName {
-    &self.0
+    &self.class_name
   }
 
   /// The style object, the second item of the tuple.
   pub fn style(&self) -> &RuleStyle {
-    &self.1
+    &self.style
   }
 
   /// The priority, the third item of the tuple. A lower priority sorts first.
   pub fn priority(&self) -> f64 {
-    self.2
+    self.priority
+  }
+
+  /// `priority === 0`: the priority is the number 0. A value that only reads
+  /// as 0, such as `null`, `false` or `"0"`, is not.
+  pub(crate) fn priority_is_zero(&self) -> bool {
+    self.priority_is_number && self.priority == 0.0
   }
 
   /// The `ltr` text, which the reference reads with string methods
@@ -275,9 +305,14 @@ fn read_rule(index: usize, rule: JsValue) -> Result<Rule, ProcessStylexRulesErro
 
   let class_name = ClassName(next());
   let style = RuleStyle::read(index, next())?;
-  let priority = next().to_js_number();
+  let priority = next();
 
-  Ok(Rule(class_name, style, priority))
+  Ok(Rule {
+    class_name,
+    style,
+    priority: priority.to_js_number(),
+    priority_is_number: matches!(priority, JsValue::Number(_)),
+  })
 }
 
 /// The `useLayers` object form: layers to declare before and after the

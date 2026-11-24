@@ -541,19 +541,34 @@ mod short_filenames {
   }
 
   /// A file of the package the compiler is running in needs no package name in
-  /// front of it, because every path it writes is in that package.
+  /// front of it, because every path it writes is in that package. The
+  /// working directory is a folder inside the package.
   #[test]
   fn names_no_package_for_a_file_of_the_package_it_runs_in() {
-    let state = StateManager::default();
+    let root = package_at("stylex_package_it_runs_in", Some("@acme/ui"));
+    let mut state = StateManager::default();
 
-    let here = match std::env::current_dir() {
-      Ok(here) => here,
-      Err(error) => panic!("the working directory could not be read: {error}"),
-    };
+    state.set_plugin_pass(PluginPass::default().with_cwd(format!("{root}/src")));
 
     assert_eq!(
-      short_filename_of(&format!("{}/src/Card.tsx", here.display()), &state),
+      short_filename_of(&format!("{root}/src/Card.tsx"), &state),
       "src/Card.tsx"
+    );
+  }
+
+  /// The working directory is read as an entry of its parent folder. So a
+  /// compilation that runs at the root of a package does not count as running
+  /// in it, and the file still gets the package name.
+  #[test]
+  fn names_the_package_when_it_runs_at_the_package_root() {
+    let root = package_at("stylex_package_root_cwd", Some("@acme/ui"));
+    let mut state = StateManager::default();
+
+    state.set_plugin_pass(PluginPass::default().with_cwd(root.clone()));
+
+    assert_eq!(
+      short_filename_of(&format!("{root}/src/Card.tsx"), &state),
+      "@acme/ui:src/Card.tsx"
     );
   }
 
@@ -988,12 +1003,22 @@ mod over_the_authored_text {
     // from line index 41 of the file the author wrote.
     let mut builder = SourceMapBuilder::new(None);
 
-    builder.add(1, 2, 41, 0, Some("Original.tsx".into()), None, false);
+    // An absolute path outside every package, so the name does not depend on
+    // the directory the suite runs in.
+    builder.add(
+      1,
+      2,
+      41,
+      0,
+      Some("/project/src/Original.tsx".into()),
+      None,
+      false,
+    );
     state.set_input_source_map(Arc::new(builder.into_sourcemap()));
 
     assert_eq!(
       annotate(&mut state, &call),
-      FlatCompiledStylesValue::String("Original.tsx:42".to_owned())
+      FlatCompiledStylesValue::String("src/Original.tsx:42".to_owned())
     );
   }
 

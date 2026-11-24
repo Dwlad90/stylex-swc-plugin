@@ -31,8 +31,8 @@ _inject2({
 });
 const styles = {
     opacity: (o)=>[
-            {
-                kSiTet: o != null ? "xb4nw82" : o,
+            o !== undefined && {
+                kSiTet: o != null ? "xb4nw82" : "",
                 $$css: true
             },
             {

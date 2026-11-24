@@ -52,14 +52,18 @@
 
 mod amplification;
 mod backstop;
+mod compiler;
 mod engine;
 mod guard;
+mod losing_operand;
 mod math;
 mod outward;
+mod sequence;
 mod theme;
 mod transport;
 
-use engine::{ENGINE, Engine, FoldKey, Printed, print_fold, threw};
+use compiler::LiveState;
+use engine::{ENGINE, Engine, FoldKey, FoldScript, Printed, print_fold, threw_in_fold};
 use guard::{AdmittedKind, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 use theme::is_a_var_group;
@@ -85,6 +89,8 @@ pub fn prints_a_check(expr: &Expr) -> bool {
 }
 
 // Read by the evaluator's own tests, which sit one level up.
+#[cfg(test)]
+pub(super) use compiler::NO_ENGINE_FORM;
 #[cfg(test)]
 pub(super) use engine::{
   MAX_COMPILED_SCRIPTS, compiled_expressions, forget_engine, holds_a_global, holds_an_engine,
@@ -159,6 +165,7 @@ struct Ceilings {
 /// Two counts, because a value costs in two ways that do not stand in for each
 /// other. A thousand empty arrays hold no text at all and are still a thousand
 /// values to build; a single string is one entry and can be a megabyte.
+#[derive(Clone, Copy)]
 struct Totals {
   /// UTF-16 code units of every string and key so far.
   units: u64,
@@ -233,11 +240,10 @@ fn lists(list: &[&str], name: &str) -> bool {
 /// and `bind` are what turn an unapplied function back into a call, so they are
 /// refused with it.
 ///
-/// Four names: the reads that reach a callable in one step. `__proto__` and
-/// `prototype` reach the same graph one step earlier and are refused by
-/// [`BLOCKED_PROPERTIES`] instead, which is asked second so that
-/// `constructor` keeps the sentence written for it here.
-pub(super) const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
+/// Three names. `constructor`, `__proto__` and `prototype` reach the same graph
+/// by a read and are refused by [`BLOCKED_PROPERTIES`], with the sentence the
+/// reference gives them. The two sets do not overlap.
+pub(super) const ESCAPING_PROPERTIES: [&str; 3] = ["call", "apply", "bind"];
 
 /// Property names that step onto the prototype chain of the value that was
 /// written.
@@ -246,11 +252,6 @@ pub(super) const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply
 /// whose `constructor` is `Function`. Refusing the first step closes the chain
 /// at its root rather than at the callable it ends in, and it makes the
 /// compiler answer these reads the way the reference implementation does.
-///
-/// `constructor` is in this set and in [`ESCAPING_PROPERTIES`]. Escaping is
-/// asked first at every call site, so a read of `constructor` keeps the
-/// sentence it already had and no author sees a message change. In practice
-/// this set is reached by `__proto__` and `prototype` only.
 ///
 /// This is about a property *read*. `__proto__` written as an object-literal
 /// key is a different thing -- it sets a prototype rather than reading one --
@@ -289,10 +290,9 @@ pub(super) fn is_a_blocked_property(name: &str) -> bool {
 /// The words a read of `name` is refused with, or `None` where the name is one
 /// a fold may read.
 ///
-/// The two property rules in the order they are asked, in one place. Escaping
-/// is asked first so that `constructor` -- which both sets hold -- keeps the
-/// sentence written for it, and a third rule would be added here rather than at
-/// each of the four sites that ask.
+/// The two property rules in one place. The sets do not overlap, so each name
+/// gets one sentence. A third rule would be added here rather than at each of
+/// the four sites that ask.
 ///
 /// Shared with the dispatch below the fold, because a read of one of these
 /// names is refused whether or not a call is around it: `s.constructor.name` is
@@ -300,12 +300,12 @@ pub(super) fn is_a_blocked_property(name: &str) -> bool {
 /// wrote the first would otherwise be told only that a property could not be
 /// determined.
 pub(super) fn refusal_for_a_property_name(name: &str) -> Option<Refusal> {
-  if lists(&ESCAPING_PROPERTIES, name) {
-    return Some(escaping_property(name).into());
-  }
-
   if is_a_blocked_property(name) {
     return Some(BLOCKED_PROPERTY_ACCESS.into());
+  }
+
+  if lists(&ESCAPING_PROPERTIES, name) {
+    return Some(escaping_property(name).into());
   }
 
   None
@@ -335,6 +335,7 @@ pub(crate) type Refusal = Cow<'static, str>;
 /// declined it, so nothing is reported and the dispatch below this module owns
 /// the call. A rule that fired declined a call the guard did recognise, and
 /// carries the words for it.
+#[derive(Clone)]
 enum Decline {
   NotACandidate,
   Rule(Refusal),
@@ -436,6 +437,7 @@ pub(crate) fn try_fold(
     // The expression the caller asked about is evaluated once.
     repeats: Repeats::Times(1),
     callback: None,
+    puts_off: false,
   };
 
   let mut reader = Reader::new(state, traversal_state, fns, ceilings);
@@ -459,6 +461,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
   // claimed for, the fold refuses — the one answer that is neither an abort nor
   // a wrong one.
   let nesting = walk.printed_nesting();
+  let changes = walk.changes(call);
 
   if !growable_stack::carriable(nesting) {
     return Err(Decline::rule(nesting_too_deep_to_carry(
@@ -477,93 +480,104 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
     // The key rather than the printed source: what the engine is asked for is
     // an expression it may already hold a compiled script for, and printing one
     // to find that out is most of what a hit would cost.
-    let key = FoldKey::new(call, walk.parameters_key());
+    let key = FoldKey::new(call, walk.parameters_key(), &changes);
 
-    ENGINE.with_borrow_mut(|slot| {
-      // Taken, not borrowed in place. A panic unwinding out of the engine is
-      // caught at the NAPI boundary and the process carries on, so an engine left
-      // in the slot would be reused by every later fold with its VM stack
-      // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
-      // the next fold builds a fresh engine; the abandoned one leaks, which is
-      // what `ManuallyDrop` already makes it do at thread exit.
-      let taken = match slot.take() {
-        Some(engine) => Ok(engine),
-        None => Engine::new(),
+    // Taken, not borrowed in place, and the slot is not held while the engine
+    // runs. A panic unwinding out of the engine is caught at the NAPI boundary
+    // and the process carries on, so an engine left in the slot would be reused
+    // by every later fold with its VM stack abandoned mid-frame. Taking it means
+    // an unwind leaves the slot empty and the next fold builds a fresh engine;
+    // the abandoned one leaks, which is what `ManuallyDrop` already makes it do
+    // at thread exit.
+    //
+    // A compiler function the engine calls can start a nested fold. That fold
+    // finds the slot empty and builds an engine of its own, and this one goes
+    // back into the slot when it is done.
+    let taken = match ENGINE.with_borrow_mut(Option::take) {
+      Some(engine) => Ok(engine),
+      None => Engine::new(),
+    };
+
+    // Read through the answer rather than out of it, so the engine's own
+    // refusal is the fold's refusal without a second place that carries it.
+    //
+    // Written this way for the coverage gate. `Engine::new` builds from the
+    // prelude and the trap source this compiler ships, so it cannot fail from
+    // anything a module reaches it with, and a `?` here leaves a region no
+    // case can enter. A step that *can* fail is asked of
+    // [`Engine::started_on`] instead, which takes both sources so a case can
+    // hand in one that fails. Nothing is swallowed: the failure still leaves
+    // through this closure's `Result`.
+    taken.and_then(|mut engine| {
+      // Cloned rather than borrowed: it is a handle the engine's own collector
+      // owns, and the build below needs the engine's context borrowed at the
+      // same time.
+      let var_group = engine.var_group.clone();
+
+      let depth = walk.guard.depth.restart();
+      let mut outward = Outward::new(method, walk.guard.ceilings);
+
+      let applied = match admitted.kind {
+        AdmittedKind::Global => admit_an_applied_global(method, &mut engine.context),
+        AdmittedKind::Method | AdmittedKind::Named => Ok(()),
       };
 
-      // Read through the answer rather than out of it, so the engine's own
-      // refusal is the fold's refusal without a second place that carries it.
-      //
-      // Written this way for the coverage gate. `Engine::new` builds from the
-      // prelude and the trap source this compiler ships, so it cannot fail from
-      // anything a module reaches it with, and a `?` here leaves a region no
-      // case can enter. A step that *can* fail is asked of
-      // [`Engine::started_on`] instead, which takes both sources so a case can
-      // hand in one that fails. Nothing is swallowed: the failure still leaves
-      // through this closure's `Result`.
-      taken.and_then(|mut engine| {
-        // Cloned rather than borrowed: it is a handle the engine's own collector
-        // owns, and the build below needs the engine's context borrowed at the
-        // same time.
-        let var_group = engine.var_group.clone();
+      // The build state is in scope while the engine runs, so a compiler
+      // function the engine calls can write into the build. The scope holds
+      // the borrow of the state until it is dropped at the end of this closure,
+      // and the fold reads only what the walk collected until then.
+      let (live, collected) = walk.for_the_engine();
+      let in_scope = LiveState::enter(live);
 
-        let depth = walk.guard.depth.restart();
-        let mut outward = Outward::new(method, walk.guard.ceilings);
+      let folded = applied
+        .and_then(|()| collected.arguments(&mut engine.context, method, &var_group))
+        .and_then(|arguments| {
+          let print = || print_fold(call, collected.parameters(), &changes);
 
-        let applied = match admitted.kind {
-          AdmittedKind::Global => admit_an_applied_global(method, &mut engine.context),
-          AdmittedKind::Method | AdmittedKind::Named => Ok(()),
-        };
+          apply(
+            FoldScript::new(key, print).changing(&changes, collected.recorded()),
+            &arguments,
+            &mut engine,
+            method,
+          )
+        })
+        // Whether the answer is the theme group itself.
+        //
+        // Asked only where a group crossed, so an ordinary answer pays
+        // nothing for a question that could not be true of it.
+        //
+        // The read carries its refusal rather than reading a throw as "not
+        // a group". Reading it as "not a group" was wrong: the walk out
+        // below reads *own* keys, so a marker on the answer's prototype is
+        // never read again and the throw is never met a second time. The
+        // answer would fold to an empty object and the declaration would be
+        // dropped with nothing said.
+        //
+        // No source builds such an answer now -- the statics that put a
+        // marker on a prototype are outside the allowlist, in a callback
+        // body as much as written out -- so the throw itself is asked of the
+        // marker reader directly, in `var_group_tests`. The refusal travels
+        // through the chain rather than through a `?`, because a `?` here is
+        // a branch of this function that no source can take.
+        .and_then(|value| match collected.carried_a_theme_reference() {
+          true => is_a_var_group(&value, method, &mut engine.context).map(|group| (value, group)),
+          false => Ok((value, false)),
+        })
+        .and_then(|(value, is_the_group)| match is_the_group {
+          // A group standing where a value belongs is handed back rather
+          // than converted: the group's members live in another file and
+          // nothing this side can write stands for it, where the dispatch
+          // below holds the reference and answers for it. A refusal here
+          // would fail a build it can compile.
+          true => Err(Decline::NotACandidate),
+          false => outward.value(&value, &mut engine.context, depth),
+        });
 
-        let folded = applied
-          .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
-          .and_then(|arguments| {
-            apply(
-              key,
-              || print_fold(call, walk.parameters()),
-              &arguments,
-              &mut engine,
-              method,
-            )
-          })
-          // Whether the answer is the theme group itself.
-          //
-          // Asked only where a group crossed, so an ordinary answer pays
-          // nothing for a question that could not be true of it.
-          //
-          // The read carries its refusal rather than reading a throw as "not
-          // a group". Reading it as "not a group" was wrong: the walk out
-          // below reads *own* keys, so a marker on the answer's prototype is
-          // never read again and the throw is never met a second time. The
-          // answer would fold to an empty object and the declaration would be
-          // dropped with nothing said.
-          //
-          // No source builds such an answer now -- the statics that put a
-          // marker on a prototype are outside the allowlist, in a callback
-          // body as much as written out -- so the throw itself is asked of the
-          // marker reader directly, in `var_group_tests`. The refusal travels
-          // through the chain rather than through a `?`, because a `?` here is
-          // a branch of this function that no source can take.
-          .and_then(|value| match walk.carried_a_theme_reference() {
-            true => {
-              is_a_var_group(&value, method, &mut engine.context).map(|group| (value, group))
-            },
-            false => Ok((value, false)),
-          })
-          .and_then(|(value, is_the_group)| match is_the_group {
-            // A group standing where a value belongs is handed back rather
-            // than converted: the group's members live in another file and
-            // nothing this side can write stands for it, where the dispatch
-            // below holds the reference and answers for it. A refusal here
-            // would fail a build it can compile.
-            true => Err(Decline::NotACandidate),
-            false => outward.value(&value, &mut engine.context, depth),
-          });
+      drop(in_scope);
 
-        *slot = Some(engine);
+      ENGINE.with_borrow_mut(|slot| *slot = Some(engine));
 
-        folded
-      })
+      folded
     })
   })
 }
@@ -598,13 +612,13 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 /// whole contract is that it may fail, where an assertion would abort a build
 /// that a deopt would only leave to the runtime.
 fn apply(
-  key: FoldKey,
-  print: impl FnOnce() -> Printed,
+  fold: FoldScript<'_, impl FnOnce() -> Printed>,
   arguments: &[JsValue],
   engine: &mut Engine,
   method: &Atom,
 ) -> Result<JsValue, Decline> {
-  let (evaluated, binds_the_checks) = engine.eval(key, print, method)?;
+  let put_offs = fold.put_offs;
+  let (evaluated, binds_the_checks) = engine.eval(fold, method)?;
 
   if !binds_the_checks && arguments.is_empty() {
     return Ok(evaluated);
@@ -630,7 +644,7 @@ fn apply(
 
   callable
     .call(&JsValue::undefined(), &passed, &mut engine.context)
-    .map_err(|error| threw(method, &error))
+    .map_err(|error| threw_in_fold(method, &error, put_offs))
 }
 
 // Read by the two suites that ask the engine what a value they built behaves

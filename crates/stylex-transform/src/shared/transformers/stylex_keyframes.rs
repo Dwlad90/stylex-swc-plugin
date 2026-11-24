@@ -8,7 +8,9 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::utils::{
   core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-  object::{obj_entries, obj_from_entries, obj_map_keys_and_transform_values},
+  object::{
+    MappedEntries, obj_entries, obj_from_entries, obj_map_entry, obj_transform_values_and_map_keys,
+  },
 };
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, get_key_values_from_object, normalize_expr,
@@ -59,7 +61,7 @@ pub(crate) fn stylex_keyframes(
 
     expanded_steps.insert(
       step,
-      obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned()),
+      obj_transform_values_and_map_keys(&entries, state, |key| dashify(key).into_owned()),
     );
   }
 
@@ -113,19 +115,23 @@ pub(crate) fn stylex_keyframes(
 /// The steps of one keyframes rule, written as `step{declarations}`.
 ///
 /// `resolve` answers the declaration a pair makes in the direction the caller
-/// asks for, and a pair that spells nothing is dropped.
+/// asks for. When two pairs of a step resolve to one property name, the step
+/// keeps one of them.
 fn construct_keyframes_obj(
   steps: &KeyframeSteps,
   resolve: impl for<'a> Fn(&'a Pair) -> PairCow<'a>,
 ) -> String {
   let mut result = String::with_capacity(steps.len() * 32);
+  // One map serves every step, so it is allocated once for the rule.
+  let mut entries = MappedEntries::default();
 
   for (step, pairs) in steps {
     result.push_str(step);
     result.push('{');
 
-    for css_text in pairs.iter().filter_map(|pair| resolve(pair).as_css_text()) {
-      result.push_str(&css_text);
+    obj_map_entry(pairs, &resolve, &mut entries);
+    for pair in entries.values() {
+      pair.push_css_text(&mut result);
     }
 
     result.push('}');

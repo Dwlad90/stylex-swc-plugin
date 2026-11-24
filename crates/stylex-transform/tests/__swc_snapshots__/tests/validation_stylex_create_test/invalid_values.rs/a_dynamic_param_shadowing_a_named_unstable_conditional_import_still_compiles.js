@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     dyn: (unstable_conditional)=>[
-            {
-                kZKoxP: unstable_conditional != null ? "x16ye13r" : unstable_conditional,
+            unstable_conditional !== undefined && {
+                kZKoxP: unstable_conditional != null ? "x16ye13r" : "",
                 $$css: true
             },
             {

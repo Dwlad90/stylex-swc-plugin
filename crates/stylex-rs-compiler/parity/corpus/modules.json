@@ -1781,6 +1781,54 @@
       "note": "No two rungs touch, so every branch the negation chain distributes into contradicts. A contradiction is retained rather than pruned -- it prints as `not all`, and the disjunction nesting around it stays in the key that the class name hashes. Two of the seven class names here depend on that wrapper, which is why the subject belongs in the corpus rather than only in the Rust suites: it is the seam that fails when the reference implementation moves rather than when this compiler does."
     },
     {
+      "id": "modules-not-negates-a-list",
+      "label": "a `not` in parentheses that negates an `and` list, an `or` list and a list that starts with `only`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media (min-width: 1px)': 'green',\n      '@media (not screen and (color))': 'blue',\n      '@media (not screen or (color))': 'red',\n      '@media (not only print and (color))': 'gray',\n    },\n  },\n});\n",
+      "origin": "hand-written: the operand of `(not ...)` is a list of two or more conditions",
+      "expected": "identical",
+      "note": "The parser read one condition after `not`, so the `and` refused the query. The keys also go through the last-media-query-wins merge, which negates each list again."
+    },
+    {
+      "id": "modules-not-refuses-a-bare-media-type",
+      "label": "a `not` before a bare media type in parentheses",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media (not screen)': 'blue' } },\n});\n",
+      "origin": "hand-written: `(not screen)` does not parse",
+      "expected": "both-reject",
+      "note": "A media type alone is not a condition. `(not (screen))` parses."
+    },
+    {
+      "id": "modules-bare-not-refuses-a-list",
+      "label": "a bare `not` before a list of conditions",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media not (min-width: 1px) and (color)': 'blue' } },\n});\n",
+      "origin": "hand-written: a bare `not` takes one condition",
+      "expected": "both-reject",
+      "note": "The list must be in parentheses: `(not (min-width: 1px) and (color))` parses."
+    },
+    {
+      "id": "modules-parentheses-around-one-condition",
+      "label": "one condition in its own extra parentheses",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media ((min-width: 1px))': 'blue' } },\n});\n",
+      "origin": "hand-written: parentheses hold a list of two or more conditions",
+      "expected": "both-reject",
+      "note": "`((min-width: 1px) and (max-width: 2px))` parses."
+    },
+    {
+      "id": "modules-bare-not-after-a-media-type",
+      "label": "a bare `not` after a media type and `and`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media screen and not (color)': 'blue' } },\n});\n",
+      "origin": "hand-written: a bare `not` stands only at the start of a query",
+      "expected": "both-reject",
+      "note": "`screen and (not (color))` parses."
+    },
+    {
+      "id": "modules-media-query-trailing-comma",
+      "label": "a media query with one comma after its last query",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: { default: 'black', '@media (min-width: 1px),': 'blue' } },\n});\n",
+      "origin": "hand-written: one trailing comma is read and dropped",
+      "expected": "identical",
+      "note": "Two commas, as in `(min-width: 1px),,`, do not parse."
+    },
+    {
       "id": "modules-1268-colliding-rewritten-keys",
       "label": "two `@media` entries of one value map that canonicalize to the same query",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media (min-width: 200px)': 'red',\n      '@media (min-height: 100px)': 'green',\n      '@media (min-width: 300px)': 'blue',\n      '@media (min-width: 100px)': 'purple',\n    },\n  },\n});\n",
@@ -2096,9 +2144,9 @@
       "id": "modules-09-string-of-the-environment-object",
       "label": "`String()` of the environment object",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: String(stylex.env) },\n});\n",
-      "expected": "acceptance-divergent",
+      "expected": "identical",
       "origin": "ticket 09, the globals that fold by being called",
-      "note": "Acceptance divergent, and no longer about the conversion. The environment object is this compiler's own value, so the engine never sees it and the conversion behind the fold answers for it — with `[object Object]`, as upstream does. What this row still reads is the subject compiling with no `env` option set, where there is no environment object to convert at all and the refusal names the missing configuration. Configured, the two agree, which `string_of_the_environment_object` pins."
+      "note": "Identical. An unset `env` option reads as an empty object, as upstream does, so the conversion answers `[object Object]` with or without the option. `string_of_the_environment_object` pins the configured case."
     },
     {
       "id": "modules-09-string-of-a-token-group",
@@ -2392,8 +2440,8 @@
       "label": "a property read that leads onto the language's function graph",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'AbC'.constructor('a') },\n  s1: { zIndex: [1, 2].constructor(3).length },\n});\n",
       "origin": "issue 15, found by the generated sweep",
-      "expected": "both-reject-divergent",
-      "note": "Both reject, in different words. `constructor` is an own property of every prototype the sweep crosses, and no curated row had named it. What the refusal holds back is the step after the read: `String`'s own `constructor` is `Function`, which compiles a string into a function, so `\"\".constructor.constructor(\"return Date.now()\").call()` is a chain of two property reads and a call -- shapes every other rule here admits -- whose answer is a different number on every build and whose body can assign to `String.prototype` in an engine every later fold shares. `call`, `apply` and `bind` are refused with it because they turn an unapplied function back into a call. Folding the harmless half means admitting the read that reaches the harmful one, since the guard cannot know which `constructor` a chain will land on before evaluating it. The reference compiler reaches the same conclusion and reports it as an expression it does not support."
+      "expected": "both-reject",
+      "note": "Both reject, with the same words now. A read of `constructor` gets the prototype-chain sentence, as in the reference. `String`'s own `constructor` is `Function`, which compiles a string into a function, so the read is refused before the chain can reach it. `call`, `apply` and `bind` keep the escaping sentence because they turn an unapplied function back into a call."
     },
     {
       "id": "modules-a-reflective-static",

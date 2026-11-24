@@ -175,18 +175,14 @@ fn the_env_object_answers_itself_and_then_its_entries() {
   );
 }
 
-/// An `env` entry the option does not carry has no value, and an entry that is
-/// a function answers the object it came from -- which is what lets the call
-/// site below resolve the function rather than the read.
+/// An `env` entry the option does not carry is `undefined`, and an entry that
+/// is a function answers the object it came from -- which is what lets the
+/// call site below resolve the function rather than the read.
 #[test]
 fn an_env_entry_answers_by_what_the_option_configured_it_as() {
   let fns = map_binding("sx", namespace_holding_the_env_object());
 
-  assert_refused_with(
-    &evaluated_against(&fns, "sx.env.missing"),
-    "sx.env.missing",
-    "The property 'missing' was not found in the stylex.env configuration.",
-  );
+  assert_reads_undefined(&fns, "sx.env.missing");
 
   assert!(
     matches!(
@@ -197,10 +193,10 @@ fn an_env_entry_answers_by_what_the_option_configured_it_as() {
   );
 }
 
-/// An `env` object the build never configured names itself in the refusal,
-/// rather than reading as an option that is merely empty.
+/// An `env` object the build never configured is an empty object, so it folds
+/// and each of its keys reads as `undefined`.
 #[test]
-fn an_unconfigured_env_object_says_so() {
+fn an_unconfigured_env_object_is_empty() {
   let mut entries = FunctionConfigMap::default();
 
   entries.insert(
@@ -210,10 +206,25 @@ fn an_unconfigured_env_object_says_so() {
 
   let fns = map_binding("sx", FunctionConfigType::Map(entries));
 
-  assert_refused_with(
-    &evaluated_against(&fns, "sx.env"),
-    "sx.env",
-    "The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration.",
+  assert!(
+    matches!(
+      folded_value_of(evaluated_against(&fns, "sx.env"), "sx.env"),
+      EvaluateResultValue::EnvObject(env) if env.is_empty()
+    ),
+    "expected the empty env object"
+  );
+  assert_reads_undefined(&fns, "sx.env.theme");
+}
+
+/// Whether `source` folds to `undefined` against `fns`.
+#[track_caller]
+fn assert_reads_undefined(fns: &FunctionMap, source: &str) {
+  assert!(
+    matches!(
+      folded_value_of(evaluated_against(fns, source), source),
+      EvaluateResultValue::Expr(Expr::Ident(ident)) if ident.sym == "undefined"
+    ),
+    "expected `{source}` to read as undefined"
   );
 }
 
@@ -508,18 +519,12 @@ fn a_key_that_is_not_a_string_or_a_number_names_the_property_it_spells() {
 }
 
 /// The `env` object is read by a key like any other receiver, so a key it does
-/// not carry names itself in the refusal rather than being read as no key at
-/// all.
+/// not carry reads as `undefined`, whatever value spelled it.
 #[test]
-fn an_env_lookup_by_a_key_it_does_not_carry_names_that_key() {
+fn an_env_lookup_by_a_key_it_does_not_carry_reads_undefined() {
   let fns = map_binding("sx", namespace_holding_the_env_object());
-  let source = "sx.env[{}]";
 
-  assert_refused_with(
-    &evaluated_against(&fns, source),
-    source,
-    "The property '[object Object]' was not found in the stylex.env configuration.",
-  );
+  assert_reads_undefined(&fns, "sx.env[{}]");
 }
 
 /// A member read that is the callee of a call is left to the call, and the

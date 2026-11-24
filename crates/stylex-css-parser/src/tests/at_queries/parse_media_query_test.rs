@@ -26,6 +26,17 @@ mod rule_assertions {
     }
   }
 
+  /// The operand of a `not` rule.
+  pub(super) fn not_operand(rule: &MediaQueryRule) -> &MediaQueryRule {
+    match rule {
+      MediaQueryRule::Not(not_rule) => {
+        assert_eq!(not_rule.r#type, "not");
+        &not_rule.rule
+      },
+      _ => stylex_panic!("Expected Not rule"),
+    }
+  }
+
   /// The rules of an `and` combinator, asserting its arity.
   pub(super) fn and_branches(rule: &MediaQueryRule, count: usize) -> &[MediaQueryRule] {
     match rule {
@@ -286,15 +297,11 @@ mod style_value_parser_at_queries {
         assert_eq!(parsed.to_string(), "@media not screen");
       }
 
-      /// `not only <type>` is accepted, and the `only` is not printed.
-      ///
-      /// The reference implementation's `mediaKeywordParser` takes both
-      /// modifiers as independently optional, so the pair parses, and its
-      /// serializer reads `not` first and never reaches the `only`. Measured on
-      /// 0.19.0: `@media not only screen` prints `@media not screen`, and
-      /// `@media not only print` prints `@media not print`.
+      /// `not only <type>` is accepted. A lone keyword prints its `not` and
+      /// hides the `only`. With a condition, the leading `not` negates the
+      /// whole query and the query prints as written.
       #[test]
-      fn media_accepts_not_only_and_drops_the_only() {
+      fn media_accepts_not_only() {
         let parsed = MediaQuery::parser()
           .parse_to_end("@media not only screen")
           .expect("`not only screen` is a query the reference implementation compiles");
@@ -307,7 +314,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           with_condition.to_string(),
-          "@media not screen and (min-width: 100px)"
+          "@media not only screen and (min-width: 100px)"
         );
       }
 
@@ -338,33 +345,9 @@ mod style_value_parser_at_queries {
           .parse_to_end("@media not all and (monochrome)")
           .unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 2);
-
-            // First rule should be the keyword
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-                assert_eq!(keyword.r#type, "media-keyword");
-                assert_eq!(keyword.key, "all");
-                assert!(keyword.not);
-                assert!(!keyword.only);
-              },
-              _ => stylex_panic!("Expected MediaKeyword rule for not all"),
-            }
-
-            // Second rule should be the word rule
-            match &and_rules.rules[1] {
-              crate::at_queries::media_query::MediaQueryRule::WordRule(word_rule) => {
-                assert_eq!(word_rule.r#type, "word-rule");
-                assert_eq!(word_rule.key_value, "monochrome");
-              },
-              _ => stylex_panic!("Expected WordRule for monochrome"),
-            }
-          },
-          _ => stylex_panic!("Expected And rule"),
-        }
+        let rules = and_branches(not_operand(&parsed.queries), 2);
+        assert_media_keyword(&rules[0], "all", false, false);
+        assert_word_rule(&rules[1], "monochrome");
 
         assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
       }
@@ -1410,31 +1393,9 @@ mod style_value_parser_at_queries {
         let input = "@media not all and (monochrome)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 2);
-
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-                assert_eq!(keyword.r#type, "media-keyword");
-                assert_eq!(keyword.key, "all");
-                assert!(keyword.not);
-                assert!(!keyword.only);
-              },
-              _ => stylex_panic!("Expected MediaKeyword rule for not all"),
-            }
-
-            match &and_rules.rules[1] {
-              crate::at_queries::media_query::MediaQueryRule::WordRule(word_rule) => {
-                assert_eq!(word_rule.r#type, "word-rule");
-                assert_eq!(word_rule.key_value, "monochrome");
-              },
-              _ => stylex_panic!("Expected WordRule for monochrome"),
-            }
-          },
-          _ => stylex_panic!("Expected And rule"),
-        }
+        let rules = and_branches(not_operand(&parsed.queries), 2);
+        assert_media_keyword(&rules[0], "all", false, false);
+        assert_word_rule(&rules[1], "monochrome");
 
         assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
       }
@@ -1477,7 +1438,7 @@ mod style_value_parser_at_queries {
           _ => stylex_panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media (screen) and (min-width: 400px)");
+        assert_eq!(parsed.to_string(), "@media screen and (min-width: 400px)");
       }
 
       #[test]
@@ -1568,7 +1529,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media (screen) and (device-aspect-ratio: 16 / 9)"
+          "@media screen and (device-aspect-ratio: 16 / 9)"
         );
       }
 
@@ -2074,7 +2035,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media (screen) and (device-aspect-ratio: 16 / 9)"
+          "@media screen and (device-aspect-ratio: 16 / 9)"
         );
       }
 
@@ -2647,7 +2608,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media (color) and (min-width: 400px), (screen) and (max-width: 700px)"
+          "@media (color) and (min-width: 400px), screen and (max-width: 700px)"
         );
       }
     }
@@ -2710,46 +2671,10 @@ mod style_value_parser_at_queries {
         let input = "@media not all and (monochrome) and (min-width: 600px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 3);
-
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-                assert_eq!(keyword.r#type, "media-keyword");
-                assert_eq!(keyword.key, "all");
-                assert!(keyword.not);
-                assert!(!keyword.only);
-              },
-              _ => stylex_panic!("Expected MediaKeyword rule"),
-            }
-
-            match &and_rules.rules[1] {
-              crate::at_queries::media_query::MediaQueryRule::WordRule(word_rule) => {
-                assert_eq!(word_rule.r#type, "word-rule");
-                assert_eq!(word_rule.key_value, "monochrome");
-              },
-              _ => stylex_panic!("Expected WordRule for monochrome"),
-            }
-
-            match &and_rules.rules[2] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "min-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 600.0);
-                    assert_eq!(length.unit, "px");
-                  },
-                  _ => stylex_panic!("Expected Length value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-          },
-          _ => stylex_panic!("Expected And rule"),
-        }
+        let rules = and_branches(not_operand(&parsed.queries), 3);
+        assert_media_keyword(&rules[0], "all", false, false);
+        assert_word_rule(&rules[1], "monochrome");
+        assert_length_pair(&rules[2], "min-width", 600.0, "px");
 
         assert_eq!(
           parsed.to_string(),
@@ -4392,7 +4317,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media (screen) and (min-width: 500px) and (max-width: 800px) and (color)"
+          "@media screen and (min-width: 500px) and (max-width: 800px) and (color)"
         );
       }
     }
@@ -5233,7 +5158,7 @@ mod style_value_parser_at_queries {
         _ => stylex_panic!("Expected And rule"),
       }
 
-      assert_eq!(parsed.to_string(), "@media (screen) and (min-width: 768px)");
+      assert_eq!(parsed.to_string(), "@media screen and (min-width: 768px)");
     }
   }
 
@@ -5334,6 +5259,103 @@ mod style_value_parser_at_queries {
 
       assert_eq!(parsed.to_string(), "@media not print");
     }
+
+    /// A `not` in parentheses negates a list of two or more conditions, with
+    /// `and` or with `or`. Each pair is the query and its printed form.
+    #[test]
+    fn parenthesized_not_negates_a_whole_list() {
+      for (query, printed) in [
+        (
+          "@media (not screen and (color))",
+          "@media not screen and (color)",
+        ),
+        ("@media (not all and (color))", "@media not all and (color)"),
+        (
+          "@media (not only screen and (color))",
+          "@media not only screen and (color)",
+        ),
+        (
+          "@media (not only screen or (color))",
+          "@media print and (not (color))",
+        ),
+        (
+          "@media (not screen or (color))",
+          "@media print and (not (color))",
+        ),
+        (
+          "@media (not (min-width: 100px) and (max-width: 200px))",
+          "@media (not ((min-width: 100px) and (max-width: 200px)))",
+        ),
+        (
+          "@media (not (color) or (hover: hover))",
+          "@media (not ((color) or (hover: hover)))",
+        ),
+        (
+          "@media (not not screen and (color))",
+          "@media screen and (color)",
+        ),
+        (
+          "@media (not (color) and screen)",
+          "@media (not (color)), not screen",
+        ),
+        (
+          "@media (min-width: 1px) and (not screen and (color))",
+          "@media print and (min-width: 1px), (min-width: 1px) and (not (color))",
+        ),
+      ] {
+        match MediaQuery::parser().parse_to_end(query) {
+          Ok(parsed) => assert_eq!(parsed.to_string(), printed, "{query}"),
+          Err(error) => panic!("failed to parse {query}: {error:?}"),
+        }
+      }
+    }
+
+    /// Spellings that do not parse. Each needs parentheses that are missing,
+    /// or has parentheses or whitespace that are not allowed.
+    #[test]
+    fn spellings_that_do_not_parse() {
+      for query in [
+        // One condition in its own extra parentheses.
+        "@media ((color))",
+        "@media ((not (color)))",
+        // Whitespace just after `(`, or just before the `)` of a list.
+        "@media ( (color))",
+        "@media ( not (color))",
+        "@media ((color) and (grid) )",
+        // A bare `not` that does not start the query.
+        "@media screen and not (color)",
+        "@media not not (color)",
+        "@media (not not (color))",
+        "@media (not screen and not (color))",
+        // A media type in parentheses that is not the whole `not` operand.
+        "@media (screen)",
+        "@media (not (all) and (color))",
+        // A range alone in a `(not ...)`.
+        "@media (not (width >= 100px))",
+        "@media not (100px <= width <= 200px)",
+      ] {
+        assert!(
+          MediaQuery::parser().parse_to_end(query).is_err(),
+          "{query} parsed"
+        );
+      }
+    }
+
+    /// A bare `not` takes one condition, and the query ends after it. A list
+    /// after it must be in parentheses.
+    #[test]
+    fn bare_not_does_not_negate_a_list() {
+      let result = MediaQuery::parser().parse_to_end("@media not (min-width: 1px) and (color)");
+      assert!(
+        matches!(&result, Err(error) if error.to_string().contains("Expected end of input")),
+        "{result:?}"
+      );
+      assert!(
+        MediaQuery::parser()
+          .parse_to_end("@media not ((min-width: 1px) and (color))")
+          .is_ok()
+      );
+    }
   }
 
   #[cfg(test)]
@@ -5383,7 +5405,7 @@ mod style_value_parser_at_queries {
         _ => stylex_panic!("Expected Or rule"),
       }
 
-      assert_eq!(parsed.to_string(), "@media (screen), (print)");
+      assert_eq!(parsed.to_string(), "@media screen, print");
     }
 
     #[test]
@@ -5438,7 +5460,7 @@ mod style_value_parser_at_queries {
 
       assert_eq!(
         parsed.to_string(),
-        "@media (screen) and (min-width: 768px) and (max-width: 1024px)"
+        "@media screen and (min-width: 768px) and (max-width: 1024px)"
       );
     }
   }

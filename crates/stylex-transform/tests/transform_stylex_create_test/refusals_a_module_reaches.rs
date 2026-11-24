@@ -16,6 +16,8 @@
 //! (`ADR 0008`); what is asserted here is that the sentence exists and says what
 //! it means.
 
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+
 use crate::utils::{
   prelude::*,
   transform::{assert_refuses, assert_refuses_under, base_style_module, stringify_js},
@@ -185,32 +187,28 @@ fn a_named_array_past_the_entry_ceiling_counts_what_it_holds() {
 /// The sentence names the property that escaped rather than the one after it,
 /// so a chain is not reported for its last link.
 ///
-/// The reference compiler folds this one, to `"String"`. The divergence is the
-/// escaping-property rule and is argued where the rule is written: refusing
-/// costs the answer to a read no stylesheet needs, and folding it hands a build
-/// a route to the language's own function graph.
+/// A read of `constructor` gets the prototype-chain sentence, which is the one
+/// the reference gives. A read of `bind` gets the escaping sentence, and the
+/// reference does not fold it either.
 #[test]
 fn an_escaping_read_names_the_rule_rather_than_the_property_after_it() {
-  let reads = [
-    ("s.constructor.name", "constructor"),
-    ("s['constructor'].name", "constructor"),
-    ("s.trim.bind", "bind"),
-  ];
-
-  for (read, property) in reads {
+  for read in ["s.constructor.name", "s['constructor'].name"] {
     assert_refuses(
       "const s = 'abc';",
       &format!("content: {}", read),
-      &format!(
-        concat!(
-          "Cannot fold a read of '{}' at compile time.\n",
-          "It leads off the value that was written and onto the language's own ",
-          "function graph."
-        ),
-        property
-      ),
+      BLOCKED_PROPERTY_ACCESS,
     );
   }
+
+  assert_refuses(
+    "const s = 'abc';",
+    "content: s.trim.bind",
+    concat!(
+      "Cannot fold a read of 'bind' at compile time.\n",
+      "It leads off the value that was written and onto the language's own ",
+      "function graph."
+    ),
+  );
 }
 
 // ──────────────────────────────────────────────

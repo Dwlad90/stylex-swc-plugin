@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     repro: (color)=>[
-            {
-                kB1Fuz: color != null ? "x1p1099i" : color,
+            color !== undefined && {
+                kB1Fuz: color != null ? "x1p1099i" : "",
                 $$css: true
             },
             {

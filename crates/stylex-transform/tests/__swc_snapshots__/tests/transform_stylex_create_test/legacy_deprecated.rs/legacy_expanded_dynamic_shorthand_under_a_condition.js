@@ -34,8 +34,8 @@ export const styles = {
     inline: (space)=>[
             _temp,
             {
-                keTefX: (space != null ? "x1vht7gn " : space) + (space != null ? "x1y42md2" : space),
-                k71WvV: (space != null ? "x69mnlg " : space) + (space != null ? "xlcbw0d" : space),
+                keTefX: (space != null ? "x1vht7gn " : "") + (space != null ? "x1y42md2" : ""),
+                k71WvV: (space != null ? "x69mnlg " : "") + (space != null ? "xlcbw0d" : ""),
                 $$css: true
             },
             {

@@ -3,7 +3,7 @@ var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 const _temp = {
     "MyComponent__styles.color": "MyComponent__styles.color",
-    $$css: "MyComponent.tsx:5"
+    $$css: "@stylexswc/transform:MyComponent.tsx:5"
 };
 _inject2({
     ltr: ".x14rh7hd{color:var(--x-color)}",
@@ -20,9 +20,9 @@ _inject2({
 const _styles = {
     color: (value: string)=>[
             _temp,
-            {
-                "color-kMwMTN": value != null ? "x14rh7hd" : value,
-                $$css: "MyComponent.tsx:5"
+            value !== undefined && {
+                "color-kMwMTN": value != null ? "x14rh7hd" : "",
+                $$css: "@stylexswc/transform:MyComponent.tsx:5"
             },
             {
                 "--x-color": value != null ? value : undefined
@@ -31,7 +31,7 @@ const _styles = {
     base: {
         "MyComponent__styles.base": "MyComponent__styles.base",
         "display-k1xSpc": "x78zum5",
-        $$css: "MyComponent.tsx:6"
+        $$css: "@stylexswc/transform:MyComponent.tsx:6"
     }
 };
 export namespace Demo {

@@ -21,8 +21,8 @@ export const styles = {
         $$css: true
     },
     dyn: (color)=>[
-            {
-                "--xwx8imx": color != null ? "x194mhi7" : color,
+            color !== undefined && {
+                "--xwx8imx": color != null ? "x194mhi7" : "",
                 $$css: true
             },
             {

@@ -5,9 +5,11 @@ use stylex_state::state_manager::StateManager;
 use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 
 use crate::shared::utils::object::{
-  obj_entries, obj_from_entries, obj_map_keys_and_transform_values, preprocess_object_properties,
+  obj_entries, obj_from_entries, obj_map_keys_and_transform_values,
+  obj_transform_values_and_map_keys, preprocess_object_properties,
 };
 use crate::tests::support::expr;
+use stylex_utils::string::dashify;
 
 #[test]
 fn reads_the_entries_of_an_object_literal() {
@@ -91,6 +93,46 @@ fn dashes_the_key_before_it_transforms_the_value() {
   });
 
   assert_eq!(result, vec![Pair::new("margin-top", "10px")]);
+}
+
+/// The two orders give different values for one input. The camelCase key finds
+/// `fontWeight` in the unitless table. The dashed key does not, so it gets `px`.
+#[test]
+fn the_key_that_converts_the_value_sets_the_unit() {
+  let mut entries: IndexMap<String, TRawValue> = IndexMap::new();
+
+  entries.insert("fontWeight".to_owned(), TRawValue::Number(700.0));
+
+  let dashed = |key: &str| dashify(key).into_owned();
+
+  assert_eq!(
+    obj_transform_values_and_map_keys(&entries, &mut StateManager::default(), dashed),
+    vec![Pair::new("font-weight", "700")]
+  );
+  assert_eq!(
+    obj_map_keys_and_transform_values(&entries, &mut StateManager::default(), dashed),
+    vec![Pair::new("font-weight", "700px")]
+  );
+}
+
+/// Two keys that map to one name make one declaration in the transform-first
+/// order too. Each value is converted with its own key before the merge.
+#[test]
+fn transforms_each_value_before_two_keys_merge() {
+  let mut state = StateManager::default();
+  let mut entries: IndexMap<String, TRawValue> = IndexMap::new();
+
+  entries.insert("zIndex".to_owned(), TRawValue::Number(1.0));
+  entries.insert("opacity".to_owned(), TRawValue::Number(0.5));
+  entries.insert("z-index".to_owned(), TRawValue::Number(2.0));
+
+  let result =
+    obj_transform_values_and_map_keys(&entries, &mut state, |key| dashify(key).into_owned());
+
+  assert_eq!(
+    result,
+    vec![Pair::new("z-index", "2px"), Pair::new("opacity", ".5")]
+  );
 }
 
 /// A property that takes no unit keeps the number it was written with.

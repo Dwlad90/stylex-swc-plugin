@@ -5,10 +5,12 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayPat, ArrowExpr, AssignExpr, AssignTarget, AssignTargetPat, BindingIdent, BlockStmt,
-      CallExpr, Callee, CatchClause, ClassDecl, ClassExpr, Expr, ExprOrSpread, FnDecl, FnExpr,
-      ForHead, ForInStmt, ForOfStmt, Function, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp,
-      Module, ModuleItem, ObjectPat, ObjectPatProp, OptChainBase, OptChainExpr, Pat, Program,
-      Script, SimpleAssignTarget, UnaryExpr, UnaryOp, UpdateExpr, VarDecl, VarDeclKind,
+      CallExpr, Callee, CatchClause, ClassDecl, ClassExpr, Constructor, DefaultDecl,
+      ExportDefaultDecl, Expr, ExprOrSpread, FnDecl, FnExpr, ForHead, ForInStmt, ForOfStmt,
+      ForStmt, Function, GetterProp, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp, Module,
+      ModuleItem, ObjectPat, ObjectPatProp, OptChainBase, OptChainExpr, Pat, Program, Script,
+      SetterProp, SimpleAssignTarget, StaticBlock, SwitchStmt, UnaryExpr, UnaryOp, UpdateExpr,
+      VarDecl, VarDeclKind,
     },
     visit::{Visit, VisitMutWith, VisitWith},
   },
@@ -31,10 +33,8 @@ use stylex_state::state_manager::{BindingWrites, flush_pending_insertions};
 #[cfg(doc)]
 use stylex_state::state_manager::StateManager;
 
-/// Span covering the whole source, used for the module-level scope frame so
-/// top-level bindings enclose every `sx` site. The scope stack is seeded with
-/// this frame and never emptied, so the scope lookups always resolve to a real
-/// frame and fall back to this span only in theory.
+/// Span covering the whole source, recorded as the scope of a module-level
+/// binding so that it encloses every `sx` site.
 const MODULE_SCOPE_SPAN: Span = Span {
   lo: BytePos(0),
   hi: BytePos(u32::MAX),
@@ -117,6 +117,10 @@ struct ModuleBindingsCollector {
   /// [`Self::bound_names`], because the evaluator consumes it whether or not
   /// the `sx` prop is enabled.
   declared_bindings: FxHashSet<Id>,
+  /// The declared bindings that the module scope holds. The other declared
+  /// bindings are the enclosed bindings (see
+  /// [`StateManager::enclosed_bindings`]).
+  program_bindings: FxHashSet<Id>,
   /// For each name bound by a non-import declaration, the spans of the scopes
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
   /// spans encloses that site (see [`StateManager::is_locally_rebound_at`]).
@@ -131,7 +135,8 @@ struct ModuleBindingsCollector {
   /// than the reference implementation looks. See
   /// [`StateManager::binding_deep_mutations`].
   binding_deep_mutations: FxHashSet<Id>,
-  /// Stack of enclosing lexical scopes, outermost (module) first.
+  /// Stack of the enclosing lexical scopes below the module, outermost first.
+  /// It is empty at module level.
   scope_stack: Vec<ScopeFrame>,
   /// `VarDeclKind` of the `VarDecl` currently being visited, if any — needed
   /// to route `var` bindings to the nearest function scope (hoisting) while
@@ -142,7 +147,7 @@ struct ModuleBindingsCollector {
 impl ModuleBindingsCollector {
   /// The binding sets, moved out together.
   ///
-  /// The one place the collector's four fields are matched to the state's four,
+  /// The one place the collector's binding sets are matched to the state's,
   /// so a transposition is a single visible mistake here rather than one
   /// repeated at every call site.
   fn take_binding_writes(&mut self) -> BindingWrites {
@@ -150,8 +155,27 @@ impl ModuleBindingsCollector {
       reassignments: std::mem::take(&mut self.binding_reassignments),
       mutations: std::mem::take(&mut self.binding_mutations),
       deep_mutations: std::mem::take(&mut self.binding_deep_mutations),
+      enclosed: self.take_enclosed_bindings(),
       declared: std::mem::take(&mut self.declared_bindings),
     }
+  }
+
+  /// The declared bindings that the module scope does not hold.
+  ///
+  /// The resolver gives each scope its own syntax context, so one `Id` is
+  /// normally bound in one scope only. The TypeScript strip runs first and
+  /// breaks this: `enum E {}` and `namespace N {}` become a function that takes
+  /// a parameter with the same `Id` as the program-level `var`. That name is
+  /// still visible at program level, so it is not enclosed.
+  fn take_enclosed_bindings(&mut self) -> FxHashSet<Id> {
+    let program_bindings = std::mem::take(&mut self.program_bindings);
+
+    self
+      .declared_bindings
+      .iter()
+      .filter(|id| !program_bindings.contains(*id))
+      .cloned()
+      .collect()
   }
 
   /// Collects everything: the `sx` runtime-binding inputs (import sources,
@@ -175,40 +199,41 @@ impl ModuleBindingsCollector {
       import_sources: Vec::new(),
       bound_names: FxHashSet::default(),
       declared_bindings: FxHashSet::default(),
+      program_bindings: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
       binding_reassignments: FxHashSet::default(),
       binding_mutations: FxHashSet::default(),
       binding_deep_mutations: FxHashSet::default(),
-      // Seed a module-level function scope spanning the whole source so
-      // top-level bindings enclose every `sx` site.
-      scope_stack: vec![ScopeFrame {
-        span: MODULE_SCOPE_SPAN,
-        kind: ScopeKind::Function,
-      }],
+      scope_stack: Vec::new(),
       current_var_kind: None,
     }
   }
 
+  /// Visits `node`'s children inside a new scope frame.
+  fn with_scope<N>(&mut self, span: Span, kind: ScopeKind, node: &N)
+  where
+    N: VisitWith<Self>,
+  {
+    self.scope_stack.push(ScopeFrame { span, kind });
+    node.visit_children_with(self);
+    self.scope_stack.pop();
+  }
+
   /// Span of the innermost enclosing function scope (where `var`/function
-  /// declarations hoist to). Falls back to the module scope, always present.
-  fn nearest_function_scope(&self) -> Span {
+  /// declarations hoist to). `None` for the module scope.
+  fn nearest_function_scope(&self) -> Option<Span> {
     self
       .scope_stack
       .iter()
       .rev()
       .find(|frame| frame.kind == ScopeKind::Function)
       .map(|frame| frame.span)
-      .unwrap_or(MODULE_SCOPE_SPAN)
   }
 
   /// Span of the innermost enclosing scope (where `let`/`const`, params, etc.
-  /// belong). Always present — the module scope sits at the stack bottom.
-  fn innermost_scope(&self) -> Span {
-    self
-      .scope_stack
-      .last()
-      .map(|frame| frame.span)
-      .unwrap_or(MODULE_SCOPE_SPAN)
+  /// belong). `None` for the module scope.
+  fn innermost_scope(&self) -> Option<Span> {
+    self.scope_stack.last().map(|frame| frame.span)
   }
 
   /// Record a binding produced by a non-import declaration in `bindings`
@@ -218,26 +243,33 @@ impl ModuleBindingsCollector {
   ///
   /// `bindings` is filled ahead of the mode gate: the two name-keyed maps below
   /// serve the `sx` prop and are collected only where it is enabled, where the
-  /// `Id`-keyed set serves the evaluator, which runs either way.
+  /// `Id`-keyed sets serve the evaluator and the `$$css` hoist, which run
+  /// either way. A binding that the module scope holds also goes into
+  /// `program_bindings`.
   fn add_local_binding(&mut self, ident: &Ident, hoisted: bool) {
     self.declared_bindings.insert(ident.to_id());
+
+    let scope = if hoisted {
+      self.nearest_function_scope()
+    } else {
+      self.innermost_scope()
+    };
+
+    if scope.is_none() {
+      self.program_bindings.insert(ident.to_id());
+    }
 
     if !self.collect_sx_bindings {
       return;
     }
 
     let name = ident.sym.to_string();
-    let scope = if hoisted {
-      self.nearest_function_scope()
-    } else {
-      self.innermost_scope()
-    };
     self.bound_names.insert(name.clone());
     self
       .local_rebinding_scopes
       .entry(name)
       .or_default()
-      .push(scope);
+      .push(scope.unwrap_or(MODULE_SCOPE_SPAN));
   }
 
   /// Record a write to `ident`'s binding under the kind it is: a rebinding or
@@ -512,21 +544,63 @@ impl Visit for ModuleBindingsCollector {
   }
 
   fn visit_function(&mut self, function: &Function) {
-    self.scope_stack.push(ScopeFrame {
-      span: function.span,
-      kind: ScopeKind::Function,
-    });
-    function.visit_children_with(self);
-    self.scope_stack.pop();
+    self.with_scope(function.span, ScopeKind::Function, function);
   }
 
   fn visit_arrow_expr(&mut self, arrow_expr: &ArrowExpr) {
-    self.scope_stack.push(ScopeFrame {
-      span: arrow_expr.span,
-      kind: ScopeKind::Function,
-    });
-    arrow_expr.visit_children_with(self);
-    self.scope_stack.pop();
+    self.with_scope(arrow_expr.span, ScopeKind::Function, arrow_expr);
+  }
+
+  // A constructor, a getter, a setter and a static block hold their own
+  // parameters and `var` declarations, but SWC does not wrap them in a
+  // `Function`. Without a frame, their bindings would read as program level.
+  fn visit_constructor(&mut self, constructor: &Constructor) {
+    self.with_scope(constructor.span, ScopeKind::Function, constructor);
+  }
+
+  fn visit_getter_prop(&mut self, getter: &GetterProp) {
+    self.with_scope(getter.span, ScopeKind::Function, getter);
+  }
+
+  fn visit_setter_prop(&mut self, setter: &SetterProp) {
+    self.with_scope(setter.span, ScopeKind::Function, setter);
+  }
+
+  fn visit_static_block(&mut self, static_block: &StaticBlock) {
+    self.with_scope(static_block.span, ScopeKind::Function, static_block);
+  }
+
+  // A loop head and a `switch` body hold their own `let` and `const`.
+  fn visit_for_stmt(&mut self, for_statement: &ForStmt) {
+    self.with_scope(for_statement.span, ScopeKind::Block, for_statement);
+  }
+
+  fn visit_switch_stmt(&mut self, switch_statement: &SwitchStmt) {
+    self.with_scope(switch_statement.span, ScopeKind::Block, switch_statement);
+  }
+
+  /// A default-exported function or class is a declaration, so its name is
+  /// bound at the level of the export, not inside its own body.
+  fn visit_export_default_decl(&mut self, export_default_decl: &ExportDefaultDecl) {
+    match &export_default_decl.decl {
+      DefaultDecl::Fn(fn_expr) => {
+        if let Some(ident) = &fn_expr.ident {
+          self.add_local_binding(ident, false);
+        }
+        fn_expr.function.visit_with(self);
+      },
+      DefaultDecl::Class(class_expr) => {
+        if let Some(ident) = &class_expr.ident {
+          self.add_local_binding(ident, false);
+        }
+        self.with_scope(
+          class_expr.class.span,
+          ScopeKind::Block,
+          class_expr.class.as_ref(),
+        );
+      },
+      DefaultDecl::TsInterfaceDecl(_) => export_default_decl.visit_children_with(self),
+    }
   }
 
   fn visit_fn_expr(&mut self, fn_expr: &FnExpr) {
@@ -561,21 +635,11 @@ impl Visit for ModuleBindingsCollector {
   }
 
   fn visit_block_stmt(&mut self, block_stmt: &BlockStmt) {
-    self.scope_stack.push(ScopeFrame {
-      span: block_stmt.span,
-      kind: ScopeKind::Block,
-    });
-    block_stmt.visit_children_with(self);
-    self.scope_stack.pop();
+    self.with_scope(block_stmt.span, ScopeKind::Block, block_stmt);
   }
 
   fn visit_catch_clause(&mut self, catch_clause: &CatchClause) {
-    self.scope_stack.push(ScopeFrame {
-      span: catch_clause.span,
-      kind: ScopeKind::Block,
-    });
-    catch_clause.visit_children_with(self);
-    self.scope_stack.pop();
+    self.with_scope(catch_clause.span, ScopeKind::Block, catch_clause);
   }
 
   fn visit_var_decl(&mut self, var_decl: &VarDecl) {
@@ -658,7 +722,7 @@ impl Visit for ModuleBindingsCollector {
       self.add_pattern_writes(pattern);
     }
 
-    for_in_statement.visit_children_with(self);
+    self.with_scope(for_in_statement.span, ScopeKind::Block, for_in_statement);
   }
 
   fn visit_for_of_stmt(&mut self, for_of_statement: &ForOfStmt) {
@@ -666,7 +730,7 @@ impl Visit for ModuleBindingsCollector {
       self.add_pattern_writes(pattern);
     }
 
-    for_of_statement.visit_children_with(self);
+    self.with_scope(for_of_statement.span, ScopeKind::Block, for_of_statement);
   }
 }
 
@@ -823,8 +887,8 @@ where
   /// completes, drains the pending-insertion buffer with a single
   /// linear merge into the module body. Runtime helpers and per-decl
   /// metadata are gated on `options.runtime_injection.is_some()`,
-  /// matching the legacy gate; hoisted dynamic-style consts always
-  /// emit.
+  /// matching the legacy gate. The walk itself puts each hoisted
+  /// declaration in front of its statement.
   pub(crate) fn transform_consumers(&mut self, module: &mut Module) {
     self.state.cycle = TransformationCycle::TransformConsumers;
     module.visit_mut_children_with(self);

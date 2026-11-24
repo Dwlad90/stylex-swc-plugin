@@ -26,10 +26,8 @@ mod kebab_case_tests {
     assert!(matches!(kebab_case(""), Cow::Borrowed("")));
   }
 
-  /// A custom property is converted here. A stylesheet hands one back
-  /// untouched instead, and it does that with a guard of its own around
-  /// `dashify` rather than with a rule inside it, so the contrast cannot be
-  /// drawn against `dashify` here.
+  /// A custom property is converted here. A caller that must keep one
+  /// untouched does the check itself.
   #[test]
   fn converts_a_custom_property() {
     assert_eq!(kebab_case("--myColor"), "--my-color");
@@ -266,62 +264,6 @@ mod utf16_length_tests {
         );
       }
     }
-  }
-}
-
-#[cfg(test)]
-mod is_blank_css_text_tests {
-  use crate::string::is_blank_css_text;
-
-  #[test]
-  fn recognises_text_that_spells_nothing() {
-    assert!(is_blank_css_text(""));
-    assert!(is_blank_css_text(" "));
-    assert!(is_blank_css_text("  \t\n "));
-  }
-
-  #[test]
-  fn keeps_text_that_spells_a_value() {
-    assert!(!is_blank_css_text("0"));
-    assert!(!is_blank_css_text("red"));
-    // Surrounding whitespace does not make a value blank.
-    assert!(!is_blank_css_text(" red "));
-    // Empty *quotes* are CSS text, which is what a blank `content` becomes.
-    assert!(!is_blank_css_text("\"\""));
-  }
-
-  #[test]
-  fn unicode_whitespace_is_a_value() {
-    // The value scanner reads whitespace as "char code <= 32" and nothing
-    // else, so each of these is a *word token* to it, not a gap. The
-    // reference compiler emits them: `transformValue("color", "\u{3000}")`
-    // produces the declaration rather than dropping the property.
-    assert!(!is_blank_css_text("\u{3000}")); // ideographic space
-    assert!(!is_blank_css_text("\u{00a0}")); // no-break space
-    assert!(!is_blank_css_text("\u{2028}")); // line separator
-    // Mixed with scanner whitespace, the word token still carries the value.
-    assert!(!is_blank_css_text(" \u{00a0} "));
-  }
-
-  /// The other side of the same divergence from `str::trim`, and the side that
-  /// changed an answer rather than fixing one.
-  ///
-  /// A C0 control is not Unicode whitespace, so `trim` used to leave it in
-  /// place and the value was rejected downstream by `trim_edges`. Reading the
-  /// scanner's rule instead makes it blank, so the property is dropped the way
-  /// it already was for `""` and `" "`. Pinned so that undoing it has to be a
-  /// decision.
-  #[test]
-  fn c0_controls_that_are_not_unicode_whitespace_are_blank() {
-    assert!(is_blank_css_text("\u{0}")); // NUL
-    assert!(is_blank_css_text("\u{1}")); // start of heading
-    assert!(is_blank_css_text("\u{1f}")); // unit separator
-    // And still true of the controls `trim` already agreed were whitespace.
-    assert!(is_blank_css_text("\u{b}")); // vertical tab
-    assert!(is_blank_css_text("\u{c}")); // form feed
-    // Code 32 is the boundary; 33 is the first character that spells a value.
-    assert!(is_blank_css_text("\u{20}"));
-    assert!(!is_blank_css_text("\u{21}"));
   }
 }
 

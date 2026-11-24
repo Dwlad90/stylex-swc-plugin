@@ -9,7 +9,12 @@ use swc_core::ecma::ast::{Expr, KeyValueProp};
 use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_state::state_manager::StateManager;
-use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
+use stylex_structures::{
+  order_pair::OrderPair,
+  pair::{Pair, PairCow},
+  raw_value::TRawValue,
+};
+use stylex_utils::collections::FxIndexMap;
 
 use super::css::common::transform_value_cached;
 
@@ -38,25 +43,84 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, TRawVa
   map
 }
 
-/// Maps each key and converts each raw value to its final CSS text.
+/// Declarations keyed by their property name, in the order the names first
+/// appear.
+pub(crate) type MappedEntries<'a> = FxIndexMap<Cow<'a, str>, PairCow<'a>>;
+
+/// Maps each declaration with `mapper` into `entries`, and keeps one per
+/// property name.
 ///
-/// The two steps are fused because their order is observable: the key is
-/// dashified before the value is transformed, so the property name that decides
-/// the unit suffix is the dashed one.
+/// `mapper` can rename a property, so two declarations can map to one name.
+/// Then the later value wins and stays in the place of the first, as for any
+/// object key. `entries` is cleared first, so a caller can use one map for many
+/// lists and allocate it once.
+pub(crate) fn obj_map_entry<'a>(
+  pairs: &'a [Pair],
+  mapper: impl Fn(&'a Pair) -> PairCow<'a>,
+  entries: &mut MappedEntries<'a>,
+) {
+  entries.clear();
+  entries.reserve(pairs.len());
+
+  for pair in pairs {
+    let mapped = mapper(pair);
+    entries.insert(mapped.key.clone(), mapped);
+  }
+}
+
+/// Maps each key, then converts each raw value with the mapped key.
 ///
-/// Two keys that map to the same name are one declaration, and the value
-/// written last wins, so the pairs are collected through a map before they are
-/// answered.
+/// The mapped key sets the unit suffix. A dashed key is not in the camelCase
+/// lookup tables, so `font-weight: 700` gets `px`. `stylex.positionTry` uses
+/// this order. Its properties give the same value with each key.
 pub(crate) fn obj_map_keys_and_transform_values(
   entries: &IndexMap<String, TRawValue>,
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
 ) -> Vec<Pair> {
+  map_keys_and_build_declarations(entries, state, mapper, ValueKey::Mapped)
+}
+
+/// Converts each raw value with its original key, then maps each key.
+///
+/// `stylex.create` uses this order. The camelCase key finds the unitless and
+/// time properties, so `fontWeight: 700` stays `700`.
+pub(crate) fn obj_transform_values_and_map_keys(
+  entries: &IndexMap<String, TRawValue>,
+  state: &mut StateManager,
+  mapper: impl Fn(&str) -> String,
+) -> Vec<Pair> {
+  map_keys_and_build_declarations(entries, state, mapper, ValueKey::Original)
+}
+
+/// The key that [`map_keys_and_build_declarations`] converts a value with.
+enum ValueKey {
+  /// The key as the source gives it.
+  Original,
+  /// The key after the mapper.
+  Mapped,
+}
+
+/// Maps each key and converts each raw value to CSS text, with the key that
+/// `value_key` selects.
+///
+/// Two keys can map to the same name. They make one declaration: it keeps the
+/// position of the first key and the value of the last key.
+fn map_keys_and_build_declarations(
+  entries: &IndexMap<String, TRawValue>,
+  state: &mut StateManager,
+  mapper: impl Fn(&str) -> String,
+  value_key: ValueKey,
+) -> Vec<Pair> {
   let mut map: IndexMap<String, String> = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
     let mapped_key = mapper(key);
-    let value = transform_value_cached(mapped_key.as_str(), value, state);
+    let transform_key = match value_key {
+      ValueKey::Original => key.as_str(),
+      ValueKey::Mapped => mapped_key.as_str(),
+    };
+    let value = transform_value_cached(transform_key, value, state);
 
     map.insert(mapped_key, value);
   }

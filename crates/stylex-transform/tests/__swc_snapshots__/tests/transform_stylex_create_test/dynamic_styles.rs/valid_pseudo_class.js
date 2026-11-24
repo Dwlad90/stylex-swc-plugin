@@ -19,9 +19,12 @@ _inject2({
 });
 export const styles = {
     root: (color)=>[
-            {
-                kWkggS: color != null ? "x1j2k28p" : color,
-                kMwMTN: color != null ? "x1qvlgnj" : color,
+            color !== undefined && {
+                kWkggS: color != null ? "x1j2k28p" : "",
+                $$css: true
+            },
+            color !== undefined && {
+                kMwMTN: color != null ? "x1qvlgnj" : "",
                 $$css: true
             },
             {

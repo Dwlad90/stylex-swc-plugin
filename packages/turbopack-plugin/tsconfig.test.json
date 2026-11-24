@@ -1,0 +1,24 @@
+{
+  // Type-checks the suite alongside the sources. `tsconfig.json` cannot: it
+  // drives the build, so its `rootDir` is `./src` and its `include` stops
+  // there, which left the test file unchecked.
+  // `scripts/packages/typecheck/index.sh` prefers this file when present.
+  //
+  // `include` is the build's list plus the test globs. `rootDir` widens so
+  // that the suite outside `./src` is in the program. It constrains nothing
+  // here, because this config never emits.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "noEmit": true,
+    "composite": false,
+    "incremental": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    "__tests__/**/*.mts"
+  ]
+}

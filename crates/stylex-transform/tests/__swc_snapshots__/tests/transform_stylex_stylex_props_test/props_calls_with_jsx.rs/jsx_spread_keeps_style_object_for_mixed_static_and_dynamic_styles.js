@@ -25,8 +25,8 @@ const styles = {
     },
     opacity: (opacity)=>[
             _temp,
-            {
-                "opacity-kSiTet": opacity != null ? "xb4nw82" : opacity,
+            opacity !== undefined && {
+                "opacity-kSiTet": opacity != null ? "xb4nw82" : "",
                 $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
             },
             {

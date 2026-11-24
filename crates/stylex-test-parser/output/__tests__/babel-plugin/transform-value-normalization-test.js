@@ -68,6 +68,59 @@ describe('@stylexjs/babel-plugin', ()=>{
         });"
       `);
         });
+        test('preserves zero units inside a non-first function', ()=>{
+            const code = transform(`
+        import stylex from 'stylex';
+        const styles = stylex.create({ x: { width: 'max(1px, 2px) calc(0px + 1%)' } });
+      `);
+            expect(code).toContain('calc(0px + 1%)');
+            expect(code).not.toContain('calc(0 + 1%)');
+        });
+        test('preserves resource paths inside url()', ()=>{
+            expect(transform(`
+          import stylex from 'stylex';
+          const styles = stylex.create({
+            leadingZero: { backgroundImage: 'url(0.5x.png)' },
+            uppercase: { backgroundImage: 'URL(/img/logo.png)' },
+            mixedCase: {
+              backgroundImage: 'Url(https://cdn.example.com/v0.5/hero.jpg)'
+            },
+            withFallback: { cursor: 'URL(/cursors/grab.cur), pointer' },
+            imageSet: {
+              backgroundImage: 'image-set(url(0.5x.png) 1x, url(1x.png) 2x)'
+            },
+            withSiblings: { mask: 'url(0.5x.svg) 0px 0.5em' }
+          });
+        `)).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import stylex from 'stylex';
+        _inject2({
+          ltr: ".x1m5gf3o{background-image:url(0.5x.png)}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".xxqo7hz{background-image:URL(/img/logo.png)}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".x1s1kiv0{background-image:Url(https://cdn.example.com/v0.5/hero.jpg)}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".xkadp7y{cursor:URL(/cursors/grab.cur),pointer}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".x1j4gyiv{background-image:image-set(url(0.5x.png) 1x,url(1x.png) 2x)}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".x5676m8{mask:url(0.5x.svg) 0 .5em}",
+          priority: 2000
+        });"
+      `);
+        });
         test('0 timings are all "0s"', ()=>{
             expect(transform(`
           import stylex from 'stylex';
@@ -96,6 +149,37 @@ describe('@stylexjs/babel-plugin', ()=>{
         import stylex from 'stylex';
         _inject2({
           ltr: ".x1jpfit1{transform:0deg}",
+          priority: 3000
+        });"
+      `);
+        });
+        test('0 dimensions keep their unit category whatever its case', ()=>{
+            expect(transform(`
+          import stylex from 'stylex';
+          const styles = stylex.create({
+            x: { transitionDuration: '0MS' },
+            y: { animationDelay: '0S' },
+            z: { transform: 'rotate(0DEG)' },
+            w: { gridTemplateColumns: '0FR 1fr' }
+          });
+        `)).toMatchInlineSnapshot(`
+        "import _inject from "@stylexjs/stylex/lib/stylex-inject";
+        var _inject2 = _inject;
+        import stylex from 'stylex';
+        _inject2({
+          ltr: ".x1mq3mr6{transition-duration:0s}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".x1uzojwf{animation-delay:0s}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".x7p49u4{transform:rotate(0deg)}",
+          priority: 3000
+        });
+        _inject2({
+          ltr: ".xkxvfks{grid-template-columns:0fr 1fr}",
           priority: 3000
         });"
       `);
@@ -185,6 +269,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               width: 500
             },
             unitless: {
+              fontSizeAdjust: 0.545,
               fontWeight: 500,
               lineHeight: 1.5,
               opacity: 0.5,
@@ -206,6 +291,10 @@ describe('@stylexjs/babel-plugin', ()=>{
         _inject2({
           ltr: ".xvue9z{width:500px}",
           priority: 4000
+        });
+        _inject2({
+          ltr: ".x1v6sj9q{font-size-adjust:.545}",
+          priority: 3000
         });
         _inject2({
           ltr: ".xk50ysn{font-weight:500}",

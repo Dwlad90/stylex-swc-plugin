@@ -9,15 +9,18 @@ use stylex_constants::constants::{
   long_hand_physical::LONG_HAND_PHYSICAL,
   messages::{LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
-  priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
+  priorities::{
+    DEFAULT_PRIORITY, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
+    UNKNOWN_PSEUDO_CLASS_PRIORITY, compound_pseudo_priority, get_at_rule_priority,
+  },
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
   shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
   unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
 };
 use stylex_macros::stylex_panic;
 use stylex_regex::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, DESCENDANT_SELECTOR, PSEUDO_PART_REGEX,
-  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, DESCENDANT_SELECTOR, SIBLING_AFTER_SELECTOR,
+  SIBLING_BEFORE_SELECTOR, pseudo_parts,
 };
 use stylex_structures::{
   pair::{Pair, PairCow},
@@ -224,50 +227,7 @@ fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
     return None;
   }
 
-  let parts: Vec<&str> = PSEUDO_PART_REGEX
-    .find_iter(key)
-    .flatten()
-    .map(|m| m.as_str())
-    .collect();
-
-  // Only handle chains of simple pseudo-classes and pseudo-elements.
-  // Opt out if there's zero/one part or any functional pseudo-class.
-  if parts.len() <= 1 || parts.iter().any(|p| p.contains('(')) {
-    return None;
-  }
-
-  let total = parts
-    .iter()
-    .map(|part| {
-      if is_pseudo_element(part) {
-        PSEUDO_ELEMENT_PRIORITY
-      } else {
-        **PSEUDO_CLASS_PRIORITIES.get(*part).unwrap_or(&&40.0)
-      }
-    })
-    .sum();
-
-  Some(total)
-}
-
-fn get_at_rule_priority(key: &str) -> Option<f64> {
-  if key.starts_with("--") {
-    return Some(1.0);
-  }
-
-  if key.starts_with("@supports") {
-    return AT_RULE_PRIORITIES.get("@supports").map(|v| **v);
-  }
-
-  if key.starts_with("@media") {
-    return AT_RULE_PRIORITIES.get("@media").map(|v| **v);
-  }
-
-  if key.starts_with("@container") {
-    return AT_RULE_PRIORITIES.get("@container").map(|v| **v);
-  }
-
-  None
+  compound_pseudo_priority(&pseudo_parts(key))
 }
 
 fn get_pseudo_element_priority(key: &str) -> Option<f64> {
@@ -279,7 +239,12 @@ fn get_pseudo_element_priority(key: &str) -> Option<f64> {
 }
 
 fn get_pseudo_class_priority(key: &str) -> Option<f64> {
-  let pseudo_base = |p: &str| -> f64 { **PSEUDO_CLASS_PRIORITIES.get(p).unwrap_or(&&40.0) / 100.0 };
+  let pseudo_base = |p: &str| -> f64 {
+    **PSEUDO_CLASS_PRIORITIES
+      .get(p)
+      .unwrap_or(&&UNKNOWN_PSEUDO_CLASS_PRIORITY)
+      / 100.0
+  };
 
   // Check ancestor selector
   if let Ok(Some(captures)) = ANCESTOR_SELECTOR.captures(key)
@@ -324,7 +289,11 @@ fn get_pseudo_class_priority(key: &str) -> Option<f64> {
   if is_pseudo_class(key) {
     let prop: &str = key.split('(').next().unwrap_or(key);
 
-    return Some(**PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0));
+    return Some(
+      **PSEUDO_CLASS_PRIORITIES
+        .get(prop)
+        .unwrap_or(&&UNKNOWN_PSEUDO_CLASS_PRIORITY),
+    );
   }
 
   None
@@ -373,7 +342,7 @@ pub fn get_priority(key: &str) -> f64 {
     return default_priority;
   }
 
-  3000.0
+  DEFAULT_PRIORITY
 }
 
 fn is_escaped(value: &[u8], index: usize) -> bool {
@@ -780,10 +749,9 @@ pub fn get_number_suffix(key: &str) -> &'static str {
 /// Each pair is formatted as `property:value` and joined with `;`.
 ///
 /// Every name takes the spelling a `style` attribute gives it, which is
-/// [`kebab_case`] and not the stylesheet spelling. The runtime writes this
-/// attribute with a rule of its own, and a custom property is the name where
-/// the two part company: `--myColor` stays as it is in a stylesheet and
-/// becomes `--my-color` here.
+/// [`kebab_case`] and not the stylesheet spelling. A custom property is the
+/// exception: it keeps the name the author wrote, so `--myColor` here is the
+/// same `--myColor` that the generated CSS reads with `var(--myColor)`.
 ///
 /// Taken by borrowed halves, because a caller that already holds the name and
 /// the text writes them straight in, and one that had to spell a value -- a
@@ -797,11 +765,15 @@ pub fn inline_style_to_css_string(pairs: &[PairCow<'_>]) -> String {
   let mut out = String::with_capacity(capacity);
 
   for pair in pairs {
-    push_css_decl(
-      &mut out,
-      kebab_case(&pair.key).as_ref(),
-      pair.value.as_ref(),
-    );
+    // A custom property name is case-sensitive, so a converted name would not
+    // match the property that the stylesheet reads.
+    let key = if pair.key.starts_with("--") {
+      Cow::Borrowed(pair.key.as_ref())
+    } else {
+      kebab_case(&pair.key)
+    };
+
+    push_css_decl(&mut out, key.as_ref(), pair.value.as_ref());
   }
 
   out

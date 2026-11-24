@@ -632,6 +632,10 @@ fn attrs_with_dynamic_styles() {
     Rc::new(FlatCompiledStylesValue::String("2".into())),
   );
   dynamic_style.insert(
+    "--fooBar".to_string(),
+    Rc::new(FlatCompiledStylesValue::String("3".into())),
+  );
+  dynamic_style.insert(
     "MsTransition".to_string(),
     Rc::new(FlatCompiledStylesValue::String("none".into())),
   );
@@ -667,7 +671,7 @@ fn attrs_with_dynamic_styles() {
       }
     }),
     Some(
-      "color:red;margin-top:10px;opacity:0.5;--foo:2;-ms-transition:none;-webkit-tap-highlight-color:transparent"
+      "color:red;margin-top:10px;opacity:0.5;--foo:2;--fooBar:3;-ms-transition:none;-webkit-tap-highlight-color:transparent"
     ),
   );
 

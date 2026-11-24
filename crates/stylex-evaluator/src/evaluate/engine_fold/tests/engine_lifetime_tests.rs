@@ -36,7 +36,7 @@ fn key_numbered(parameters: u128) -> FoldKey {
     other => panic!("`''.concat('a')` parsed as {:?}", other),
   };
 
-  FoldKey::new(&call, parameters)
+  FoldKey::new(&call, parameters, &[])
 }
 
 /// An engine built the way a fold builds one.
@@ -52,15 +52,13 @@ fn engine() -> ManuallyDrop<Engine> {
 /// separate compilation of the same four steps, and no one of them would then
 /// read every step.
 fn answered(engine: &mut Engine, key: FoldKey, source: &str) -> Result<JsValue, Decline> {
+  let print = || Printed {
+    source: source.to_string(),
+    binds_the_checks: false,
+  };
+
   engine
-    .eval(
-      key,
-      || Printed {
-        source: source.to_string(),
-        binds_the_checks: false,
-      },
-      &Atom::from(METHOD),
-    )
+    .eval(FoldScript::new(key, print), &Atom::from(METHOD))
     .map(|(value, _)| value)
 }
 

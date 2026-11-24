@@ -4,7 +4,17 @@
 //! These functions take the counts and positions that JavaScript gives and
 //! answer what JavaScript answers.
 
-use std::borrow::Cow;
+use std::{borrow::Cow, cmp::Ordering};
+
+/// The order JavaScript puts two strings in: by UTF-16 code unit, as `<` and
+/// the default `sort()` compare them.
+///
+/// It differs from the byte order of `str` only for a character outside the
+/// Basic Multilingual Plane, whose first code unit sorts before U+E000 to
+/// U+FFFF although its UTF-8 bytes sort after them.
+pub fn js_string_cmp(left: &str, right: &str) -> Ordering {
+  left.encode_utf16().cmp(right.encode_utf16())
+}
 
 /// `text` cut into consecutive pieces of the given lengths, each counted in
 /// UTF-16 code units as JavaScript's `length` counts it.
@@ -155,6 +165,36 @@ pub fn js_replace_all<'t>(text: &'t str, pattern: &str, replacement: &str) -> Co
   }
 
   out.push_str(rest);
+  Cow::Owned(out)
+}
+
+/// `text.replaceAll(pattern, () => replacement)`: every occurrence replaced by
+/// the replacement as written. What a function replacer returns is not a
+/// template, so a `$` in it stays a `$`. A text with no occurrence is handed
+/// back as it is.
+///
+/// The text is searched once. The empty pattern occurs at each character
+/// boundary and at the end, as in JavaScript (less the boundaries inside a
+/// character outside the Basic Multilingual Plane, as in [`js_replace_all`]).
+pub fn js_replace_all_verbatim<'t>(
+  text: &'t str,
+  pattern: &str,
+  replacement: &str,
+) -> Cow<'t, str> {
+  let mut occurrences = text.match_indices(pattern).peekable();
+  if occurrences.peek().is_none() {
+    return Cow::Borrowed(text);
+  }
+
+  let mut out = String::with_capacity(text.len());
+  let mut copied = 0;
+  for (start, _) in occurrences {
+    out.push_str(&text[copied..start]);
+    out.push_str(replacement);
+    copied = start + pattern.len();
+  }
+  out.push_str(&text[copied..]);
+
   Cow::Owned(out)
 }
 

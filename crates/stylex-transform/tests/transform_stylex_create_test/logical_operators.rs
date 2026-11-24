@@ -149,13 +149,11 @@ stylex_test!(
   "#
 );
 
-// A falsy confident left side is returned as it is, and the empty string it
-// wins with is a blank value, so the property is left undeclared and compiles
-// to `null`. The reference implementation returns the same operand and then
-// crashes on it downstream with a bare `TypeError`, which is not a behaviour
-// worth reproducing.
-stylex_test!(
-  and_returns_a_falsy_left_side,
+// A falsy confident left side is returned as it is. Here it is an empty
+// string, which is a blank value, so the build fails, as the reference does.
+stylex_test_panic!(
+  and_with_an_empty_left_side_fails_the_build,
+  "Rule contains a value with nothing to normalize",
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';

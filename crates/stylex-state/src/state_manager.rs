@@ -1,5 +1,6 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
+use std::collections::{VecDeque, hash_map::Entry};
 use std::{borrow::Cow, env, option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
@@ -118,15 +119,31 @@ pub enum InsertionSlot {
   /// runtime helpers because they always followed them, regardless
   /// of which producer ran first.
   ThemeImports,
-  /// Hoisted dynamic-style constants. Emitted after the existing
-  /// import block, before the rest of the body. Mirrors the legacy
-  /// `hoisted_module_items` placement.
+  /// Emitted after the existing import block, before the rest of the body.
+  /// It holds the injection calls of the atoms transform, and each hoisted
+  /// declaration made outside the top-level walk. A hoist inside that walk goes
+  /// in front of its own statement. See [`StateManager::hoist_to_program_level`].
   AfterImports,
   /// Per-statement style metadata (the `_inject2(...)` calls) keyed by the
-  /// stable hash of the object the call was replaced by. Emitted immediately
-  /// before the first statement that holds that object, wherever in the
-  /// statement it stands. Replaces the legacy `styles_to_inject` map.
-  BeforeDecl(u128),
+  /// stable hash of the object the call was replaced by, and by the
+  /// registration that queued it. Each statement that holds that object takes
+  /// the items of one registration, in the order they were registered, so two
+  /// calls that leave the same object each inject in front of their own
+  /// statement. Replaces the legacy `styles_to_inject` map.
+  BeforeDecl {
+    /// The stable hash of the object that the call was replaced by.
+    object_hash: u128,
+    /// The registration that queued the items.
+    registration: u64,
+  },
+}
+
+/// The hoisted declarations that wait for the program-level statement that
+/// holds their expression, and the bindings they must not read there.
+#[derive(Debug, Clone)]
+struct StatementHoists {
+  items: Vec<ModuleItem>,
+  undeclared: FxHashSet<Id>,
 }
 
 #[derive(Debug, Clone)]
@@ -286,7 +303,8 @@ impl ImportState {
 /// The binding sets one `Discover` pre-scan produced, moved to the state
 /// together.
 ///
-/// A type rather than four parameters because all four are `FxHashSet<Id>`: see
+/// A type rather than one parameter per set, because all of them are
+/// `FxHashSet<Id>`: see
 /// [`StateManager::adopt_binding_writes`].
 pub struct BindingWrites {
   /// See [`StateManager::binding_reassignments`].
@@ -297,6 +315,8 @@ pub struct BindingWrites {
   pub deep_mutations: FxHashSet<Id>,
   /// See [`StateManager::declared_bindings`].
   pub declared: FxHashSet<Id>,
+  /// See [`StateManager::enclosed_bindings`].
+  pub enclosed: FxHashSet<Id>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -659,7 +679,12 @@ impl DeclarationState {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct StyleInjectionState {
   inject_import_inserted: Option<InjectImportIdents>,
-  metadata: IndexMap<String, IndexSet<MetaData>>,
+  /// Every rule each call registered, in the order the calls registered them.
+  /// Two calls that produce one rule each record it.
+  metadata: IndexMap<String, Vec<MetaData>>,
+  /// How many calls registered their styles so far, which numbers the next
+  /// registration.
+  registrations: u64,
   /// Transient dedup map for theme side-effect imports queued
   /// under `InsertionSlot::ThemeImports`. Tracks the imports that
   /// have already been queued so duplicates can be skipped. Lookups
@@ -672,9 +697,9 @@ pub(crate) struct StyleInjectionState {
   /// `pending_module_items`.
   queued_theme_imports: Vec<ModuleItem>,
   /// Which rules are already queued under which
-  /// `InsertionSlot::BeforeDecl(key)`, so a rule registered twice against one
-  /// statement is injected once. Replaces the legacy `styles_to_inject`
-  /// field's dual role.
+  /// `InsertionSlot::BeforeDecl`, so a rule one call
+  /// registered twice against one statement is injected once. Replaces the
+  /// legacy `styles_to_inject` field's dual role.
   ///
   /// A pair of hashes rather than the statements themselves: the injecting
   /// call is built from the rule and from the injection identifier, which is
@@ -682,12 +707,18 @@ pub(crate) struct StyleInjectionState {
   /// Holding the pair is one probe per rule, where holding the statements was
   /// a copy of every one of them and a scan over the copies -- 153,437
   /// statements on the largest module in the benchmark corpus.
-  queued_decl_rules: FxHashSet<(u128, u128)>,
+  queued_decl_rules: FxHashSet<(u128, u128, u64)>,
 }
 
 impl StyleInjectionState {
-  fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
+  fn metadata(&self) -> &IndexMap<String, Vec<MetaData>> {
     &self.metadata
+  }
+
+  /// The number of the next registration.
+  fn next_registration(&mut self) -> u64 {
+    self.registrations += 1;
+    self.registrations
   }
 }
 
@@ -782,11 +813,11 @@ pub struct StateManager {
   /// (`ModuleBindingsCollector`), in the same walk that fills
   /// [`Self::binding_mutations`].
   ///
-  /// Behind an `Rc` for the reason the memoized module is. All four sets are
+  /// Behind an `Rc` for the reason the memoized module is. All these sets are
   /// filled once by the `Discover` pre-scan and read-only afterwards, and
   /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
   /// once per invocation. `declared_bindings` alone holds every binding the
-  /// module declares, so copying the four of them made a callback's cost scale
+  /// module declares, so copying all of them made a callback's cost scale
   /// with the size of the file it happens to sit in.
   pub binding_reassignments: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is mutated in place — `obj.x = 1`,
@@ -818,6 +849,13 @@ pub struct StateManager {
   /// either of its modes, in the same walk that fills the two write sets above.
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub declared_bindings: Rc<FxHashSet<Id>>,
+  /// The **enclosed bindings**: the declared bindings that a function, a
+  /// block or a class body holds, so they are not visible at program level.
+  /// Read through [`Self::is_enclosed_binding`].
+  ///
+  /// Filled by the same pre-scan as [`Self::declared_bindings`].
+  /// Shared rather than copied -- see [`Self::binding_reassignments`].
+  pub enclosed_bindings: Rc<FxHashSet<Id>>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Positions in [`Self::top_level_expressions`] of the entries that *are* a
   /// given call. Maintained by [`Self::push_top_level_expression`] and
@@ -976,6 +1014,10 @@ pub struct StateManager {
   /// accumulator vecs above plus the per-decl `styles_to_inject` map.
   pub(crate) pending_module_items: Vec<PendingInsertion>,
 
+  /// The hoists that the top-level walk places. Present only while that walk
+  /// runs. See [`StateManager::hoist_to_program_level`].
+  statement_hoists: Option<StatementHoists>,
+
   pub other_injected_css_rules: InjectableStylesMap,
   /// How many times the file has filed a nested rule, counting every filing
   /// rather than every distinct name.
@@ -1059,6 +1101,7 @@ impl StateManager {
       binding_mutations: Rc::default(),
       binding_deep_mutations: Rc::default(),
       declared_bindings: Rc::default(),
+      enclosed_bindings: Rc::default(),
       top_level_expressions: vec![],
       top_level_call_index: Rc::default(),
       top_level_name_index: Rc::default(),
@@ -1071,6 +1114,7 @@ impl StateManager {
 
       injection: StyleInjectionState::default(),
       pending_module_items: vec![],
+      statement_hoists: None,
 
       other_injected_css_rules: IndexMap::new(),
       nested_rules_filed: 0,
@@ -1146,7 +1190,7 @@ impl StateManager {
     self.plugin_pass = plugin_pass;
   }
 
-  pub fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
+  pub fn metadata(&self) -> &IndexMap<String, Vec<MetaData>> {
     self.injection.metadata()
   }
 
@@ -1179,8 +1223,8 @@ impl StateManager {
 
   /// Takes the binding sets the `Discover` pre-scan collected.
   ///
-  /// One argument rather than four of the same type, for the reason
-  /// [`ModuleBase`] is its own type: four positional `FxHashSet<Id>` can be
+  /// One argument rather than one per set of the same type, for the reason
+  /// [`ModuleBase`] is its own type: positional `FxHashSet<Id>` sets can be
   /// transposed at a call site and still compile, and the answer would be a
   /// reference silently refused for the wrong reason. Named fields make the
   /// mistake visible where it is written, and the sets travel together anyway --
@@ -1190,6 +1234,7 @@ impl StateManager {
     self.binding_mutations = Rc::new(writes.mutations);
     self.binding_deep_mutations = Rc::new(writes.deep_mutations);
     self.declared_bindings = Rc::new(writes.declared);
+    self.enclosed_bindings = Rc::new(writes.enclosed);
   }
 
   /// The declarators that the top level of the module binds, in source order.
@@ -1638,6 +1683,13 @@ impl StateManager {
     self.declared_bindings.contains(&ident.to_id())
   }
 
+  /// Whether `ident` refers to a binding below program level, such as a
+  /// function parameter or a `let` in a block. A global and a program-level
+  /// binding both answer `false`. See [`StateManager::enclosed_bindings`].
+  pub fn is_enclosed_binding(&self, ident: &Ident) -> bool {
+    self.enclosed_bindings.contains(&ident.to_id())
+  }
+
   /// Seeds an empty replacement entry for a JSX spread expression seen during
   /// discovery. The expression is stored alongside its (initially empty)
   /// replacement so later lookups can confirm structural equality and never act
@@ -1833,10 +1885,8 @@ impl StateManager {
   /// the pair travelled through eight signatures before it was named by the
   /// type it already is.
   pub fn apply_stylex_env(&self, function_map: &mut FunctionMap) {
-    if self.options.env.is_empty() {
-      return;
-    }
-
+    // Registered whether or not the option is set: an unset option is an empty
+    // object, whose keys read as `undefined`.
     let env = Rc::clone(&self.options.env);
 
     // A namespace import reads `stylex.env.x`, so `env` is a member of the
@@ -2031,7 +2081,10 @@ impl StateManager {
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   ) -> Option<(Option<String>, String)> {
     let folder = Path::new(filepath).parent()?;
-    let package_json_path = find_closest_package_json_folder(Path::new(filepath));
+    // The search starts at the folder that holds the path, not at the path.
+    // A directory, such as the working directory, is then read as an entry of
+    // its parent, so its own package.json is not found.
+    let package_json_path = find_closest_package_json_folder(folder);
 
     if let Some(package_json_path) = package_json_path {
       let (package_json, _) = get_package_json(&package_json_path, package_json_seen);
@@ -2451,6 +2504,35 @@ impl StateManager {
     self.nested_rules_filed
   }
 
+  /// Keeps the nested rules filed on `copy`, a clone of this state that an
+  /// evaluation ran on and then dropped.
+  ///
+  /// An author's arrow runs its body on a clone, so that the memo entries of
+  /// one call cannot answer the next call with other arguments. A `keyframes`
+  /// call in the body files its rule on that clone, and the rule must reach the
+  /// build all the same. The filing count is kept too, so the memo does not
+  /// answer the next identical call without filing the rule again.
+  ///
+  /// A rule is keyed by its name, so a rule this state already holds stays
+  /// where it is.
+  pub fn keep_rules_filed_on(&mut self, copy: &StateManager) {
+    if copy.nested_rules_filed == self.nested_rules_filed {
+      return;
+    }
+
+    // A rule is keyed by its name, so a rule this state holds is the same
+    // rule. Skip it, and do not copy its key.
+    for (key, rule) in &copy.other_injected_css_rules {
+      if !self.other_injected_css_rules.contains_key(key) {
+        self
+          .other_injected_css_rules
+          .insert(key.clone(), Rc::clone(rule));
+      }
+    }
+
+    self.nested_rules_filed = copy.nested_rules_filed;
+  }
+
   /// Puts the rules the calls inside the argument declared in front of `own`,
   /// and answers the map the producer registers.
   ///
@@ -2508,10 +2590,11 @@ impl StateManager {
     // The keys are the same for every rule of one call, so they are read once
     // here rather than once per metadata in the loop.
     let keys = placement_keys(ast, fallback_ast_hash);
+    let registration = self.injection.next_registration();
 
     for metadata in metadatas {
       self.add_style(&metadata);
-      self.add_style_to_inject(&metadata, &inject_var_ident, &keys);
+      self.add_style_to_inject(&metadata, &inject_var_ident, &keys, registration);
     }
 
     // Update all references to this call expression with the new AST
@@ -2632,24 +2715,30 @@ impl StateManager {
   }
 
   fn add_style(&mut self, metadata: &MetaData) {
-    let var_name = "stylex";
-    let value = self
-      .injection
-      .metadata
-      .entry(var_name.to_string())
-      .or_default();
-
-    if !value.contains(metadata) {
-      value.insert(metadata.clone());
+    // Look up first, so that only the first rule allocates the key.
+    match self.injection.metadata.get_mut("stylex") {
+      Some(styles) => styles.push(metadata.clone()),
+      None => {
+        self
+          .injection
+          .metadata
+          .insert("stylex".to_owned(), vec![metadata.clone()]);
+      },
     }
   }
 
   /// Queues the injection call for one rule before each statement it belongs
-  /// to, once per statement.
+  /// to, once per statement for each registration.
   ///
   /// `keys` are what [`placement_keys`] read off the call, and every one of
   /// them names a shape the placement walk can find.
-  fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, keys: &[u128]) {
+  fn add_style_to_inject(
+    &mut self,
+    metadata: &MetaData,
+    inject_var_ident: &Ident,
+    keys: &[u128],
+    registration: u64,
+  ) {
     let priority = metadata.get_priority();
     let css_ltr = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
@@ -2707,8 +2796,18 @@ impl StateManager {
     }));
 
     for key in keys {
-      if self.injection.queued_decl_rules.insert((*key, rule_key)) {
-        self.queue_insertion(InsertionSlot::BeforeDecl(*key), item.clone());
+      if self
+        .injection
+        .queued_decl_rules
+        .insert((*key, rule_key, registration))
+      {
+        self.queue_insertion(
+          InsertionSlot::BeforeDecl {
+            object_hash: *key,
+            registration,
+          },
+          item.clone(),
+        );
       }
     }
   }
@@ -2724,6 +2823,75 @@ impl StateManager {
     self
       .pending_module_items
       .push(PendingInsertion { slot, item });
+  }
+
+  /// Adds a declaration that a hoisted expression moved to.
+  ///
+  /// While the top-level walk runs, the declaration goes in front of the
+  /// program-level statement that holds the expression, as the reference
+  /// places it. So it comes after every binding that an earlier statement
+  /// declares, and it can read them when the module loads. A hoist outside that
+  /// walk goes after the imports.
+  pub fn hoist_to_program_level(&mut self, item: ModuleItem) {
+    match &mut self.statement_hoists {
+      Some(hoists) => hoists.items.push(item),
+      None => self.queue_insertion(InsertionSlot::AfterImports, item),
+    }
+  }
+
+  /// Whether the top-level walk runs. A list of items inside a program-level
+  /// statement, such as a TypeScript namespace body, does not start a second
+  /// walk: its hoists belong in front of that outer statement.
+  pub fn places_statement_hoists(&self) -> bool {
+    self.statement_hoists.is_some()
+  }
+
+  /// Starts to keep hoisted declarations for the statement that holds them.
+  ///
+  /// `undeclared` holds the program-level bindings that a hoisted declaration
+  /// must not read, because they have no value in front of the statement
+  /// that the walk reads. The walk takes each one off when it passes its
+  /// statement, with [`StateManager::note_program_bindings_declared`].
+  pub fn start_statement_hoists(&mut self, undeclared: FxHashSet<Id>) {
+    self.statement_hoists = Some(StatementHoists {
+      items: Vec::new(),
+      undeclared,
+    });
+  }
+
+  /// Records that the walk passed the statement that declares `ids`. A
+  /// declaration hoisted in front of a later statement can read them.
+  pub fn note_program_bindings_declared(&mut self, ids: impl IntoIterator<Item = Id>) {
+    if let Some(hoists) = &mut self.statement_hoists {
+      for id in ids {
+        hoists.undeclared.remove(&id);
+      }
+    }
+  }
+
+  /// Whether `ident` names a program-level binding that a declaration hoisted
+  /// in front of the statement the walk reads must not read.
+  pub fn is_undeclared_program_binding(&self, ident: &Ident) -> bool {
+    self
+      .statement_hoists
+      .as_ref()
+      .is_some_and(|hoists| hoists.undeclared.contains(&ident.to_id()))
+  }
+
+  /// Takes the declarations hoisted out of the statement that the walk read
+  /// last, in the order they were hoisted.
+  pub fn take_statement_hoists(&mut self) -> Vec<ModuleItem> {
+    self
+      .statement_hoists
+      .as_mut()
+      .map(|hoists| std::mem::take(&mut hoists.items))
+      .unwrap_or_default()
+  }
+
+  /// Stops keeping hoisted declarations. A hoist after this goes after the
+  /// imports.
+  pub fn stop_statement_hoists(&mut self) {
+    self.statement_hoists = None;
   }
 
   /// Whether a refusal raised right now is the evaluated subtree's own answer,
@@ -2777,9 +2945,9 @@ impl StateManager {
 ///    existing import block — matching the legacy `prepend_import_module_items`
 ///    placement.
 /// 4. The existing import block follows.
-/// 5. `AfterImports` items follow the import block — matching the legacy
-///    in-walk splice that placed `hoisted_module_items` after imports during
-///    the consumer walk.
+/// 5. `AfterImports` items follow the import block. A hoisted declaration is
+///    here only when it was made outside the top-level walk. The walk puts
+///    every other one in front of its statement before this flush.
 /// 6. The remainder of the body follows. Each item is read for the objects a
 ///    producer registered, and the `BeforeDecl` metadata of each one found is
 ///    spliced before the item. [`RegisteredObjects`] is that walk.
@@ -2790,8 +2958,8 @@ impl StateManager {
 /// (`ThemeImports`), and per-decl metadata (`BeforeDecl`) are
 /// dropped on the floor — exactly as the legacy
 /// `inject_runtime_styles` was simply not invoked.
-/// `AfterImports` always emits — the legacy in-walk hoisted splice
-/// ran regardless of the option.
+/// `AfterImports` always emits, because a hoisted declaration is part of the
+/// module whatever the option says.
 pub fn flush_pending_insertions(
   state: &mut StateManager,
   module_body: &mut Vec<ModuleItem>,
@@ -2807,7 +2975,7 @@ pub fn flush_pending_insertions(
   let mut before_imports: Vec<ModuleItem> = Vec::new();
   let mut theme_imports: Vec<ModuleItem> = Vec::new();
   let mut after_imports: Vec<ModuleItem> = Vec::new();
-  let mut before_decl: FxHashMap<u128, Vec<ModuleItem>> = FxHashMap::default();
+  let mut before_decl: FxHashMap<u128, VecDeque<RegisteredItems>> = FxHashMap::default();
 
   for PendingInsertion { slot, item } in pending {
     match slot {
@@ -2823,17 +2991,29 @@ pub fn flush_pending_insertions(
         }
       },
       InsertionSlot::AfterImports => after_imports.push(item),
-      InsertionSlot::BeforeDecl(hash) => {
+      InsertionSlot::BeforeDecl {
+        object_hash,
+        registration,
+      } => {
         if runtime_injection {
-          before_decl.entry(hash).or_default().push(item);
+          let groups = before_decl.entry(object_hash).or_default();
+
+          // The items of one registration are queued together, so a new group
+          // starts where the registration changes.
+          match groups.back_mut() {
+            Some(group) if group.registration == registration => group.items.push(item),
+            _ => groups.push_back(RegisteredItems {
+              registration,
+              items: vec![item],
+            }),
+          }
         }
       },
     }
   }
 
-  // Step 1: replicate the legacy in-walk splice that placed
-  // hoisted items between the import block and the rest of the
-  // body. Doing it here keeps the BeforeDecl iteration in step 4
+  // Step 1: put the `AfterImports` items between the import block and the
+  // rest of the body. Doing it here keeps the BeforeDecl iteration in step 4
   // walking the same shape the legacy `inject_runtime_styles` saw.
   let original = std::mem::take(module_body);
   let body_with_after_imports = if after_imports.is_empty() {
@@ -2963,6 +3143,13 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
   keys
 }
 
+/// The injection calls one registration queued for one object.
+#[derive(Debug)]
+struct RegisteredItems {
+  registration: u64,
+  items: Vec<ModuleItem>,
+}
+
 /// The walk that finds the objects a module item holds and places the metadata
 /// queued for each of them in front of the item.
 ///
@@ -2987,9 +3174,9 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
 ///   folded into rather than to the name left in it -- `create({ a: {
 ///   animationName: keyframes({ … }) } })` injects both rules at the one key.
 ///   So a declarator bound to one compiled object costs the one hash it always
-///   cost, however large the object is. A *second* statement holding the same
-///   object is read to the bottom, because the first took the metadata: that
-///   is the price of the rule that the first holder is the one that takes it.
+///   cost, however large the object is. Each statement that holds the object
+///   takes the next registration group. A statement that holds it after the
+///   last group is taken finds nothing, and is read to the bottom.
 /// - It does not enter a function body. Nothing a body holds is registered: a
 ///   `create` written in one is hoisted to a declaration of its own, and every
 ///   other producer refuses a call the module top level does not bind. So a
@@ -3005,9 +3192,9 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
 /// is nothing there to step over.
 struct RegisteredObjects<'a> {
   /// The metadata still to place, keyed by the hash of the object it belongs
-  /// to. Taking a bucket out leaves the first item that holds the object as
-  /// the one that takes it.
-  queued: &'a mut FxHashMap<u128, Vec<ModuleItem>>,
+  /// to, one group per registration. Each item that holds the object takes the
+  /// next group, so the first registration goes in front of the first item.
+  queued: &'a mut FxHashMap<u128, VecDeque<RegisteredItems>>,
   /// The module body being written, which the metadata is appended to directly
   /// in front of the item the walk is reading.
   placed: &'a mut Vec<ModuleItem>,
@@ -3016,13 +3203,25 @@ struct RegisteredObjects<'a> {
 impl RegisteredObjects<'_> {
   /// Places the metadata queued for `expr`, and says whether there was any.
   fn place_metadata_of(&mut self, expr: &Expr) -> bool {
-    match self.queued.remove(&stable_hash_unspanned(expr)) {
-      Some(metadata) => {
-        self.placed.extend(metadata);
-        true
-      },
-      None => false,
+    let hash = stable_hash_unspanned(expr);
+
+    let Entry::Occupied(mut groups) = self.queued.entry(hash) else {
+      return false;
+    };
+
+    let group = groups.get_mut().pop_front();
+    if groups.get().is_empty() {
+      groups.remove();
     }
+
+    // A key is removed with its last group, so a key that is found has one.
+    // An `if let` would add an empty branch that no input can reach.
+    let found = group.is_some();
+    self
+      .placed
+      .extend(group.into_iter().flat_map(|group| group.items));
+
+    found
   }
 }
 

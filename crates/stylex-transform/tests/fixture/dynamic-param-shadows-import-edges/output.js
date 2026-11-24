@@ -10,42 +10,42 @@ import { firstThatWorks } from './vars/legacy.stylex.js';
 import { grid } from './vars/grid.stylex.js';
 const _temp = {
     "input__styles.unicodeParam": "input__styles.unicodeParam",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:11"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:11"
 };
 const _temp2 = {
     "input__styles.escapedParam": "input__styles.escapedParam",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:15"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:15"
 };
 const _temp3 = {
     "input__styles.helperName": "input__styles.helperName",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:19"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:19"
 };
 const _temp4 = {
     "input__styles.shorthand": "input__styles.shorthand",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:23"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:23"
 };
 const _temp5 = {
     "input__styles.customProperty": "input__styles.customProperty",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:26"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:26"
 };
 const _temp6 = {
     "input__styles.prefixed": "input__styles.prefixed",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:29"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:29"
 };
 const _temp7 = {
     "input__styles.deeplyNested": "input__styles.deeplyNested",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:33"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:33"
 };
 const _temp8 = {
     "input__styles.computedFromParam": "input__styles.computedFromParam",
     zIndex: "xr3buco",
     content: "x1p70blb",
     width: "x5lhr3w",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:60"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:60"
 };
 const _temp9 = {
     "input__styles.mixedParams": "input__styles.mixedParams",
-    $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
+    $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
 };
 _inject2({
     ltr: ".x1rqil9o{padding:var(--xq1l1nf)}",
@@ -231,13 +231,13 @@ export const styles = {
     unicodeName: {
         "input__styles.unicodeName": "input__styles.unicodeName",
         padding: "x1rqil9o",
-        $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:10"
+        $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:10"
     },
     unicodeParam: (ünïcödé)=>[
             _temp,
-            {
-                padding: ünïcödé != null ? "x1fozly0" : ünïcödé,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:11"
+            ünïcödé !== undefined && {
+                padding: ünïcödé != null ? "x1fozly0" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:11"
             },
             {
                 "--x-padding": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(ünïcödé)
@@ -245,9 +245,9 @@ export const styles = {
         ],
     escapedParam: (ünïcödé)=>[
             _temp2,
-            {
-                margin: ünïcödé != null ? "xb9ncqk" : ünïcödé,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:15"
+            ünïcödé !== undefined && {
+                margin: ünïcödé != null ? "xb9ncqk" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:15"
             },
             {
                 "--x-margin": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(ünïcödé)
@@ -255,9 +255,9 @@ export const styles = {
         ],
     helperName: (firstThatWorks)=>[
             _temp3,
-            {
-                fontFamily: firstThatWorks != null ? "xk2v41j" : firstThatWorks,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:19"
+            firstThatWorks !== undefined && {
+                fontFamily: firstThatWorks != null ? "xk2v41j" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:19"
             },
             {
                 "--x-fontFamily": firstThatWorks != null ? firstThatWorks : undefined
@@ -265,10 +265,13 @@ export const styles = {
         ],
     shorthand: (zIndex)=>[
             _temp4,
-            {
-                inset: zIndex != null ? "xccw97s" : zIndex,
-                marginInline: zIndex != null ? "xvlecxo" : zIndex,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:23"
+            zIndex !== undefined && {
+                inset: zIndex != null ? "xccw97s" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:23"
+            },
+            zIndex !== undefined && {
+                marginInline: zIndex != null ? "xvlecxo" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:23"
             },
             {
                 "--x-inset": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(zIndex),
@@ -277,10 +280,13 @@ export const styles = {
         ],
     customProperty: (zIndex)=>[
             _temp5,
-            {
-                "--depth": zIndex != null ? "x5h8hlk" : zIndex,
-                "--nested-depth": zIndex != null ? "x91d7kb" : zIndex,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:26"
+            zIndex !== undefined && {
+                "--depth": zIndex != null ? "x5h8hlk" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:26"
+            },
+            zIndex !== undefined && {
+                "--nested-depth": zIndex != null ? "x91d7kb" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:26"
             },
             {
                 "--x---depth": zIndex != null ? zIndex : undefined,
@@ -289,10 +295,13 @@ export const styles = {
         ],
     prefixed: (zIndex)=>[
             _temp6,
-            {
-                userSelect: zIndex != null ? "x9pkiyq" : zIndex,
-                appearance: zIndex != null ? "xafmcc1" : zIndex,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:29"
+            zIndex !== undefined && {
+                userSelect: zIndex != null ? "x9pkiyq" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:29"
+            },
+            zIndex !== undefined && {
+                appearance: zIndex != null ? "xafmcc1" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:29"
             },
             {
                 "--x-userSelect": zIndex != null ? zIndex : undefined,
@@ -302,8 +311,8 @@ export const styles = {
     deeplyNested: (zIndex)=>[
             _temp7,
             {
-                zIndex: (zIndex != null ? "xkrcnwa " : zIndex) + (zIndex != null ? "x141uv47 " : zIndex) + (zIndex != null ? "x140siia " : zIndex) + (zIndex != null ? "xlzq18l " : zIndex) + (zIndex != null ? "x103ewrf " : zIndex) + (zIndex != null ? "x1gxqx9w " : zIndex) + (zIndex != null ? "xqw1h1y " : zIndex) + (zIndex != null ? "x15stwyu" : zIndex),
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:33"
+                zIndex: (zIndex != null ? "xkrcnwa " : "") + (zIndex != null ? "x141uv47 " : "") + (zIndex != null ? "x140siia " : "") + (zIndex != null ? "xlzq18l " : "") + (zIndex != null ? "x103ewrf " : "") + (zIndex != null ? "x1gxqx9w " : "") + (zIndex != null ? "xqw1h1y " : "") + (zIndex != null ? "x15stwyu" : ""),
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:33"
             },
             {
                 "--x-gsepj1": zIndex != null ? zIndex : undefined,
@@ -326,10 +335,13 @@ export const styles = {
         ],
     mixedParams: (zIndex, level)=>[
             _temp9,
-            {
-                zIndex: zIndex != null ? "xr3buco" : zIndex,
-                order: level != null ? "xuwbzjh" : level,
-                $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
+            zIndex !== undefined && {
+                zIndex: zIndex != null ? "xr3buco" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
+            },
+            level !== undefined && {
+                order: level != null ? "xuwbzjh" : "",
+                $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
             },
             {
                 "--x-zIndex": zIndex != null ? zIndex : undefined,
@@ -340,6 +352,6 @@ export const styles = {
         "input__styles.static": "input__styles.static",
         zIndex: "x25bfn",
         gridArea: "xvstzhk",
-        $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:71"
+        $$css: "@stylexswc/transform:tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:71"
     }
 };

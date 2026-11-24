@@ -119,7 +119,8 @@ impl BorderRadiusShorthand {
     }
   }
 
-  /// Create a new BorderRadiusShorthand with CSS shorthand expansion logic
+  /// Create a new BorderRadiusShorthand with CSS shorthand expansion logic.
+  /// Without vertical radii, each corner uses its horizontal radius.
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     horizontal_top_left: LengthPercentage,
@@ -132,14 +133,25 @@ impl BorderRadiusShorthand {
     vertical_bottom_left: Option<LengthPercentage>,
   ) -> Self {
     // CSS shorthand expansion logic
-    let h_top_right = horizontal_top_right.unwrap_or(horizontal_top_left.clone());
-    let h_bottom_right = horizontal_bottom_right.unwrap_or(horizontal_top_left.clone());
-    let h_bottom_left = horizontal_bottom_left.unwrap_or(h_top_right.clone());
+    let h_top_right = horizontal_top_right.unwrap_or_else(|| horizontal_top_left.clone());
+    let h_bottom_right = horizontal_bottom_right.unwrap_or_else(|| horizontal_top_left.clone());
+    let h_bottom_left = horizontal_bottom_left.unwrap_or_else(|| h_top_right.clone());
 
-    let v_top_left = vertical_top_left.unwrap_or(horizontal_top_left.clone());
-    let v_top_right = vertical_top_right.unwrap_or(v_top_left.clone());
-    let v_bottom_right = vertical_bottom_right.unwrap_or(v_top_left.clone());
-    let v_bottom_left = vertical_bottom_left.unwrap_or(v_top_right.clone());
+    let (v_top_left, v_top_right, v_bottom_right, v_bottom_left) = match vertical_top_left {
+      // No vertical radii (no `/`): each corner is circular
+      None => (
+        horizontal_top_left.clone(),
+        h_top_right.clone(),
+        h_bottom_right.clone(),
+        h_bottom_left.clone(),
+      ),
+      Some(v_top_left) => {
+        let v_top_right = vertical_top_right.unwrap_or_else(|| v_top_left.clone());
+        let v_bottom_right = vertical_bottom_right.unwrap_or_else(|| v_top_left.clone());
+        let v_bottom_left = vertical_bottom_left.unwrap_or_else(|| v_top_right.clone());
+        (v_top_left, v_top_right, v_bottom_right, v_bottom_left)
+      },
+    };
 
     Self {
       horizontal_top_left,

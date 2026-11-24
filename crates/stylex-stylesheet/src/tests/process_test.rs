@@ -1,6 +1,6 @@
 //! The branches of `process` the reference's own cases do not reach, and the
 //! JavaScript built-ins the port stands in for. An expectation that says
-//! "measured on the plugin" is what `@stylexjs/babel-plugin` 0.19.1 answers
+//! "measured on the plugin" is what `@stylexjs/babel-plugin` 0.19.2 answers
 //! for the same input in Node 24.
 
 use stylex_js::value::JsValue;
@@ -489,17 +489,20 @@ fn a_very_deep_constant_chain_is_refused_without_a_stack_overflow() {
   );
 }
 
-/// The reference (0.19.1) hands `replaceAll` a string, so a `$&` in a
-/// constant's value stands for the reference it replaces: the declaration
-/// reads as it did. Measured on the plugin.
+/// A constant's value is data, not a replacement pattern: each `$` sequence
+/// goes in as written, through a chain and in a rule.
 #[test]
-fn a_dollar_pattern_in_a_constant_is_read_as_get_substitution_reads_it() {
+fn a_dollar_pattern_in_a_constant_is_written_as_it_is() {
   let rules = [
     constant("xA", text("$&")),
-    rule("x1", ".x1{content:var(--xA)}", None, 3000.0),
+    constant("xB", text("var(--xA) $$ $` $'")),
+    rule("x1", ".x1{content:var(--xA);--b:var(--xB)}", None, 3000.0),
   ];
 
-  assert_eq!(sheet(&rules, &without_layers()), ".x1{content:var(--xA)}");
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x1{content:$&;--b:$& $$ $` $'}"
+  );
 }
 
 #[test]
@@ -556,11 +559,11 @@ fn a_pattern_brought_in_by_a_substitution_is_applied_by_a_later_one() {
   );
 }
 
-/// The priority of a group's first rule decides whether the group goes in a
-/// layer (`group[0][2]`): 0 and 500 share level 0, and the group stays out of
-/// every layer, though its second rule is above 0. Measured on the plugin.
+/// Each rule of a group goes by its own priority, not by the first rule's: 0
+/// and 500 share level 0, the rule of priority 0 stays out of every layer and
+/// the rule of priority 500 goes in the group's layer. Measured on the plugin.
 #[test]
-fn the_first_rule_of_a_group_decides_its_layer() {
+fn each_rule_of_a_group_decides_its_own_layer() {
   let rules = [
     rule("a", ".a{x:0}", None, 0.0),
     rule("b", ".b{y:0}", None, 500.0),
@@ -568,7 +571,7 @@ fn the_first_rule_of_a_group_decides_its_layer() {
 
   assert_eq!(
     sheet(&rules, &ProcessStylexRulesConfig::from(true)),
-    "\n@layer priority1;\n.a{x:0}\n.b{y:0}"
+    "\n@layer priority1;\n.a{x:0}\n@layer priority1{\n.b{y:0}\n}"
   );
 }
 
@@ -690,10 +693,69 @@ fn an_rtl_twin_of_a_keyframes_block_or_of_a_blockless_at_rule_follows_the_refere
   );
 }
 
+// ==================== @position-try ====================
+
+/// The rule the transform emits for a `positionTry` call.
+fn position_try() -> Rule {
+  rule(
+    "--x1v351di",
+    "@position-try --x1v351di {height:100px;left:0;position-anchor:--anchor;top:0;width:100px;}",
+    None,
+    0.0,
+  )
+}
+
+#[test]
+fn process_stylex_rules_does_not_inject_ancestor_selector_into_position_try() {
+  let css = sheet(
+    &[position_try()],
+    &config_of(r#"{"enableLTRRTLComments": false}"#),
+  );
+
+  assert!(!css.contains("html[dir='rtl'] height"));
+  assert!(!css.contains("html[dir='rtl'] width"));
+  assert!(css.contains("@position-try --x1v351di {height:"));
+}
+
+#[test]
+fn process_stylex_rules_does_not_inject_specificity_into_position_try() {
+  let css = sheet(
+    &[position_try()],
+    &config_of(r#"{"useLayers": false, "legacyDisableLayers": false}"#),
+  );
+
+  assert!(!css.contains(r"@position-try --x1v351di :not(#\#)"));
+  assert!(css.contains("@position-try --x1v351di {height:"));
+}
+
+/// The emitted rule has no RTL text and sits in the first group, so neither
+/// guard above is reached by it. This block has an RTL text and sits in the
+/// second group, after a rule of negative priority. Measured on the plugin.
+#[test]
+fn adds_no_ancestor_or_specificity_to_a_position_try_block_that_would_get_one() {
+  let rules = [
+    rule("xn", ".xn{color:red}", None, -2000.0),
+    rule(
+      "--xp",
+      "@position-try --xp {left:0;}",
+      Some("@position-try --xp {right:0;}"),
+      0.0,
+    ),
+  ];
+
+  assert_eq!(
+    sheet(
+      &rules,
+      &config_of(r#"{"useLayers": false, "legacyDisableLayers": false}"#)
+    ),
+    ".xn{color:red}\n@position-try --xp {left:0;}\n@position-try --xp {right:0;}"
+  );
+}
+
 // ==================== the helpers ====================
 
 #[test]
-fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_keyframes() {
+fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_a_selectorless_block() {
   assert_eq!(
     add_ancestor_selector(".x{float:left}", "html[dir='rtl']"),
     "html[dir='rtl'] .x{float:left}"
@@ -708,6 +770,10 @@ fn the_ancestor_selector_goes_inside_the_innermost_at_rule_and_never_into_keyfra
   assert_eq!(
     add_ancestor_selector("@keyframes k{0%{left:0}}", "html[dir='rtl']"),
     "@keyframes k{0%{left:0}}"
+  );
+  assert_eq!(
+    add_ancestor_selector("@position-try --xp {right:0;}", "html[dir='rtl']"),
+    "@position-try --xp {right:0;}"
   );
   // `indexOf('{', lastAtRule)` is -1 for an at-rule with no block, and the
   // ancestor then goes in front of the whole text.
@@ -734,6 +800,10 @@ fn the_specificity_level_goes_before_a_pseudo_element_else_before_the_block() {
   assert_eq!(
     add_specificity_level("@keyframes k{0%{left:0}}", 3),
     Some("@keyframes k{0%{left:0}}".into())
+  );
+  assert_eq!(
+    add_specificity_level("@position-try --xp {left:0;}", 3),
+    Some("@position-try --xp {left:0;}".into())
   );
   // `lastIndexOf('{')` is -1 for a text with no block, and `slice(0, -1)` then
   // keeps all but the last character.
@@ -1057,6 +1127,73 @@ fn layers_without_a_prefix_are_the_bare_ordinals() {
   );
 }
 
+/// With layers on, a rule of negative or `NaN` priority is neither unlayered
+/// (priority 0) nor layerable (positive priority), so it is not written. Its
+/// group still takes a layer name and a line. Measured on the plugin.
+#[test]
+fn layers_drop_a_rule_of_negative_or_nan_priority() {
+  for priority in [-2000.0, f64::NAN] {
+    let rules = [
+      rule("a", ".a{x:1}", None, priority),
+      rule("b", ".b{y:1}", None, 3000.0),
+    ];
+
+    assert_eq!(
+      sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+      "\n@layer priority1, priority2;\n\n@layer priority2{\n.b{y:1}\n}",
+      "priority {priority}"
+    );
+  }
+}
+
+/// With layers on, only the number 0 keeps a rule out of every layer
+/// (`priority === 0`). A priority that only reads as 0 sorts and groups as 0,
+/// but is neither unlayered nor layerable, so the rule is not written.
+/// Measured on the plugin.
+#[test]
+fn layers_drop_a_priority_that_only_reads_as_zero() {
+  let sheet_with = |priority: &str| {
+    answer(
+      json(&format!(
+        r#"[["a", {{"ltr": ".a{{x:0}}"}}, {priority}], ["b", {{"ltr": ".b{{y:0}}"}}, 1]]"#
+      )),
+      json("true"),
+    )
+  };
+
+  for priority in ["null", "false", r#""0""#, "[0]", r#""""#] {
+    assert_eq!(
+      sheet_with(priority),
+      Ok("\n@layer priority1;\n@layer priority1{\n.b{y:0}\n}".into()),
+      "priority {priority}"
+    );
+  }
+  for priority in ["0", "-0"] {
+    assert_eq!(
+      sheet_with(priority),
+      Ok("\n@layer priority1;\n.a{x:0}\n@layer priority1{\n.b{y:0}\n}".into()),
+      "priority {priority}"
+    );
+  }
+}
+
+/// The unlayered and the layerable parts of a group drop repeated class names
+/// each on its own: a class name in both parts is written in both. Measured
+/// on the plugin.
+#[test]
+fn layers_deduplicate_the_unlayered_and_layerable_parts_apart() {
+  let rules = [
+    rule("a", "@keyframes a{}", None, 0.0),
+    rule("a", ".a{--x:1}", None, 1.0),
+    rule("c", ".c{--y:1}", None, 1.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@keyframes a{}\n@layer priority1{\n.a{--x:1}\n.c{--y:1}\n}"
+  );
+}
+
 /// `rawUseLayers !== false`: every value but `false` and `null` turns the
 /// layers on, with the defaults when it is not an object (`typeof` fails for
 /// a string or a number, and an array has none of the properties). Measured on
@@ -1358,7 +1495,8 @@ fn a_rule_reads_three_items_and_ignores_the_rest() {
 /// A string rule is iterable: its characters are the class name, the style
 /// and the priority. A character as the style has no `ltr`, so the rule
 /// throws where it is written, unless a later rule of its class takes its
-/// place. Measured on the plugin.
+/// place. With layers on, a rule of `NaN` priority is not written, so it does
+/// not throw. Measured on the plugin.
 #[test]
 fn a_string_rule_reads_its_characters() {
   let rules = rules_of(r#"["ab1", "ab"]"#);
@@ -1379,6 +1517,10 @@ fn a_string_rule_reads_its_characters() {
 
   assert_eq!(
     answer(json(r#"["ab"]"#), true.into()),
+    Ok("\n@layer priority1;\n".into())
+  );
+  assert_eq!(
+    answer(json(r#"["ab"]"#), false.into()),
     Err(ProcessStylexRulesError::TextNotAString {
       direction: TextDirection::Ltr,
       class_name: "a".into(),
@@ -1708,6 +1850,19 @@ fn a_falsy_rtl_is_no_rtl_text_and_a_truthy_non_string_is_refused() {
       );
     }
   }
+  // With layers on, a rule of priority 0 is written out of the layer, and its
+  // RTL text is refused there too.
+  assert_eq!(
+    answer(
+      json(r#"[["x1", {"ltr": "@keyframes x1{}", "rtl": true}, 0]]"#),
+      true.into()
+    ),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Rtl,
+      class_name: "x1".into(),
+      kind: "a boolean"
+    })
+  );
   // Replaced in its group by the later rule of its class.
   assert_eq!(
     answer(
@@ -1779,7 +1934,8 @@ fn a_priority_is_read_as_javascript_arithmetic_reads_it() {
 
 /// A priority that is no number writes the sheet the reference writes: an
 /// array or an object priority is coerced, and an `undefined` one is `NaN`
-/// where a `null` one is 0. Measured on the plugin.
+/// where a `null` one is 0. With layers on, a rule of `NaN` priority is not
+/// written. Measured on the plugin.
 #[test]
 fn a_loose_priority_writes_the_sheet_the_reference_writes() {
   let layers = ProcessStylexRulesConfig::from(true);
@@ -1797,7 +1953,7 @@ fn a_loose_priority_writes_the_sheet_the_reference_writes() {
       r#"[["x1", {"ltr": ".x1{a:0}"}, {}], ["x2", {"ltr": ".x2{b:0}"}, 3000]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2;\n.x1{a:0}\n@layer priority2{\n.x2{b:0}\n}"
+    "\n@layer priority1, priority2;\n\n@layer priority2{\n.x2{b:0}\n}"
   );
   assert_eq!(
     sheet_of(
@@ -1808,28 +1964,28 @@ fn a_loose_priority_writes_the_sheet_the_reference_writes() {
   );
   assert_eq!(
     sheet_of(r#"[["x1", {"ltr": ".x1{color:red}"}]]"#, &layers),
-    "\n@layer priority1;\n.x1{color:red}"
+    "\n@layer priority1;\n"
   );
   assert_eq!(
     sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}], ["x3", {"ltr": ".x3{c:0}"}, 1000]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2, priority3;\n@layer priority1{\n.x1{a:0}\n}\n.x2{b:0}\n@layer priority3{\n.x3{c:0}\n}"
+    "\n@layer priority1, priority2, priority3;\n@layer priority1{\n.x1{a:0}\n}\n\n@layer priority3{\n.x3{c:0}\n}"
   );
   assert_eq!(
     sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}], ["x3", {"ltr": ".x3{c:0}"}, 3000], ["x4", {"ltr": ".x4{d:0}"}, 2000]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2, priority3, priority4;\n@layer priority1{\n.x1{a:0}\n}\n.x2{b:0}\n@layer priority3{\n.x4{d:0}\n}\n@layer priority4{\n.x3{c:0}\n}"
+    "\n@layer priority1, priority2, priority3, priority4;\n@layer priority1{\n.x1{a:0}\n}\n\n@layer priority3{\n.x4{d:0}\n}\n@layer priority4{\n.x3{c:0}\n}"
   );
   assert_eq!(
     sheet_of(
       r#"[["x1", {"ltr": ".x1{a:0}"}, 1000], ["x2", {"ltr": ".x2{b:0}"}, null]]"#,
       &layers
     ),
-    "\n@layer priority1, priority2;\n.x2{b:0}\n@layer priority2{\n.x1{a:0}\n}"
+    "\n@layer priority1, priority2;\n\n@layer priority2{\n.x1{a:0}\n}"
   );
   assert_eq!(
     sheet_of(
@@ -2164,4 +2320,266 @@ fn a_long_chain_of_constants_resolves() {
   rules.push(rule("x1", ".x1{color:var(--c0)}", None, 3000.0));
 
   assert_eq!(sheet(&rules, &without_layers()), ".x1{color:red}");
+}
+
+// ==================== at-rule constants as condition keys ====================
+
+/// The issue's example (facebook/stylex#1988): the coarse-pointer reset keyed
+/// by a constant was compiled at 6170, the placeholder's 3000 in place of the
+/// at-rule's 200, and sorted after the attribute rule at 6000 that the literal
+/// at 3370 sorts before. Once the constant is known, it sorts, and is layered,
+/// as the literal is. Measured on the published plugin.
+#[test]
+fn an_at_rule_constant_used_as_a_condition_key_sorts_as_the_literal_does() {
+  let rules = [
+    constant("xel3o37", text("@media (pointer: coarse)")),
+    rule(
+      "x1xpbd04",
+      ".x1xpbd04:active{background-image:linear-gradient(red,red)}",
+      None,
+      3170.0,
+    ),
+    rule(
+      "x1v0kr87",
+      "@media (pointer: coarse){.x1v0kr87.x1v0kr87:active{background-image:none}}",
+      None,
+      3370.0,
+    ),
+    rule(
+      "xzjdyr2",
+      "var(--xel3o37){.xzjdyr2.xzjdyr2:active{background-image:none}}",
+      None,
+      6170.0,
+    ),
+    rule(
+      "xgbunv0",
+      ".xgbunv0[data-press=\"on\"]{background-image:linear-gradient(blue,blue)}",
+      None,
+      6000.0,
+    ),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n\
+     .x1xpbd04:active{background-image:linear-gradient(red,red)}\n\
+     @media (pointer: coarse){.x1v0kr87.x1v0kr87:active{background-image:none}}\n\
+     @media (pointer: coarse){.xzjdyr2.xzjdyr2:active{background-image:none}}\n}\n\
+     @layer priority2{\n\
+     .xgbunv0[data-press=\"on\"]{background-image:linear-gradient(blue,blue)}\n}"
+  );
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x1xpbd04:active{background-image:linear-gradient(red,red)}\n\
+     @media (pointer: coarse){.x1v0kr87.x1v0kr87:active{background-image:none}}\n\
+     @media (pointer: coarse){.xzjdyr2.xzjdyr2:active{background-image:none}}\n\
+     .xgbunv0[data-press=\"on\"]{background-image:linear-gradient(blue,blue)}"
+  );
+}
+
+/// Each at-rule of the table gives its own share, 30, 200 or 300, in place of
+/// the placeholder's 3000, and a rule under two constant wrappers gains both
+/// differences: 9000 sorts at 3500, after the container rule at 3300. Measured
+/// on the published plugin.
+#[test]
+fn each_at_rule_constant_wrapper_gives_the_share_of_its_at_rule() {
+  let rules = [
+    constant("xs", text("@supports (display: grid)")),
+    constant("xc", text("@container (width > 10rem)")),
+    constant("xm", text("@media (min-width: 10rem)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xs){.b.b{color:red}}", None, 6000.0),
+    rule("d", "var(--xc){.d.d{color:red}}", None, 6000.0),
+    rule("e", "var(--xm){.e.e{color:red}}", None, 6000.0),
+    rule("f", "var(--xm){var(--xc){.f.f.f{color:red}}}", None, 9000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@layer priority1{\n.a{color:red}\n\
+     @supports (display: grid){.b.b{color:red}}\n\
+     @media (min-width: 10rem){.e.e{color:red}}\n\
+     @container (width > 10rem){.d.d{color:red}}\n\
+     @media (min-width: 10rem){@container (width > 10rem){.f.f.f{color:red}}}\n}"
+  );
+}
+
+/// A constant that resolves to an at-rule through another constant counts as
+/// that at-rule: the map is read after the constants are resolved. Measured on
+/// the published plugin.
+#[test]
+fn an_at_rule_constant_reached_through_another_constant_counts_as_the_at_rule() {
+  let rules = [
+    constant("xa", text("@media (min-width: 10rem)")),
+    constant("xb", text("var(--xa)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xb){.b.b{color:red}}", None, 6000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@layer priority1{\n.a{color:red}\n@media (min-width: 10rem){.b.b{color:red}}\n}"
+  );
+}
+
+/// A placeholder that no `{` follows is a value, not a wrapper; a wrapper
+/// whose constant is no at-rule (a value used as one), is not a string, or is
+/// not declared gains nothing, as the reference's pattern and map read them;
+/// none moves. Measured on the published plugin.
+#[test]
+fn a_placeholder_that_is_a_value_or_wraps_no_at_rule_keeps_its_priority() {
+  let rules = [
+    constant("xm", text("@media (min-width: 10rem)")),
+    constant("xv", text("red")),
+    constant("xn", JsValue::from(1.0)),
+    rule("a", ".a{content:\"var(--xm)\"}", None, 3000.0),
+    rule("b", "var(--xv){.b.b{color:red}}", None, 6000.0),
+    rule("d", ".d{color:var(--xv)}", None, 3000.0),
+    rule("e", ".e:hover{color:red}", None, 3130.0),
+    rule("g", "var(--xn){.g.g{color:red}}", None, 6000.0),
+    rule("h", "var(--zz){.h.h{color:red}}", None, 6000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.d{color:red}\n\
+     .a{content:\"@media (min-width: 10rem)\"}\n.e:hover{color:red}\n}\n\
+     @layer priority2{\n1{.g.g{color:red}}\nred{.b.b{color:red}}\nvar(--zz){.h.h{color:red}}\n}"
+  );
+}
+
+/// A rule whose `ltr` text is not a string has no wrappers to read, whatever
+/// its `rtl` text holds; the sheet is then refused where the reference reads
+/// the text as a string (`selector.startsWith is not a function`).
+#[test]
+fn a_rule_whose_ltr_text_is_not_a_string_gains_nothing() {
+  let rules = [
+    constant("xm", text("@media (min-width: 10rem)")),
+    Rule::new(
+      "k".into(),
+      RuleStyle {
+        ltr: JsValue::from(5.0),
+        rtl: text("var(--xm){.k.k{color:red}}"),
+        ..RuleStyle::default()
+      },
+      6000.0,
+    ),
+  ];
+
+  assert!(matches!(
+    process_stylex_rules(&rules, &without_layers()),
+    Err(ProcessStylexRulesError::TextNotAString {
+      direction: TextDirection::Ltr,
+      ..
+    })
+  ));
+}
+
+/// An at-rule outside the table gets `getPriority` of its text. With no
+/// chain of pseudo parts in it, that is the default 3000, the placeholder's
+/// own share, so the rule keeps its priority: one `:` part is not a chain.
+/// Measured on the published plugin.
+#[test]
+fn an_at_rule_constant_outside_the_table_keeps_its_priority() {
+  for at_rule in ["@starting-style", "@starting-style:x"] {
+    let rules = [
+      constant("xu", text(at_rule)),
+      rule("a", ".a{color:red}", None, 3000.0),
+      rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
+    ];
+
+    assert_eq!(
+      sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+      format!(
+        "\n@layer priority1, priority2;\n@layer priority1{{\n.a{{color:red}}\n}}\n\
+         @layer priority2{{\n{at_rule}{{.b.b{{color:red}}}}\n}}"
+      )
+    );
+  }
+}
+
+/// An at-rule outside the table whose text holds a chain of pseudo parts
+/// gets the sum of the parts, as `getPriority` reads such a text:
+/// `:hover:active` is 130 + 170. Measured on the published plugin.
+#[test]
+fn an_at_rule_constant_outside_the_table_with_a_pseudo_chain_gets_the_chain_priority() {
+  let rules = [
+    constant("xu", text("@scope (.card:hover:active)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("c", ".c{color:red}", None, 3400.0),
+    rule("b", "var(--xu){.b.b{color:red}}", None, 6000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1;\n@layer priority1{\n.a{color:red}\n\
+     @scope (.card:hover:active){.b.b{color:red}}\n.c{color:red}\n}"
+  );
+}
+
+/// A `defineVars` variable and a `createTheme` override under an imported
+/// media constant: each counts the at-rule in its own fractional priority
+/// (0.2 and 0.6), below the placeholder's share, so both keep it, and each
+/// conditional rule follows its default in the same layer. The rules of the
+/// test of the same name, measured on the published plugin.
+#[test]
+fn variable_and_theme_rules_under_an_imported_at_rule_constant_keep_their_priorities() {
+  let rules = [
+    constant("x1r2wpmh", text("@media (max-width: 600px)")),
+    rule("x1mmh4rn", ":root, .x1mmh4rn{--x1jwwzce:blue;}", None, 0.1),
+    rule(
+      "x1mmh4rn-1kkhlgn",
+      "var(--x1r2wpmh){:root, .x1mmh4rn{--x1jwwzce:red;}}",
+      None,
+      0.2,
+    ),
+    rule(
+      "x14qsmo4",
+      ".x14qsmo4, .x14qsmo4:root{--x1jwwzce:green;}",
+      None,
+      0.5,
+    ),
+    rule(
+      "x14qsmo4-1kkhlgn",
+      "var(--x1r2wpmh){.x14qsmo4, .x14qsmo4:root{--x1jwwzce:yellow;}}",
+      None,
+      0.6000000000000001,
+    ),
+  ];
+
+  let body = ":root, .x1mmh4rn{--x1jwwzce:blue;}\n\
+     @media (max-width: 600px){:root, .x1mmh4rn{--x1jwwzce:red;}}\n\
+     .x14qsmo4.x14qsmo4, .x14qsmo4.x14qsmo4:root{--x1jwwzce:green;}\n\
+     @media (max-width: 600px){.x14qsmo4.x14qsmo4, .x14qsmo4.x14qsmo4:root{--x1jwwzce:yellow;}}";
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    format!("\n@layer priority1;\n@layer priority1{{\n{body}\n}}")
+  );
+  assert_eq!(sheet(&rules, &without_layers()), body);
+}
+
+/// The share is checked again before each wrapper, against the priority as
+/// corrected so far: a rule at 3400 under two media constants is corrected
+/// once, to 600, and then no longer holds the share, so the inner wrapper
+/// leaves it there; one at 6400 is corrected for both, to 800. Measured on
+/// the published plugin.
+#[test]
+fn a_wrapper_is_corrected_only_while_the_priority_holds_the_placeholder_share() {
+  let rules = [
+    constant("xm", text("@media (min-width: 10rem)")),
+    constant("xn", text("@media (max-width: 20rem)")),
+    rule("a", ".a{color:red}", None, 3000.0),
+    rule("b", "var(--xm){var(--xn){.b.b{color:red}}}", None, 6400.0),
+    rule("d", "var(--xm){var(--xn){.d.d{color:red}}}", None, 3400.0),
+    rule("e", ".e{color:red}", None, 500.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.e{color:red}\n\
+     @media (min-width: 10rem){@media (max-width: 20rem){.d.d{color:red}}}\n\
+     @media (min-width: 10rem){@media (max-width: 20rem){.b.b{color:red}}}\n}\n\
+     @layer priority2{\n.a{color:red}\n}"
+  );
 }

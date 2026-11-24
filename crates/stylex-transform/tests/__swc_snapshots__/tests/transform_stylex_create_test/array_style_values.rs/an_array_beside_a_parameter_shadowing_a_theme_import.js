@@ -30,14 +30,14 @@ export const styles = {
     },
     dyn: (zIndex)=>[
             _temp,
-            {
+            [
+                zIndex,
+                1
+            ] !== undefined && {
                 kY2c9j: [
                     zIndex,
                     1
-                ] != null ? "xr3buco" : [
-                    zIndex,
-                    1
-                ],
+                ] != null ? "xr3buco" : "",
                 $$css: true
             },
             {

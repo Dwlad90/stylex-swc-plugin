@@ -23,25 +23,20 @@
 
 use crate::evaluate::source_evaluation::*;
 
-use stylex_constants::constants::evaluation_errors::{
-  BLOCKED_PROPERTY_ACCESS, escaping_property, unfoldable_static,
-};
+use stylex_constants::constants::evaluation_errors::{BLOCKED_PROPERTY_ACCESS, unfoldable_static};
 
 // ==================== the reads that walk the chain ====================
 
 /// The first step, and the shortest spelling of it.
 #[test]
 fn blocks_reading_constructor_off_an_object_literal() {
-  assert_deopt_reason_contains("({}).constructor", &escaping_property("constructor"));
+  assert_deopt_reason_contains("({}).constructor", BLOCKED_PROPERTY_ACCESS);
 }
 
 /// The second step, which is `Function` itself.
 #[test]
 fn blocks_walking_to_function_via_constructor_constructor() {
-  assert_deopt_reason_contains(
-    "({}).constructor.constructor",
-    &escaping_property("constructor"),
-  );
+  assert_deopt_reason_contains("({}).constructor.constructor", BLOCKED_PROPERTY_ACCESS);
 }
 
 /// The whole escape written out: build a function from a string, then call it.
@@ -49,7 +44,7 @@ fn blocks_walking_to_function_via_constructor_constructor() {
 fn blocks_arbitrary_code_execution_via_function_constructor() {
   assert_deopt_reason_contains(
     "({}).constructor.constructor(\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 
@@ -59,7 +54,7 @@ fn blocks_arbitrary_code_execution_via_function_constructor() {
 fn blocks_constructor_calls_on_allowlisted_globals() {
   assert_deopt_reason_contains(
     "Object.constructor(\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 
@@ -69,16 +64,13 @@ fn blocks_constructor_calls_on_allowlisted_globals() {
 fn blocks_computed_property_access_to_constructor() {
   assert_deopt_reason_contains(
     "({})[\"constructor\"][\"constructor\"](\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 
   // Called straight off the quoted key, which is the spelling the dispatch
   // below the fold reads. It has to answer the rule rather than report a
   // property it could not determine.
-  assert_deopt_reason_contains(
-    "({}).valueOf()[\"constructor\"]()",
-    &escaping_property("constructor"),
-  );
+  assert_deopt_reason_contains("({}).valueOf()[\"constructor\"]()", BLOCKED_PROPERTY_ACCESS);
 }
 
 /// A key the source does not spell out: `Object('constructor')` is a boxed
@@ -89,16 +81,15 @@ fn blocks_computed_property_access_to_constructor() {
 /// it comes to rather than on the text it was written as.
 ///
 /// A resolved key is asked the same two rules in the same order as a written
-/// one, so a key that comes to `constructor` reads the escaping sentence
-/// wherever it was built. The prototype-chain sentence is what the other two
-/// names read, which the case below pins.
+/// one, so a key that comes to `constructor` reads the prototype-chain sentence
+/// wherever it was built, as `__proto__` does in the case below.
 #[test]
 fn blocks_computed_property_access_after_property_key_coercion() {
   // A key joined from two halves, which no reading of the syntax can answer
   // and which the rule answers once the key has resolved.
   assert_deopt_reason_contains(
     "({})[\"const\" + \"ructor\"][\"con\" + \"structor\"](\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 
   // The same through a name, which is the other way a key arrives already
@@ -107,10 +98,11 @@ fn blocks_computed_property_access_after_property_key_coercion() {
     "key",
     "'const' + 'ructor'",
     "({})[key]",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 
-  // A resolved key that only the prototype-chain set holds reads its sentence.
+  // A resolved key that only the prototype-chain set holds reads the same
+  // sentence.
   assert_refused_in_a_module_binding(
     "key",
     "'__pro' + 'to__'",
@@ -129,11 +121,12 @@ fn blocks_computed_property_access_after_property_key_coercion() {
 fn blocks_proto_traversal() {
   assert_deopt_reason_contains("({}).__proto__", BLOCKED_PROPERTY_ACCESS);
 
-  // The whole chain refuses too. It is named for its outermost read, because
-  // the walk reaches that first and a chain is refused wherever it is cut.
+  // The whole chain refuses too, with the same sentence, because the walk
+  // reaches a read of the prototype chain first and a chain is refused
+  // wherever it is cut.
   assert_deopt_reason_contains(
     "({}).__proto__.constructor.constructor(\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 
@@ -153,7 +146,7 @@ fn blocks_prototype_traversal() {
 fn blocks_constructor_off_a_string_literal() {
   assert_deopt_reason_contains(
     "\"abc\".constructor.constructor(\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 
   assert_deopt_reason_contains("\"abc\".__proto__", BLOCKED_PROPERTY_ACCESS);
@@ -167,7 +160,7 @@ fn blocks_constructor_reached_through_a_bound_variable() {
     "o",
     "{}",
     "o.constructor.constructor(\"return 1\").call({})",
-    &escaping_property("constructor"),
+    BLOCKED_PROPERTY_ACCESS,
   );
 }
 

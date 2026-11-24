@@ -6,4 +6,8 @@ _inject2({
     priority: 0
 });
 export const first = "x1t391ty-B";
+_inject2({
+    ltr: "@keyframes x1t391ty-B{from{}to{display:block;}}",
+    priority: 0
+});
 export const second = "x1t391ty-B";

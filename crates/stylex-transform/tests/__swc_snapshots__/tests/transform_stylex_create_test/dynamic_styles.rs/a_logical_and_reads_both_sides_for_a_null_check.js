@@ -6,8 +6,8 @@ const _temp = {
 export const styles = {
     root: (color)=>[
             _temp,
-            {
-                kMwMTN: ('red' && color) != null ? "x14rh7hd" : 'red' && color,
+            ('red' && color) !== undefined && {
+                kMwMTN: ('red' && color) != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

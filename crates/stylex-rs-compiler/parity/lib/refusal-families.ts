@@ -86,6 +86,7 @@ const REFUSALS = {
   nestedTooDeeply: 'Rule contains a value nested more deeply than the compiler supports',
   invalidUtf8: 'String value contains invalid UTF-8 encoding.',
   keyHasNoName: 'The key has no name at compile time.',
+  valueHasNoTokens: 'Rule contains a value with nothing to normalize',
 } as const;
 
 /**
@@ -273,6 +274,7 @@ function carriesLoneSurrogate(text: string): boolean {
 const LOCAL_REFUSALS_BESIDE_A_REFERENCE_CRASH: readonly string[] = [
   REFUSALS.ruleBreakingToken,
   REFUSALS.unclosedComment,
+  REFUSALS.valueHasNoTokens,
 ];
 
 /**
@@ -319,9 +321,9 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'Agreement would mean reproducing a crash. The reference compiler reads `.type` off a ' +
       'node it never checked for, so a value that leaves it nothing to read — empty, ' +
       'whitespace-only, a lone control character, or a comment contributing no text — comes ' +
-      'back as its own `TypeError`. This compiler drops the declaration instead — ' +
-      'or refuses it for a fault of its own, which is the same divergence read under a ' +
-      'both-reject verdict rather than an acceptance one.',
+      'back as its own `TypeError`. This compiler refuses a blank value with a named ' +
+      'message instead, or refuses the value for a fault of its own. Both read under a ' +
+      'both-reject verdict; a value this compiler accepts reads as an acceptance one.',
     verdicts: ['acceptance-divergent', 'both-reject-divergent'],
     // Both sides are read, not just the reference's. See
     // `LOCAL_REFUSALS_BESIDE_A_REFERENCE_CRASH` for why the `both-reject`

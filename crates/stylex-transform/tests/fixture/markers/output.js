@@ -27,6 +27,6 @@ export const styles = {
     label: {
         "input__styles.label": "input__styles.label",
         color: "xkn7p67 xomp1nr x1wgracu x1uatm7",
-        $$css: "tests/fixture/markers/input.stylex.js:8"
+        $$css: "@stylexswc/transform:tests/fixture/markers/input.stylex.js:8"
     }
 };

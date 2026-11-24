@@ -4,8 +4,8 @@ The stylesheet step: the rules a compile emits (`metadata.stylex`), assembled
 into one sheet. A port of `processStylexRules` from `@stylexjs/babel-plugin`,
 function by function and in its order, so a change upstream maps onto one
 function here. The reference is `packages/@stylexjs/babel-plugin/src/index.js`
-at facebook/stylex `1fcb9a51cbecad2c82255e0f4b45cc072fa1a95a`, the commit
-`@stylexjs/babel-plugin` 0.19.1 was published from: upstream changes enter this
+at facebook/stylex `d7e6174c5384c64b87bc5fde1f57eedd7c11c5aa`, the commit
+`@stylexjs/babel-plugin` 0.19.2 was published from: upstream changes enter this
 project once they are on npm, so the port follows the published version. The
 output is the string that version writes, byte for byte.
 
@@ -73,21 +73,46 @@ Before the sort, every constant's value is resolved through the constants it
 refers to (`var(--key)`, a chain that returns to itself is refused by name) and
 written into every style's text, `ltr` then `rtl`, one constant at a time in
 declaration order; a constant whose value is itself a `var(...)` also renames a
-declaration of the constant (`--key:`) to the variable it names. The
-replacements are `String.prototype.replace`/`replaceAll` with a string
-replacement, dollar patterns included, as the reference calls them.
+declaration of the constant (`--key:`) to the variable it names. A value goes
+in as written: a `$&`, `$$`, `` $` `` or `$'` in it is data, not a replacement
+pattern. The rename is still a `replaceAll` with a string replacement, dollar
+patterns included. The vendored copy (the fallback) writes a value the same
+way, so the two paths agree.
 _Avoid_: inlining, expansion
+
+**At-rule constant key**:
+A `defineConsts` at-rule used as a condition key, which reaches the compile
+step as its placeholder, `var(--key)`, and wraps the rule's text
+(`var(--key){…}`). The compile step priced the placeholder as it prices any
+unknown key, 3000, the share of an attribute selector, where the at-rule it
+stands for gets 30, 200 or 300 (`@supports`, `@media`, `@container`); so the
+rule sorted, and was layered, after rules it sorts before when the at-rule is
+written inline. After the constants are resolved, the sheet step adds the
+difference for each such wrapper; a placeholder that is a value, a wrapper
+whose constant is no at-rule, and a constant the sheet does not declare add
+nothing. An at-rule outside the table gets `getPriority` of its text: the
+sum of a chain of pseudo parts in it (`@scope (.a:hover:active)`), or else
+3000, the placeholder's share, so the rule keeps its priority. A difference
+is added only while the priority is at least the placeholder's share, checked
+again before each wrapper: `defineVars` and
+`createTheme` rules count at-rules in their own fractional priorities, below
+that share, and keep them.
+_Avoid_: placeholder priority, media constant
 
 **Priority group**:
 The sorted rules cut at each change of `floor(priority / 1000)` (a `NaN` level
-equals no level, so each `NaN` rule is a group of its own); one group is
-one `@layer priorityN` when layers are on (a group whose first rule has
-priority 0 stays outside every layer), else one run of rules carrying N - 1
+equals no level, so each `NaN` rule is a group of its own). When layers are on,
+a group is split in two. Its rules of priority 0 (`@property`, `@keyframes`,
+`@position-try`) come first, outside every layer. Its rules of positive
+priority follow, in one `@layer priorityN`. A rule of negative or `NaN`
+priority, or one that only reads as 0 (`null`, `"0"`), is in neither part and
+is not written. When layers are off, a group is one run of rules carrying N - 1
 copies of the **specificity level** `:not(#\#)` unless `legacyDisableLayers`
-asks for neither. Within a group a class name appears once, at its first
-position with its last style, as `new Map(...)` keeps it. The reference's
-grouping starts at level -1 with no group, so a first rule at level -1 (a
-priority from -1000 to less than 0) is refused, as the reference throws.
+asks for neither. Within a group, or each part of a split group, a class name
+appears once, at its first position with its last style, as `new Map(...)`
+keeps it. The reference's grouping starts at level -1 with no group, so a first
+rule at level -1 (a priority from -1000 to less than 0) is refused, as the
+reference throws.
 _Avoid_: layer bucket, tier
 
 **Layer options**:

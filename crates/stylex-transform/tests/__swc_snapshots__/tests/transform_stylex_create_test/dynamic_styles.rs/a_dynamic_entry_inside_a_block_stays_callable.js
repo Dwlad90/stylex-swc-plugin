@@ -1,8 +1,9 @@
 import * as stylex from '@stylexjs/stylex';
+export let render;
 const _styles = {
     color: (value)=>[
-            {
-                kMwMTN: value != null ? "x14rh7hd" : value,
+            value !== undefined && {
+                kMwMTN: value != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {
@@ -14,7 +15,6 @@ const _styles = {
         $$css: true
     }
 };
-export let render;
 {
     const styles = _styles;
     render = (value)=>stylex.props(styles.base, styles.color(value));

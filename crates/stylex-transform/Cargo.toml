@@ -28,6 +28,7 @@ stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_evaluator = { path = "../stylex-evaluator" }
+stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_nested_config = { path = "../stylex-nested-config" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
@@ -58,10 +59,6 @@ criterion.workspace = true
 ctor.workspace = true
 insta = { workspace = true, features = ["yaml"] }
 pretty_env_logger.workspace = true
-# One test helper reads the language's truthiness table, which the coercion
-# crate owns. Nothing else here needs the crate, and the engine-fold bench that
-# was the other reason left with the evaluator.
-stylex_js = { path = "../stylex-js" }
 swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_utils",

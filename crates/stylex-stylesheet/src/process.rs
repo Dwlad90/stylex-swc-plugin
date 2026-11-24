@@ -14,7 +14,8 @@
 //! output. The port names each one and does what it does:
 //!
 //! - `localeCompare`
-//! - `String.prototype.replace` with a string replacement
+//! - `String.prototype.replace` with a string replacement, and with a
+//!   function replacer, which inserts a constant's value as written
 //! - `trim` and `slice(-1)`
 //! - V8's `Array.prototype.sort`
 //! - `new Map(...)`, which keeps the first position under the last value
@@ -30,10 +31,13 @@ use aho_corasick::AhoCorasick;
 use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
+use stylex_constants::constants::priorities::{
+  DEFAULT_PRIORITY, compound_pseudo_priority, get_at_rule_priority,
+};
 use stylex_js::array_sort::array_tim_sort;
-use stylex_js::string::{js_replace_all, js_substitution};
+use stylex_js::string::{js_replace_all, js_replace_all_verbatim};
 use stylex_js::value::{JsValue, MapKey};
-use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR};
+use stylex_regex::regex::{CONSTANT_REFERENCE, THEME_ROOT_SELECTOR, pseudo_parts};
 use stylex_utils::number::is_js_whitespace;
 
 use crate::collation::{Collated, locale_compare, locale_compare_collated};
@@ -149,9 +153,10 @@ fn resolve_constants(
 }
 
 /// The deepest chain of constants that `resolve_constant` follows. Real
-/// sheets chain two or three constants. V8 runs out of stack near 10,000
-/// links, so past this limit the reference decides: it resolves the chain, or
-/// it throws its own `RangeError`.
+/// sheets chain two or three constants. With the default stack, V8 can run
+/// out of stack after approximately 4,500 links. That number changes with the
+/// platform and the JIT tier. Past this limit the reference decides: it
+/// resolves the chain, or it throws its own `RangeError`.
 pub(crate) const MAX_CONSTANT_DEPTH: usize = 256;
 
 /// `resolveConstant`: a constant's value with every reference to another
@@ -199,16 +204,11 @@ pub(crate) fn resolve_constant(
     let reference = reference.to_string();
     visited.push(reference.clone());
     let replacement = resolve_constant(referenced, constants, visited)?;
-    // `result.replace(match[0], replacement.toString())`. The first
-    // occurrence of the matched text is this match: the search starts from
-    // the front, and an earlier occurrence would have matched first.
-    let substitution = js_substitution(
-      &replacement.to_js_string(),
-      &result[range.clone()],
-      &result[..range.start],
-      &result[range.end..],
-    );
-    result.replace_range(range, &substitution);
+    // The match is the first occurrence of its text: the search starts from
+    // the front, so an earlier occurrence would have matched first. The value
+    // goes in as written. If a `$&` in it wrote the reference back, the search
+    // would find it again and never end.
+    result.replace_range(range, &replacement.to_js_string());
     visited.retain(|seen| *seen != reference);
     position = 0;
   }
@@ -262,11 +262,12 @@ impl<'c> Substitution<'c> {
     }
   }
 
-  /// `original.replaceAll(varRef, replacement)`, then, with a rename,
-  /// `original.replaceAll(`${constName}:`, `${targetName}:`)`.
+  /// Every reference replaced by the value as written, then, with a rename,
+  /// every `--<class name>:` replaced by `--<target>:`. The rename is a string
+  /// replacement, so its `$` patterns are expanded.
   fn apply<'t>(&self, text: Cow<'t, str>) -> Cow<'t, str> {
     let text = changed(text, |text| {
-      js_replace_all(text, self.var_ref, &self.replacement)
+      js_replace_all_verbatim(text, self.var_ref, &self.replacement)
     });
 
     match &self.rename {
@@ -384,9 +385,70 @@ impl<'c> Substitutions<'c> {
   }
 }
 
-/// Every rule with the constants substituted into its texts. A rule whose
-/// texts do not change is handed on as it is rather than copied, and most
-/// rules are such.
+/// `getPriority('var(--x)')`: a constant's placeholder names no at-rule,
+/// pseudo or property, so it gets the default, the share an attribute
+/// selector gets.
+const PLACEHOLDER_PRIORITY: f64 = DEFAULT_PRIORITY;
+
+/// `getPriority(value)` for a constant's value that starts with `@`. Such a
+/// value names no property and starts no pseudo, so the at-rule table answers
+/// first, then a chain of pseudo parts in the text, then the default.
+fn at_rule_value_priority(value: &str) -> f64 {
+  if let Some(priority) = get_at_rule_priority(value) {
+    return priority;
+  }
+
+  compound_pseudo_priority(&pseudo_parts(value)).unwrap_or(DEFAULT_PRIORITY)
+}
+
+/// A rule's priority once its constants are known. A `defineConsts` at-rule
+/// used as a condition key reaches the compile step as its placeholder,
+/// `var(--x)`, and the rule's priority took `getPriority` of the placeholder
+/// for it, [`PLACEHOLDER_PRIORITY`], where the literal at-rule
+/// gets 30, 200 or 300. For each placeholder the text uses as a wrapper,
+/// `var(--x){` (the reference's `/var\(--[A-Za-z0-9_-]+\)(?=\{)/g`), whose
+/// constant resolves to a text that starts with `@`, the difference is added,
+/// so the rule sorts and is layered as if the at-rule were written inline.
+///
+/// A wrapper is corrected only while the priority still holds the
+/// placeholder's share. Variable and theme rules count their at-rules in a
+/// fractional priority below that share, so they keep the priority they have.
+/// A placeholder of a constant the sheet does not declare, a constant that is
+/// not a string and a text that is not a string change nothing.
+fn adjust_const_at_rule_priority(
+  text: &JsValue,
+  priority: f64,
+  constants: &OrderedConstants,
+) -> f64 {
+  let JsValue::String(text) = text else {
+    return priority;
+  };
+
+  let mut adjusted = priority;
+  for placeholder in CONSTANT_REFERENCE.find_iter(text) {
+    if !text[placeholder.end()..].starts_with('{') {
+      continue;
+    }
+    let Some(JsValue::String(value)) = constants.get(placeholder.as_str()) else {
+      continue;
+    };
+    // A `NaN` priority is never at least the share, so it is kept.
+    let holds_placeholder_share = adjusted >= PLACEHOLDER_PRIORITY;
+    if !value.starts_with('@') || !holds_placeholder_share {
+      continue;
+    }
+    // Added one wrapper at a time, in the reference's order, so a fractional
+    // priority rounds as it does there.
+    adjusted += at_rule_value_priority(value) - PLACEHOLDER_PRIORITY;
+  }
+
+  adjusted
+}
+
+/// Every rule with the constants substituted into its texts and its priority
+/// corrected for the at-rule constants it is wrapped in
+/// ([`adjust_const_at_rule_priority`]). A rule that neither changes text nor
+/// priority is handed on as it is rather than copied, and most rules are such.
 fn substitute_constants<'r>(
   rules: Vec<&'r Rule>,
   constants: &OrderedConstants,
@@ -396,41 +458,48 @@ fn substitute_constants<'r>(
   }
 
   let substitutions = Substitutions::of(constants);
+  let mut out = Vec::with_capacity(rules.len());
 
-  rules
-    .into_iter()
-    .map(|rule| {
-      // Every pattern the substitution searches for, `var(--x)` and `--x:`,
-      // holds `--`.
-      if !rule.style().mentions_a_variable() {
-        return Cow::Borrowed(rule);
-      }
+  for rule in rules {
+    // Every pattern the substitution searches for, `var(--x)` and `--x:`,
+    // holds `--`, and so does every placeholder.
+    if !rule.style().mentions_a_variable() {
+      out.push(Cow::Borrowed(rule));
+      continue;
+    }
 
-      // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
-      // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
-      // other property is read after this, so none is substituted.
-      let substituted = |text: &JsValue| match text {
-        JsValue::String(text) => substitutions.apply(text).map(JsValue::String),
-        _ => None,
-      };
-      let ltr = substituted(&rule.style().ltr);
-      let rtl = substituted(&rule.style().rtl);
+    // The priority correction reads the text as the compile step wrote it, before the
+    // substitution replaces the placeholders.
+    let priority = adjust_const_at_rule_priority(&rule.style().ltr, rule.priority(), constants);
+    let priority_changed = priority.to_bits() != rule.priority().to_bits();
 
-      if ltr.is_none() && rtl.is_none() {
-        return Cow::Borrowed(rule);
-      }
+    // `Object.keys(styleObj).forEach`: every text the style holds, `ltr` then
+    // `rtl`; a value that is not a string (`rtl: null`) is left alone. No
+    // other property is read after this, so none is substituted.
+    let substituted = |text: &JsValue| match text {
+      JsValue::String(text) => substitutions.apply(text).map(JsValue::String),
+      _ => None,
+    };
+    let ltr = substituted(&rule.style().ltr);
+    let rtl = substituted(&rule.style().rtl);
 
-      let style = rule.style();
-      let style = RuleStyle {
-        ltr: ltr.unwrap_or_else(|| style.ltr.clone()),
-        rtl: rtl.unwrap_or_else(|| style.rtl.clone()),
-        const_key: style.const_key.clone(),
-        const_val: style.const_val.clone(),
-      };
+    if ltr.is_none() && rtl.is_none() && !priority_changed {
+      out.push(Cow::Borrowed(rule));
+      continue;
+    }
 
-      Cow::Owned(Rule::new(rule.class_name().clone(), style, rule.priority()))
-    })
-    .collect()
+    let style = rule.style();
+    let style = RuleStyle {
+      ltr: ltr.unwrap_or_else(|| style.ltr.clone()),
+      rtl: rtl.unwrap_or_else(|| style.rtl.clone()),
+      const_key: style.const_key.clone(),
+      const_val: style.const_val.clone(),
+    };
+
+    out.push(Cow::Owned(rule.rebuilt(style, priority)));
+  }
+
+  out
 }
 
 // ==================== the sort ====================
@@ -603,13 +672,6 @@ fn sort_rules<'a>(
 
 // ==================== the groups ====================
 
-/// One priority group: its rules in sorted order, and `group[0][2]`, the
-/// priority of its first rule, which decides whether it goes in a layer.
-struct PriorityGroup<'a> {
-  priority: f64,
-  rules: Vec<&'a Rule>,
-}
-
 /// The sorted rules grouped by thousand of priority (`Math.floor(priority /
 /// 1000)`), each group in the order the sort gave its rules. A `NaN` level
 /// equals no level, so each such rule is a group of its own.
@@ -619,9 +681,9 @@ struct PriorityGroup<'a> {
 /// at level -1, there is no last group, and the reference throws.
 fn group_by_priority_level<'a>(
   sorted_rules: &[&'a Rule],
-) -> Result<Vec<PriorityGroup<'a>>, ProcessStylexRulesError> {
+) -> Result<Vec<Vec<&'a Rule>>, ProcessStylexRulesError> {
   let mut last_k_pri = -1.0;
-  let mut grouped: Vec<PriorityGroup<'a>> = Vec::new();
+  let mut grouped: Vec<Vec<&'a Rule>> = Vec::new();
 
   for &rule in sorted_rules {
     let priority_level = (rule.priority() / 1000.0).floor();
@@ -632,13 +694,10 @@ fn group_by_priority_level<'a>(
           class_name: rule.class_name().spelling().into_owned(),
         });
       };
-      group.rules.push(rule);
+      group.push(rule);
     } else {
       last_k_pri = priority_level;
-      grouped.push(PriorityGroup {
-        priority: rule.priority(),
-        rules: vec![rule],
-      });
+      grouped.push(vec![rule]);
     }
   }
 
@@ -819,45 +878,73 @@ fn write_style(
   Ok(())
 }
 
-/// Writes one priority group: its styles' lines, inside a `@layer` block when
-/// layers are on and the group holds styles (a group of priority 0,
-/// `@property`, `@keyframes`, `@position-try`, goes in no layer).
+/// Writes the lines of `rules`, one style per class name, a line break
+/// between styles.
+fn collect_rules(
+  out: &mut Output,
+  rules: &[&Rule],
+  specificity: Option<&str>,
+  enable_ltr_rtl_comments: bool,
+) -> Result<(), ProcessStylexRulesError> {
+  for (position, rule) in deduplicate_by_class_name(rules).into_iter().enumerate() {
+    if position > 0 {
+      out.text.push('\n');
+    }
+    write_style(out, rule, specificity, enable_ltr_rtl_comments)?;
+  }
+
+  Ok(())
+}
+
+/// Writes one priority group. With layers off, all its styles are written as
+/// they are. With layers on, the group is split: rules of priority 0
+/// (`@property`, `@keyframes`, `@position-try`) are written first and stay
+/// out of any layer, then rules of positive priority go in the group's
+/// `@layer` block.
 fn write_group(
   out: &mut Output,
-  group: &PriorityGroup<'_>,
+  group: &[&Rule],
   index: usize,
   config: &ProcessStylexRulesConfig,
   layers: &Layers<'_>,
 ) -> Result<(), ProcessStylexRulesError> {
-  // Don't put @property, @keyframe, @position-try in layers
-  let in_layer = layers.on && group.priority > 0.0;
-  // The polyfill: `index` copies of `:not(#\#)`, the same for every style of
-  // the group.
-  let specificity =
-    (!layers.on && !config.legacy_disable_layers).then(|| SPECIFICITY_LEVEL.repeat(index));
+  if !layers.on {
+    // The polyfill: `index` copies of `:not(#\#)`, the same for every style
+    // of the group.
+    let specificity = (!config.legacy_disable_layers).then(|| SPECIFICITY_LEVEL.repeat(index));
+    return collect_rules(
+      out,
+      group,
+      specificity.as_deref(),
+      config.enable_ltr_rtl_comments,
+    );
+  }
 
-  if in_layer {
+  // Each rule goes by its own priority. Don't put @property, @keyframe,
+  // @position-try in layers. A rule whose priority is negative, `NaN`, or
+  // only reads as 0 (`null`, `"0"`) is in neither part and is not written.
+  let mut unlayered: Vec<&Rule> = Vec::new();
+  let mut layerable: Vec<&Rule> = Vec::new();
+  for &rule in group {
+    if rule.priority_is_zero() {
+      unlayered.push(rule);
+    } else if rule.priority() > 0.0 {
+      layerable.push(rule);
+    }
+  }
+
+  if !unlayered.is_empty() {
+    collect_rules(out, &unlayered, None, config.enable_ltr_rtl_comments)?;
+  }
+
+  if !layerable.is_empty() {
+    if !unlayered.is_empty() {
+      out.text.push('\n');
+    }
     out.text.push_str("@layer ");
     out.text.push_str(&layers.name(index));
     out.text.push_str("{\n");
-  }
-
-  for (position, rule) in deduplicate_by_class_name(&group.rules)
-    .into_iter()
-    .enumerate()
-  {
-    if position > 0 {
-      out.text.push('\n');
-    }
-    write_style(
-      out,
-      rule,
-      specificity.as_deref(),
-      config.enable_ltr_rtl_comments,
-    )?;
-  }
-
-  if in_layer {
+    collect_rules(out, &layerable, None, config.enable_ltr_rtl_comments)?;
     out.text.push_str("\n}");
   }
 
@@ -991,11 +1078,18 @@ pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> 
   out
 }
 
+/// True for a `@keyframes` or `@position-try` block. Its name is followed by
+/// declarations, not by a selector, so an ancestor selector or a specificity
+/// level has no place to go.
+fn holds_no_selector(selector: &str) -> bool {
+  selector.starts_with("@keyframes") || selector.starts_with("@position-try")
+}
+
 /// `addAncestorSelector`, written into `out`: `ancestor_selector` prefixed to
 /// the rule's own selector, inside the innermost at-rule when the rule sits in
-/// one. A `@keyframes` block holds no selector to prefix.
+/// one. A block with no selector ([`holds_no_selector`]) is written as it is.
 fn write_with_ancestor(out: &mut String, selector: &str, ancestor_selector: &str) {
-  if selector.starts_with("@keyframes") {
+  if holds_no_selector(selector) {
     out.push_str(selector);
     return;
   }
@@ -1034,11 +1128,11 @@ pub(crate) fn add_specificity_level(selector: &str, index: usize) -> Option<Stri
 /// returns `None` when JavaScript would cut that character in two
 /// ([`last_brace_or_last_unit`]).
 ///
-/// An empty `pseudo`, as for the first [`PriorityGroup`], gives back the text
-/// as it was, even where JavaScript cuts a character in two. A `@keyframes`
-/// block holds no selector, so it also comes back as it was.
+/// An empty `pseudo`, as for the first priority group, gives back the text
+/// as it was, even where JavaScript cuts a character in two. A block with no
+/// selector ([`holds_no_selector`]) also comes back as it was.
 fn insert_specificity<'s>(selector: &'s str, pseudo: &str) -> Option<Cow<'s, str>> {
-  if pseudo.is_empty() || selector.starts_with("@keyframes") {
+  if pseudo.is_empty() || holds_no_selector(selector) {
     return Some(Cow::Borrowed(selector));
   }
 

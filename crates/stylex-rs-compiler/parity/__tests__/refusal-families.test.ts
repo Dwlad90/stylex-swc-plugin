@@ -462,6 +462,18 @@ describe('a family will not vouch for a refusal it has no evidence for', () => {
     ).toBeUndefined();
   });
 
+  test('a blank value refused here and crashing the reference is the same family', () => {
+    expect(
+      nameOf(
+        subject(
+          'both-reject-divergent',
+          refused('Rule contains a value with nothing to normalize'),
+          refused("Cannot read properties of undefined (reading 'type')")
+        )
+      )
+    ).toBe('reference TypeError');
+  });
+
   test('a reference crash beside a Rust refusal the family does name', () => {
     expect(
       nameOf(

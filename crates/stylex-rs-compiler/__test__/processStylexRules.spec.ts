@@ -161,7 +161,7 @@ const chain = (names: readonly string[]) =>
 
 describe('processStylexRules', () => {
   test('the fixture is the whole reference file', () => {
-    expect(fixture.cases).toHaveLength(36);
+    expect(fixture.cases).toHaveLength(43);
   });
 
   for (const recorded of fixture.cases) {
@@ -206,6 +206,208 @@ describe('processStylexRules', () => {
     ] as const) {
       expect(processStylexRules(rules, config)).toBe(babelProcessStylexRules(rules, config));
     }
+  });
+
+  describe('@position-try', () => {
+    /** The rules this compiler emits for one `positionTry` call. */
+    function positionTryRules(): StyleXRule[] {
+      const { metadata } = transform(
+        path.join(__dirname, 'positionTry.js'),
+        `
+          import * as stylex from '@stylexjs/stylex';
+          export const name = stylex.positionTry({
+            positionAnchor: '--anchor',
+            top: '0',
+            left: '0',
+            width: '100px',
+            height: '100px'
+          });
+        `,
+        { dev: false, unstable_moduleResolution: { type: 'haste' } }
+      );
+      return metadata.stylex;
+    }
+
+    test('processStylexRules does not inject ancestor selector into @position-try', () => {
+      const rules = positionTryRules();
+      const config = { enableLTRRTLComments: false };
+      const css = processStylexRules(rules, config);
+
+      expect(css).not.toContain("html[dir='rtl'] height");
+      expect(css).not.toContain("html[dir='rtl'] width");
+      expect(css).toContain('@position-try --x1v351di {height:');
+      expect(css).toBe(babelProcessStylexRules(rules, config));
+    });
+
+    test('processStylexRules does not inject specificity into @position-try', () => {
+      const rules = positionTryRules();
+      const config = { useLayers: false, legacyDisableLayers: false };
+      const css = processStylexRules(rules, config);
+
+      expect(css).not.toContain('@position-try --x1v351di :not(#\\#)');
+      expect(css).toContain('@position-try --x1v351di {height:');
+      expect(css).toBe(babelProcessStylexRules(rules, config));
+    });
+
+    // The compiled rule above has no RTL text and sits in the first group, so
+    // neither change reaches it. These rules do: an RTL twin, and a block in
+    // the second group, after a rule of negative priority.
+    test('adds no ancestor or specificity to a @position-try block that would get one', () => {
+      const rules: StyleXRule[] = [
+        ['xn', styleOf('.xn{color:red}'), -2000],
+        ['--xp', { ltr: '@position-try --xp {left:0;}', rtl: '@position-try --xp {right:0;}' }, 0],
+      ];
+      const config = { useLayers: false, legacyDisableLayers: false };
+
+      expect(processStylexRules(rules, config)).toBe(
+        ['.xn{color:red}', '@position-try --xp {left:0;}', '@position-try --xp {right:0;}'].join(
+          '\n'
+        )
+      );
+      expect(divergences([rules], [false, config])).toEqual([]);
+    });
+  });
+
+  // An at-rule from `defineConsts` used as a condition key reaches the
+  // consuming module as its `var(--hash)` placeholder, and the compile step
+  // prices it as one: 3000, the share of an attribute selector, where the
+  // literal `@media` gets 200. Once the assembly knows the constant, the rule
+  // sorts and is layered as the literal is. `haste` resolution names a module
+  // by its file name alone, so no source has to exist on disk; the hashes it
+  // gives differ from a `commonJS` build, so class names and variables are
+  // compared as `.x` and `--x`.
+  describe('at-rule constants used as condition keys', () => {
+    const rootDir = __dirname;
+    const options = { dev: false, unstable_moduleResolution: { type: 'haste' as const, rootDir } };
+    const transformFixtureRules = (filename: string, source: string) =>
+      transform(path.join(rootDir, filename), source, options).metadata.stylex;
+    const constants = transformFixtureRules(
+      'constants.stylex.js',
+      `
+        import * as stylex from '@stylexjs/stylex';
+        export const breakpoints = stylex.defineConsts({
+          small: '@media (max-width: 600px)',
+          medium: '@media (min-width: 601px) and (max-width: 1024px)',
+          large: '@media (max-width: 1025px)',
+        });
+      `
+    );
+    const withoutHashes = (sheet: string) =>
+      sheet.replace(/\.x[a-z0-9]+/g, '.x').replace(/--x[a-z0-9]+/g, '--x');
+
+    test('an imported at-rule constant sorts like the at-rule it names', () => {
+      const created = (condition: string) =>
+        transformFixtureRules(
+          'main.stylex.js',
+          `
+            import * as stylex from '@stylexjs/stylex';
+            import { breakpoints } from 'constants.stylex.js';
+            export const styles = stylex.create({
+              overlay: {
+                backgroundImage: {
+                  default: null,
+                  ':active': {
+                    default: 'linear-gradient(red, red)',
+                    ${condition}: 'none',
+                  },
+                  '[data-press="on"]': 'linear-gradient(blue, blue)',
+                },
+              },
+            });
+          `
+        );
+      const rules = (condition: string, config: ProcessStylexRulesConfig) =>
+        withoutHashes(processStylexRules([...constants, ...created(condition)], config))
+          .split('\n')
+          .filter(line => line.includes('background-image') || line.startsWith('@layer'));
+
+      // The compile step still prices the placeholder; only the assembly
+      // corrects it.
+      expect(
+        created('[breakpoints.small]').map(([, style, priority]) => [style.ltr, priority])
+      ).toContainEqual([
+        expect.stringMatching(
+          /^var\(--[a-z0-9]+\)\{\.x[a-z0-9]+\.x[a-z0-9]+:active\{background-image:none\}\}$/
+        ),
+        6170,
+      ]);
+
+      const configs = [
+        { useLayers: false, legacyDisableLayers: true },
+        { useLayers: true },
+      ] as const;
+      for (const config of configs) {
+        expect(rules('[breakpoints.small]', config)).toEqual(
+          rules("'@media (max-width: 600px)'", config)
+        );
+      }
+      expect(rules('[breakpoints.small]', configs[0])).toEqual([
+        '.x:active{background-image:linear-gradient(red,red)}',
+        '@media (max-width: 600px){.x.x:active{background-image:none}}',
+        '.x[data-press="on"]{background-image:linear-gradient(blue,blue)}',
+      ]);
+      expect(rules('[breakpoints.small]', configs[1])).toEqual([
+        '@layer priority1, priority2;',
+        '@layer priority1{',
+        '.x:active{background-image:linear-gradient(red,red)}',
+        '@media (max-width: 600px){.x.x:active{background-image:none}}',
+        '@layer priority2{',
+        '.x[data-press="on"]{background-image:linear-gradient(blue,blue)}',
+      ]);
+      const constantKeyed = [...constants, ...created('[breakpoints.small]')];
+      for (const config of configs) {
+        expect(nativeInputOf(constantKeyed, config, nativeCollation)).not.toBeNull();
+      }
+      expect(divergences([constantKeyed], configs)).toEqual([]);
+    });
+
+    // Variable and theme rules count at-rules in their own fractional
+    // priorities, below the placeholder's share, so the assembly keeps them.
+    test('variable and theme rules under an imported at-rule constant keep their priorities', () => {
+      const vars = transformFixtureRules(
+        'themeVars.stylex.js',
+        `
+          import * as stylex from '@stylexjs/stylex';
+          import { breakpoints } from 'constants.stylex.js';
+          export const themeVars = stylex.defineVars({
+            accent: {
+              default: 'blue',
+              [breakpoints.small]: 'red',
+            },
+          });
+        `
+      );
+      const theme = transformFixtureRules(
+        'main.stylex.js',
+        `
+          import * as stylex from '@stylexjs/stylex';
+          import { breakpoints } from 'constants.stylex.js';
+          import { themeVars } from 'themeVars.stylex.js';
+          export const theme = stylex.createTheme(themeVars, {
+            accent: { default: 'green', [breakpoints.small]: 'yellow' },
+          });
+        `
+      );
+      const rules = [...constants, ...vars, ...theme];
+      const body = [
+        ':root, .x{--x:blue;}',
+        '@media (max-width: 600px){:root, .x{--x:red;}}',
+        '.x.x, .x.x:root{--x:green;}',
+        '@media (max-width: 600px){.x.x, .x.x:root{--x:yellow;}}',
+      ];
+
+      expect(withoutHashes(processStylexRules(rules, { useLayers: true }))).toBe(
+        ['', '@layer priority1;', '@layer priority1{', ...body, '}'].join('\n')
+      );
+      expect(
+        withoutHashes(processStylexRules(rules, { useLayers: false, legacyDisableLayers: true }))
+      ).toBe(body.join('\n'));
+      const configs = [{ useLayers: true }, { useLayers: false, legacyDisableLayers: true }];
+      for (const config of configs) {
+        expect(nativeInputOf(rules, config, nativeCollation)).not.toBeNull();
+      }
+      expect(divergences([rules], configs)).toEqual([]);
+    });
   });
 
   test('reads a bare boolean, a null and an absent config as the reference does', () => {
@@ -960,8 +1162,8 @@ describe('processStylexRules in a child process', () => {
       const reference = require(${JSON.stringify(path.join(distDir, 'process-stylex-rules/reference.js'))});
       const create = reference.createReferenceProcessStylexRules;
       let calls = 0;
-      reference.createReferenceProcessStylexRules = hook => {
-        const run = create(hook);
+      reference.createReferenceProcessStylexRules = (...hooks) => {
+        const run = create(...hooks);
         return (...args) => { calls++; return run(...args); };
       };
       const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
@@ -979,11 +1181,13 @@ describe('processStylexRules in a child process', () => {
   });
 
   /**
-   * Whether the export and the reference answer alike, the sheet or the
-   * error, in a child process that runs `setup` before its first call. Both
-   * modules load first: some changes stop a module from loading at all.
+   * The answer of the export and the reference, in a child process that runs
+   * `setup` before its first call. If the two answers have the same sheet or
+   * the same error, the result is the kind of answer: `sheet` or `error` and
+   * the error name. If the answers are not the same, the result is `differs`.
+   * Both modules load first, because some changes stop a module from loading.
    */
-  function sameSheetAfter(setup: string, rules: string): string {
+  function sharedAnswerAfter(setup: string, rules: string): string {
     return runNodeScriptOrThrow(`
       const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
       const babel = require(${JSON.stringify(require.resolve('@stylexjs/babel-plugin'))});
@@ -991,13 +1195,21 @@ describe('processStylexRules in a child process', () => {
       const rules = ${rules};
       const answer = run => {
         try {
-          return 'sheet ' + run(rules, false);
+          return { kind: 'sheet', text: run(rules, false) };
         } catch (error) {
-          return 'error ' + error.name + ': ' + error.message;
+          return { kind: 'error ' + error.name, text: error.message };
         }
       };
-      process.stdout.write(String(answer(processStylexRules) === answer(babel.processStylexRules)));
+      const exported = answer(processStylexRules);
+      const reference = answer(babel.processStylexRules);
+      const same = exported.kind === reference.kind && exported.text === reference.text;
+      process.stdout.write(same ? exported.kind : 'differs');
     `).stdout;
+  }
+
+  /** Whether the export and the reference answer alike: see `sharedAnswerAfter`. */
+  function sameSheetAfter(setup: string, rules: string): string {
+    return String(sharedAnswerAfter(setup, rules) !== 'differs');
   }
 
   test('sees a native function that a program moved before the first call', () => {
@@ -1020,14 +1232,25 @@ describe('processStylexRules in a child process', () => {
   test('answers as the reference for a constant chain of any depth', () => {
     // Past 256 links the native resolver refuses and the reference decides:
     // it resolves the chain, or its stack overflows with a `RangeError`.
-    for (const depth of [256, 257, 5000, 20000]) {
+    // 256 and 257 are on the two sides of the native limit. Each case also
+    // names its answer, so that each of the two outcomes is tested.
+    // Keep each depth far from the depth where the reference overflows. That
+    // depth changes with the platform and the JIT tier. Near it, the export
+    // and the reference start at different stack heights. Then one of them
+    // can overflow when the other does not.
+    for (const [depth, expected] of [
+      [256, 'sheet'],
+      [257, 'sheet'],
+      [1000, 'sheet'],
+      [20000, 'error RangeError'],
+    ] as const) {
       const deepChain = `[
         ...Array.from({ length: ${depth} }, (_, i) =>
           ['c' + i, { constKey: 'c' + i, constVal: 'var(--c' + (i + 1) + ')' }, 0]),
         ['c${depth}', { constKey: 'c${depth}', constVal: 'red' }, 0],
         ['x1', { ltr: '.x1{color:var(--c0)}', rtl: null }, 3000],
       ]`;
-      expect(sameSheetAfter('', deepChain)).toBe('true');
+      expect(sharedAnswerAfter('', deepChain)).toBe(expected);
     }
   });
 

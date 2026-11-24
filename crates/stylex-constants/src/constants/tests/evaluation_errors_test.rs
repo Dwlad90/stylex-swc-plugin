@@ -235,8 +235,8 @@ fn test_engine_threw() {
 #[test]
 fn test_escaping_property() {
   assert_eq!(
-    escaping_property("constructor"),
-    "Cannot fold a read of 'constructor' at compile time.\nIt leads off the value that was written and onto the language's own function graph.\n\n"
+    escaping_property("call"),
+    "Cannot fold a read of 'call' at compile time.\nIt leads off the value that was written and onto the language's own function graph.\n\n"
   );
   // The three names that turn an unapplied function back into a call read the
   // same way, because the property is the whole of the reason.

@@ -84,7 +84,8 @@ fn rejects(value: &str, key: &str, expected: &str) {
 /// The heart of the parity contract. No normalizer understands hex colours,
 /// letter case, quote characters or exponent notation, so none of them can
 /// alter those — and a value made only of things nobody has an opinion about
-/// comes back byte for byte.
+/// comes back byte for byte. The case of a zero's unit is the one exception,
+/// pinned by `zero_keeps_its_unit_category_whatever_its_case`.
 #[test]
 fn leaves_spellings_no_normalizer_has_an_opinion_about_alone() {
   check(&[
@@ -133,12 +134,12 @@ fn leaves_spellings_no_normalizer_has_an_opinion_about_alone() {
 }
 
 /// Letter case is never folded, including in units — which is why the
-/// unit-sensitive normalizers below all miss their upper-case spellings.
+/// unit-sensitive normalizers below miss their upper-case spellings. The zero
+/// normalizer is the one exception: it reads a unit in any case to pick the
+/// zero's category, as `zero_keeps_its_unit_category_whatever_its_case` shows.
 #[test]
 fn never_folds_letter_case_in_a_unit() {
   check(&[
-    ("0PX", "width", "0"),
-    ("0DEG", "transform", "0"),
     ("10MS", "transitionDuration", "10MS"),
     ("10Ms", "transitionDuration", "10Ms"),
     ("1E3px", "width", "1E3px"),
@@ -367,6 +368,21 @@ fn canonicalizes_a_zero_written_with_a_unit() {
   ]);
 }
 
+/// Units match in any case, so an uppercase zero keeps its unit category.
+#[test]
+fn zero_keeps_its_unit_category_whatever_its_case() {
+  check(&[
+    ("0MS", "transitionDuration", "0s"),
+    ("0S", "animationDelay", "0s"),
+    ("0Ms", "transitionDuration", "0s"),
+    ("0DEG", "transform", "0deg"),
+    ("rotate(0DEG)", "transform", "rotate(0deg)"),
+    ("0Turn", "transform", "0deg"),
+    ("0FR 1fr", "gridTemplateColumns", "0fr 1fr"),
+    ("0PX", "width", "0"),
+  ]);
+}
+
 /// Only a number spelled exactly `0` qualifies. `0.0` and `-0` are the same
 /// quantity spelled differently and are left to the leading-zero normalizer,
 /// which reaches a different answer.
@@ -385,13 +401,11 @@ fn reads_the_zero_off_the_spelling_not_the_quantity() {
 }
 
 /// Inside a function the unit stays, because dropping it would change what the
-/// function computes. The test is a comparison of source offsets against the
-/// end of the *first* function seen, so a second function later in the value is
-/// outside that window and its zero does lose its unit.
-///
-/// The asymmetry between the two `translate` calls below is the whole of it.
+/// function computes. This is true for every function in the value, not only
+/// the first: `calc(0 + 1%)` is not valid CSS. A bare zero after the last
+/// function still loses its unit.
 #[test]
-fn keeps_a_unit_on_a_zero_inside_the_first_function_only() {
+fn keeps_a_unit_on_a_zero_inside_any_function() {
   check(&[
     ("translate(0px, 0em)", "transform", "translate(0px,0em)"),
     ("calc(0px + 1px)", "width", "calc(0px + 1px)"),
@@ -403,7 +417,18 @@ fn keeps_a_unit_on_a_zero_inside_the_first_function_only() {
     (
       "translate(0px) translate(0em)",
       "transform",
-      "translate(0px) translate(0)",
+      "translate(0px) translate(0em)",
+    ),
+    (
+      "max(1px,2px) calc(0px + 1%)",
+      "width",
+      "max(1px,2px) calc(0px + 1%)",
+    ),
+    ("calc(5px) 0px", "margin", "calc(5px) 0"),
+    (
+      "translate(0px) 0px translate(0em)",
+      "transform",
+      "translate(0px) 0 translate(0em)",
     ),
     ("var(--a) 0px", "margin", "var(--a) 0"),
     ("0px var(--a)", "margin", "0 var(--a)"),
@@ -761,6 +786,90 @@ fn leaves_a_url_body_opaque() {
   ]);
 }
 
+/// The contents of a `url()` are a resource path in any letter case, so no
+/// pass rewrites them. The scanner splits the contents of a `URL(` that is not
+/// lowercase into words and separators, and none of them are re-spaced. Only
+/// the padding inside the parentheses is stripped, as for any function.
+#[test]
+fn leaves_the_path_inside_a_url_of_any_case_alone() {
+  check(&[
+    ("url(0.5x.png)", "backgroundImage", "url(0.5x.png)"),
+    ("uRl(0.5x.png)", "backgroundImage", "uRl(0.5x.png)"),
+    (
+      "URL(/img/logo.png)",
+      "backgroundImage",
+      "URL(/img/logo.png)",
+    ),
+    ("URL( 0.5x.png )", "backgroundImage", "URL(0.5x.png)"),
+    ("url(  0.5x.png  )", "backgroundImage", "url(0.5x.png)"),
+    ("URL( a , b ) ", "backgroundImage", "URL(a , b)"),
+    ("URL(a/b , c)", "width", "URL(a/b , c)"),
+    (
+      "URL(\"0.5x.png\") 0.5px",
+      "backgroundImage",
+      "URL(\"0.5x.png\") .5px",
+    ),
+  ]);
+}
+
+/// Values next to a `url()` are still shortened, and a `url()` inside another
+/// function shields only its own contents.
+#[test]
+fn normalizes_the_values_around_a_url() {
+  check(&[
+    ("url(0.5x.svg) 0px 0.5em", "mask", "url(0.5x.svg) 0 .5em"),
+    ("url(100ms) 100ms", "transitionDuration", "url(100ms) .1s"),
+    ("URL(100ms) 100ms", "transitionDuration", "URL(100ms) .1s"),
+    (
+      "calc(url(10ms))  100ms",
+      "transitionDuration",
+      "calc(url(10ms)) .1s",
+    ),
+    ("URL(0px) 0px", "width", "URL(0px) 0"),
+    (
+      "calc(URL(0px) + 0px) 0px",
+      "width",
+      "calc(URL(0px) + 0px) 0",
+    ),
+    (
+      "image-set(url(0.5x.png) 1x, url(1x.png) 2x)",
+      "backgroundImage",
+      "image-set(url(0.5x.png) 1x,url(1x.png) 2x)",
+    ),
+  ]);
+}
+
+/// An importance annotation inside a `url()` is part of the path, so it neither
+/// removes a node nor counts as an annotation that is not last.
+#[test]
+fn ignores_an_importance_annotation_inside_a_url() {
+  check(&[
+    ("a b URL(x !important)", "color", "a b URL(x !important)"),
+    ("URL(x !important) a b", "color", "URL(x !important) a b"),
+    (
+      "a b calc(URL(x !important))",
+      "color",
+      "a b calc(URL(x !important))",
+    ),
+    (
+      "URL(a !important) !important",
+      "backgroundImage",
+      "URL(a !important)!important",
+    ),
+  ]);
+}
+
+/// The font-size conversion is the one pass that still reads inside a `url()`.
+/// This is the expected output, not a defect to correct: changing it would
+/// change class names.
+#[test]
+fn converts_a_pixel_font_size_inside_a_url() {
+  check_with(
+    &[("URL(16px) 16px", "fontSize", "URL(1rem) 1rem")],
+    &rem_enabled_options(),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------
@@ -1047,7 +1156,7 @@ const ACCEPTED_SAMPLE: &[Case] = &[
   (
     "translate(0px) translate(0em)",
     "transform",
-    "translate(0px) translate(0)",
+    "translate(0px) translate(0em)",
   ),
   (
     "\"\\2014 A\", sans-serif",

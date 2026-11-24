@@ -15,7 +15,7 @@
 //! load-bearing half of this file.
 
 use super::source_evaluation::*;
-use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
+use stylex_constants::constants::evaluation_errors::{BLOCKED_PROPERTY_ACCESS, escaping_property};
 
 // ==================== the fold this file is about ====================
 
@@ -268,22 +268,27 @@ fn a_key_no_text_can_hold_is_not_read_as_an_escaping_property() {
 /// quietly wrong answer of exactly the kind this file exists to prevent — and
 /// the value it leads to compiles source text into a function. Refused, in both
 /// spellings, on both receivers, with or without a call around it.
+///
+/// `constructor` reads the prototype-chain sentence, as in the reference.
+/// `call`, `apply` and `bind` read the escaping sentence.
 #[test]
 fn a_read_that_escapes_the_value_refuses_rather_than_answering_undefined() {
+  for source in [
+    "\"abc\".constructor",
+    "\"abc\"[\"constructor\"]",
+    "[1, 2].constructor",
+    "({ a: 1 }).constructor",
+  ] {
+    assert_deopt_reason_contains(source, BLOCKED_PROPERTY_ACCESS);
+  }
+
   for (source, property) in [
-    ("\"abc\".constructor", "constructor"),
-    ("\"abc\"[\"constructor\"]", "constructor"),
     ("\"abc\".call", "call"),
     ("\"abc\".apply", "apply"),
     ("\"abc\".bind", "bind"),
-    ("[1, 2].constructor", "constructor"),
     ("[1, 2][\"bind\"]", "bind"),
-    ("({ a: 1 }).constructor", "constructor"),
   ] {
-    assert_deopt_reason_contains(
-      source,
-      &format!("Cannot fold a read of '{}' at compile time.", property),
-    );
+    assert_deopt_reason_contains(source, &escaping_property(property));
   }
 }
 

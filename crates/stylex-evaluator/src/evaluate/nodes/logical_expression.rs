@@ -5,13 +5,13 @@ use swc_core::ecma::ast::{BinExpr, BinaryOp};
 /// and still could not be folded.
 const DEFAULT_DEOPT_REASON: &str = "unknown error";
 
-/// One of the three operators the reference implementation keeps on a
-/// logical-expression node of its own.
+/// One of the three operators that answer with an operand rather than with a
+/// value computed from both.
 ///
 /// SWC has no such node — `||`, `&&` and `??` arrive as binary expressions
 /// alongside `+` and `>>` — so the binary-expression node asks for this before
 /// doing anything else, and hands the three it names over here.
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub(in super::super) enum LogicalOp {
   Or,
   And,
@@ -28,6 +28,15 @@ impl LogicalOp {
       _ => None,
     }
   }
+
+  /// The operator as it is written in source.
+  pub(in super::super) fn spelling(self) -> &'static str {
+    match self {
+      Self::Or => "||",
+      Self::And => "&&",
+      Self::Nullish => "??",
+    }
+  }
 }
 
 /// Folds `||`, `&&` and `??` over evaluated values, returning the winning
@@ -37,14 +46,12 @@ impl LogicalOp {
 /// never consults cannot deopt the expression — `token ?? 'red'` folds whether
 /// or not the fallback would have.
 ///
-/// The right side is evaluated only where the guard actually asks about it,
-/// which is the short-circuit the language performs and this node's whole
-/// reason for existing. It is not merely a saving: evaluating an operand is
-/// what queues a `*.stylex.js` theme import for tree-shake compensation, so a
-/// losing `tokens.color` evaluated anyway would leave an import behind for a
-/// value that never reached the stylesheet. Which operand the fold keeps is
-/// unchanged by the laziness — a left side that wins wins whatever the right
-/// side would have said.
+/// Both sides are evaluated before the operator picks one. So a losing side
+/// still declares what it declares: a `keyframes` call on it still writes its
+/// rule. The engine fold does the same for a losing side that calls a compiler
+/// function (see `engine_fold::losing_operand`). Which operand the fold keeps
+/// does not depend on the right side when the left one wins, whatever the right
+/// side said.
 pub(in super::super) fn evaluate(
   op: LogicalOp,
   bin: &BinExpr,
@@ -53,20 +60,16 @@ pub(in super::super) fn evaluate(
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
   let left = evaluate_operand(&bin.left, state, traversal_state, fns);
+  let right = evaluate_operand(&bin.right, state, traversal_state, fns);
 
   let decision = match left.confident {
     true => decide(op, left.value.as_ref()),
-    // The right side is still evaluated below, because which path the deopt
-    // names depends on it: an unconfident right side is the one reported, and
-    // only a confident one lets the left side's own reason through.
     false => Decision::Refuse,
   };
 
   if matches!(decision, Decision::Left) {
     return Some(operand_value(left.value));
   }
-
-  let right = evaluate_operand(&bin.right, state, traversal_state, fns);
 
   if matches!(decision, Decision::Right) && right.confident {
     return Some(operand_value(right.value));
@@ -131,10 +134,10 @@ fn evaluate_operand(
 /// Whether `op` evaluates its right operand at all, given the value its left
 /// operand holds.
 ///
-/// The short circuit is a fact about the operator rather than about who is
-/// asking, so the guard in front of the engine reads it from here rather than
-/// keeping a table of its own that could come to disagree with [`decide`] about
-/// which operand a build reaches.
+/// The guard in front of the engine reads it from here, so it cannot disagree
+/// with [`decide`] about which operand the answer comes from. The evaluator
+/// evaluates the right operand in either case; this answers only whether the
+/// language does.
 pub(in super::super) fn evaluates_its_right_operand(
   op: LogicalOp,
   left: &EvaluateResultValue,
@@ -153,8 +156,9 @@ enum Decision {
   Refuse,
 }
 
-/// The operand the reference implementation's guard lets through, decided from
-/// the left side alone so the right one is evaluated only where it is consulted.
+/// The operand the fold keeps, decided from the left side alone. The right side
+/// is evaluated before this is asked, so a side that loses still declares its
+/// rules; this decides only whose value is the answer.
 ///
 /// The guards are reproduced in the shape upstream writes them, including the
 /// nullish one — `leftConfident && !!(left ?? rightConfident)` tests the left

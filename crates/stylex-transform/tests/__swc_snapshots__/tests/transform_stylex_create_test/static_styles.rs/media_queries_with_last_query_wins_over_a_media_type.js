@@ -6,20 +6,20 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: "@media (((screen) and (max-width: 900px) and (not (screen)) and (not (screen))) or ((screen) and (max-width: 900px) and (not (screen)) and (not (max-width: 400px)))) or (((screen) and (max-width: 900px) and (not (max-width: 500px)) and (not (screen))) or ((screen) and (max-width: 900px) and (not (max-width: 500px)) and (not (max-width: 400px)))){.x1qc147k.x1qc147k{background-color:blue}}",
+    ltr: "@media screen and (max-width: 900px) and (not (max-width: 500px)) and (not (max-width: 400px)){.xa5oah1.xa5oah1{background-color:blue}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media ((screen) and (max-width: 500px) and (not (screen))) or ((screen) and (max-width: 500px) and (not (max-width: 400px))){.x9qmkci.x9qmkci{background-color:purple}}",
+    ltr: "@media screen and (max-width: 500px) and (not (max-width: 400px)){.x1seukri.x1seukri{background-color:purple}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (screen) and (max-width: 400px){.x17z8iku.x17z8iku{background-color:green}}",
+    ltr: "@media screen and (max-width: 400px){.xduqtph.xduqtph{background-color:green}}",
     priority: 3200
 });
 export const styles = {
     root: {
-        kWkggS: "xrkmrrc x1qc147k x9qmkci x17z8iku",
+        kWkggS: "xrkmrrc xa5oah1 x1seukri xduqtph",
         $$css: true
     }
 };

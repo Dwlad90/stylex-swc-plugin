@@ -22,8 +22,8 @@ _inject2({
 export const styles = {
     dyn: (a)=>[
             _temp,
-            {
-                kMwMTN: a != null ? "x14rh7hd" : a,
+            a !== undefined && {
+                kMwMTN: a != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

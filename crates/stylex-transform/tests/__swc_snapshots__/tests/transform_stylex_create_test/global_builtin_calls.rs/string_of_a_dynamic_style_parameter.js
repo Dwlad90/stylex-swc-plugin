@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     root: (color)=>[
-            {
-                kMwMTN: String(color) != null ? "x14rh7hd" : String(color),
+            String(color) !== undefined && {
+                kMwMTN: String(color) != null ? "x14rh7hd" : "",
                 $$css: true
             },
             {

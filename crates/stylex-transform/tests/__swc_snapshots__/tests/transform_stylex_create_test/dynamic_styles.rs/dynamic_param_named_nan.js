@@ -11,8 +11,8 @@ _inject2({
 });
 export const styles = {
     a: (NaN)=>[
-            {
-                kzqmXN: NaN != null ? "x5lhr3w" : NaN,
+            NaN !== undefined && {
+                kzqmXN: NaN != null ? "x5lhr3w" : "",
                 $$css: true
             },
             {

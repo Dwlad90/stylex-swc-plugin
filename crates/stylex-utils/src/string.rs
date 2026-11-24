@@ -58,11 +58,11 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
 ///
 /// It is not [`dashify`], and the difference is deliberate. A stylesheet takes
 /// a hyphen only where a capital opens the name or follows a lowercase letter,
-/// so `ABCDef` is `-abcdef` there and `-a-b-c-def` here. A stylesheet also
-/// hands a custom property back untouched, which is a guard its caller holds
-/// rather than a rule inside `dashify`; an attribute has no such guard, so
-/// `--myColor` becomes `--my-color`. The two rules are kept apart because the
-/// runtime keeps them apart.
+/// so `ABCDef` is `-abcdef` there and `-a-b-c-def` here. The two rules are
+/// kept apart because the runtime keeps them apart.
+///
+/// A custom property is converted like any other name. A caller that must keep
+/// one untouched does the check before it calls this function.
 pub fn kebab_case(s: &str) -> Cow<'_, str> {
   if s.is_ascii() && !s.bytes().any(|byte| byte.is_ascii_uppercase()) {
     return Cow::Borrowed(s);
@@ -96,38 +96,6 @@ pub fn kebab_case(s: &str) -> Cow<'_, str> {
     // ever is.
     false => Cow::Owned(kebab.to_lowercase()),
   }
-}
-
-/// Whether a value spells no CSS text at all — empty, or nothing but
-/// characters the value scanner reads as whitespace.
-///
-/// A declaration built from one of these is `color:`, which no browser accepts,
-/// so the property is left undeclared instead. Asked of both an authored value
-/// and the value it transforms to, which is why it lives here rather than on
-/// either type.
-///
-/// Deliberately narrower than `str::trim`. The scanner calls a character
-/// whitespace when its code is at most 32 and nothing else, so U+00A0 or
-/// U+3000 is a *word token* to it, not a gap — and the reference compiler
-/// emits such a value verbatim rather than dropping the property. Testing
-/// bytes is exact here: every byte of a multi-byte character is at least 0x80.
-///
-/// Wider than `str::trim` in the other direction, which is the half that
-/// changes an answer rather than fixing one. A C0 control is not Unicode
-/// whitespace, so `trim` left `"\u{1}"` in place and the value reached
-/// `normalize_whitespace`, whose `trim_edges` emptied the token list and
-/// rejected with `LINT_VALUE_HAS_NO_TOKENS` — which happens to match the
-/// `TypeError` the reference throws at the same point. Reading it as blank
-/// drops the property silently instead.
-///
-/// That is the answer this seam already gave for `""` and `" "`, which the
-/// reference also throws on and which the parity corpus already carries as
-/// acceptance divergences. Chosen for that consistency: the alternative is a
-/// rule under which `"\t"` is dropped and `"\u{1}"` is a hard error, which no
-/// author could predict from the value they wrote. Pinned by
-/// `c0_controls_that_are_not_unicode_whitespace_are_blank`.
-pub fn is_blank_css_text(s: &str) -> bool {
-  s.bytes().all(|byte| byte <= 32)
 }
 
 /// The length of a string as JavaScript reports it: its count of UTF-16 code

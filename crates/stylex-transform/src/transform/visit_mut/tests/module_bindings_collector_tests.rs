@@ -11,7 +11,7 @@ use swc_core::{
 };
 
 use super::ModuleBindingsCollector;
-use crate::transform::tests::prelude::{resolved_module, resolved_ts_module};
+use crate::transform::tests::prelude::{resolved_module, resolved_ts_module, stripped_ts_module};
 
 /// Names of the bindings the collector recorded as written under any kind,
 /// ignoring syntax contexts (asserted separately where shadowing is what's
@@ -61,14 +61,17 @@ fn names(ids: FxHashSet<Id>) -> FxHashSet<String> {
 
 /// Runs the collector over `code` and reads whichever set the caller asks for,
 /// so the three readers above differ only in that choice.
-fn collect(code: &str, read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>) -> FxHashSet<Id> {
+fn collect(
+  code: &str,
+  read: impl Fn(&mut ModuleBindingsCollector) -> FxHashSet<Id>,
+) -> FxHashSet<Id> {
   collect_parsed_by(resolved_module, code, read)
 }
 
 /// The same with JSX off, which only an angle-bracket cast needs.
 fn collect_ts(
   code: &str,
-  read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>,
+  read: impl Fn(&mut ModuleBindingsCollector) -> FxHashSet<Id>,
 ) -> FxHashSet<Id> {
   collect_parsed_by(resolved_ts_module, code, read)
 }
@@ -76,14 +79,14 @@ fn collect_ts(
 fn collect_parsed_by(
   parse: fn(&str) -> Module,
   code: &str,
-  read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>,
+  read: impl Fn(&mut ModuleBindingsCollector) -> FxHashSet<Id>,
 ) -> FxHashSet<Id> {
   GLOBALS.set(&Globals::default(), || {
     let module = parse(code);
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
-    read(&collector)
+    read(&mut collector)
   })
 }
 
@@ -740,4 +743,86 @@ fn records_nothing_for_an_anonymous_class_or_a_non_deleting_unary() {
 fn records_nothing_for_a_call_with_no_callee_expression() {
   assert_written("class K extends L { constructor() { super(1); } }", &[]);
   assert_written("const m = import('m');", &[]);
+}
+
+/// Names of the enclosed bindings, as the collector hands them to the state.
+fn enclosed_names_parsed_by(parse: fn(&str) -> Module, code: &str) -> FxHashSet<String> {
+  names(collect_parsed_by(parse, code, |collector| {
+    collector.take_binding_writes().enclosed
+  }))
+}
+
+#[track_caller]
+fn assert_enclosed(code: &str, expected: &[&str]) {
+  assert_names(
+    enclosed_names_parsed_by(resolved_module, code),
+    expected,
+    code,
+  );
+}
+
+/// A parameter, a block binding and a `var` in a function are enclosed. A
+/// `var` in a program-level block and a function declared at program level
+/// are not.
+#[test]
+fn records_bindings_below_program_level_as_enclosed() {
+  assert_enclosed(
+    "function f(param) { var inFunction; { let inBlock; } } { var inProgramBlock; }",
+    &["param", "inFunction", "inBlock"],
+  );
+}
+
+/// A constructor, a getter, a setter and a static block each hold their own
+/// bindings, although SWC does not wrap them in a function.
+#[test]
+fn records_class_and_accessor_bindings_as_enclosed() {
+  assert_enclosed(
+    "class A { constructor(ctorParam) { var ctorVar; } static { var staticVar; } } \
+     const o = { get g() { var getterVar; }, set s(setterParam) {} };",
+    &[
+      "ctorParam",
+      "ctorVar",
+      "staticVar",
+      "getterVar",
+      "setterParam",
+    ],
+  );
+}
+
+/// A loop head and a `switch` body hold their own `let` and `const`, even at
+/// program level.
+#[test]
+fn records_loop_and_switch_bindings_as_enclosed() {
+  assert_enclosed(
+    "for (let i = 0; ; ) {} for (const k of ks) {} for (const p in o) {} \
+     switch (x) { case 1: let inCase; }",
+    &["i", "k", "p", "inCase"],
+  );
+}
+
+/// A default-exported function or class is a declaration at program level,
+/// unlike a named function or class expression.
+#[test]
+fn records_default_exported_names_at_program_level() {
+  assert_enclosed("export default function Foo() {}", &[]);
+  assert_enclosed("export default class Bar {}", &[]);
+  assert_enclosed(
+    "const f = function named() {}; const C = class Named {};",
+    &["named", "Named"],
+  );
+}
+
+/// The TypeScript strip turns `enum E {}` into a function whose parameter
+/// shares the program-level `var E`'s `Id`. The name stays at program level.
+/// An `enum` declared in a function is still enclosed.
+#[test]
+fn keeps_a_stripped_enum_or_namespace_at_program_level() {
+  assert_names(
+    enclosed_names_parsed_by(
+      stripped_ts_module,
+      "enum E { A } namespace N { export const x = 1; } function f() { enum L { A } }",
+    ),
+    &["L"],
+    "stripped enum and namespace",
+  );
 }

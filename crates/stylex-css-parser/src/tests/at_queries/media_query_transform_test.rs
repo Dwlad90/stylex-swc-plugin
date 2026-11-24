@@ -564,7 +564,7 @@ mod media_query_transformer {
     let expected_styles = json!({
       "width": {
         "default": "100%",
-        "@media (screen) and (not (max-width: 500px)), (min-width: 500.01px) and (max-width: 800px)": "80%",
+        "@media screen and (not (max-width: 500px)), (min-width: 500.01px) and (max-width: 800px)": "80%",
         "@media (max-width: 500px)": "60%"
       }
     });
@@ -585,6 +585,256 @@ mod media_query_transformer {
       serde_json::to_string(&result_json).unwrap(),
       serde_json::to_string(&expected_styles).unwrap(),
       "Comma-separated media queries should handle OR logic with negations"
+    );
+  }
+
+  /// Test: mixed responsive and print values anchor to a screen media type
+  ///
+  /// A `print` media type must not become a `(not (print))` feature, because
+  /// browsers never match it. The responsive branch gets the complementary
+  /// `screen` media type instead.
+  #[test]
+  fn mixed_responsive_and_print_values_anchor_to_a_screen_media_type() {
+    let original_styles = json!({
+      "marginLeft": {
+        "default": "224",
+        "@media (max-width: 900px)": {
+          "default": "168",
+          "@media (max-width: 620px)": "132"
+        },
+        "@media print": "0"
+      }
+    });
+
+    let expected_styles = json!({
+      "marginLeft": {
+        "default": "224",
+        "@media screen and (max-width: 900px)": {
+          "default": "168",
+          "@media (max-width: 620px)": "132"
+        },
+        "@media print": "0"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap(),
+      "The responsive branch should anchor to the screen media type"
+    );
+  }
+
+  #[test]
+  fn a_leading_not_negates_the_whole_query() {
+    let original_styles = json!({
+      "filter": {
+        "default": "grayscale(1)",
+        "@media not all and (monochrome)": "none"
+      },
+      "color": {
+        "default": "black",
+        "@media not screen and (min-width: 100px)": "red"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not screen and (min-width: 100px)": "red",
+          "default": "black"
+        },
+        "filter": {
+          "@media not all and (monochrome)": "none",
+          "default": "grayscale(1)"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_leading_not_followed_by_a_later_query() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media not all and (monochrome)": "blue",
+        "@media (min-width: 500px)": "red"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media (min-width: 500px)": "red",
+          "@media (not (min-width: 500px)) and (not (monochrome))": "blue",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_later_query_with_a_leading_not() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 500px)": "red",
+        "@media not all and (monochrome)": "blue"
+      },
+      "width": {
+        "default": "100%",
+        "@media (max-width: 900px)": "80%",
+        "@media not print and (min-width: 600px)": "60%"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media (min-width: 500px) and (monochrome)": "red",
+          "@media not all and (monochrome)": "blue",
+          "default": "black"
+        },
+        "width": {
+          "@media not print and (min-width: 600px)": "60%",
+          "@media print and (max-width: 900px) and (min-width: 600px)": "80%",
+          "default": "100%"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_leading_not_over_an_or_condition_stays_linear_in_size() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 10px)": "red",
+        "@media not screen and ((min-width: 100px) or (min-width: 200px) or (min-width: 300px) or (min-width: 400px))":
+          "blue"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not screen and ((min-width: 100px) or (min-width: 200px) or (min-width: 300px) or (min-width: 400px))": "blue",
+          "@media screen and (min-width: 100px) and (min-width: 10px), screen and (min-width: 200px) and (min-width: 10px), screen and (min-width: 300px) and (min-width: 10px), screen and (min-width: 400px) and (min-width: 10px)": "red",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_leading_not_over_mixed_and_or_conditions() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))":
+          "blue"
+      },
+      "width": {
+        "default": "100%",
+        "@media (min-width: 10px)": "80%",
+        "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))":
+          "60%"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))": "blue",
+          "default": "black"
+        },
+        "width": {
+          "@media (max-width: 900px) and (min-width: 10px) and (min-width: 500px), (max-height: 600px) and (min-width: 10px) and (min-width: 500px)": "80%",
+          "@media not all and (min-width: 500px) and ((max-width: 900px) or (max-height: 600px))": "60%",
+          "default": "100%"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn an_or_condition_inside_an_and_keeps_its_parentheses() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 1px) and ((max-width: 200px) or (max-height: 600px))": "blue"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media (min-width: 1px) and ((max-width: 200px) or (max-height: 600px))": "blue",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn a_media_type_from_a_negated_later_query_is_moved_to_the_front() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (max-width: 900px)": "red",
+        "@media not print, (max-width: 100px)": "blue"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "@media not print, (max-width: 100px)": "blue",
+          "@media print and (max-width: 900px) and (not (max-width: 100px))": "red",
+          "default": "black"
+        }
+      })
+    );
+  }
+
+  /// The `only` of a later `not only <type>` stays when that query is negated.
+  #[test]
+  fn a_negated_later_not_only_query_keeps_the_only() {
+    let original_styles = json!({
+      "color": {
+        "default": "black",
+        "@media (max-width: 500px)": "blue",
+        "@media not only screen": "red"
+      }
+    });
+
+    assert_eq!(
+      transformed_styles(original_styles),
+      json!({
+        "color": {
+          "default": "black",
+          "@media only screen and (max-width: 500px)": "blue",
+          "@media not screen": "red"
+        }
+      })
     );
   }
 
@@ -1058,8 +1308,8 @@ mod media_query_transformer {
     let expected_styles = json!({
       "width": {
         "default": "100%",
-        "@media ((screen) and (min-width: 900px) and (not (print))) or ((screen) and (min-width: 900px) and (not (max-width: 500px)))": "80%",
-        "@media (print) and (max-width: 500px)": "50%"
+        "@media screen and (min-width: 900px), screen and (min-width: 900px) and (not (max-width: 500px))": "80%",
+        "@media print and (max-width: 500px)": "50%"
       }
     });
 
@@ -1786,25 +2036,45 @@ mod malformed_queries {
     assert!(refuses_query("@media (min-width: 100px) "));
   }
 
-  /// Nesting is walked once per level rather than searched, so a depth that
-  /// makes the reference implementation backtrack for minutes is answered here
-  /// in milliseconds — twelve levels take it twenty seconds and sixteen do not
-  /// finish in thirty.
+  /// Nesting is read once for each level, so a deep query takes
+  /// milliseconds. A parser that tries each reading again can take minutes on
+  /// the same query.
   ///
-  /// Sixty-four levels is the budget, so this is the deepest query that still
-  /// compiles, and what it compiles to is the query with the wrapping gone.
+  /// Sixty-four levels of parentheses is the budget, so this is the deepest
+  /// query that still compiles. Its 63 negations cancel in pairs, and one stays.
   #[test]
   fn nesting_up_to_the_budget_is_read_without_backtracking() {
     let deep = format!(
-      "@media {}min-width: 100px{}",
-      "(".repeat(64),
-      ")".repeat(64)
+      "@media {}(min-width: 100px){}",
+      "(not ".repeat(63),
+      ")".repeat(63)
     );
 
     assert_eq!(
       transformed_keys(json!({ "color": { "default": "black", deep: "red" } })),
-      vec!["default", "@media (min-width: 100px)"]
+      vec!["default", "@media (not (min-width: 100px))"]
     );
+  }
+
+  /// The text `(not screen and X )` reads as a `not`. It does not read as a
+  /// list, because a list cannot have whitespace before `)`. The parser
+  /// reads `X` one time. If it read `X` again for each reading, the work
+  /// would double at each level, and this query would not finish.
+  #[test]
+  fn a_deep_not_with_space_before_its_close_is_read_once() {
+    let deep = format!(
+      "@media {}(color){}",
+      "(not screen and ".repeat(63),
+      " )".repeat(63)
+    );
+    assert!(!refuses_query(&deep));
+
+    let past = format!(
+      "@media {}(color){}",
+      "(not screen and ".repeat(64),
+      " )".repeat(64)
+    );
+    assert!(refuses_query(&past));
   }
 
   /// One level further is refused rather than compiled.
@@ -1818,31 +2088,29 @@ mod malformed_queries {
   #[test]
   fn nesting_past_the_budget_is_refused_rather_than_fatal() {
     let past = format!(
-      "@media {}min-width: 100px{}",
-      "(".repeat(65),
-      ")".repeat(65)
+      "@media {}(min-width: 100px){}",
+      "(not ".repeat(64),
+      ")".repeat(64)
     );
     assert!(refuses_query(&past));
 
     let far_past = format!(
-      "@media {}min-width: 100px{}",
-      "(".repeat(5000),
+      "@media {}(min-width: 100px){}",
+      "(not ".repeat(5000),
       ")".repeat(5000)
     );
     assert!(refuses_query(&far_past));
   }
 
-  /// A chain of `not` keywords is refused, and it is refused by the budget
-  /// rather than by luck.
+  /// A chain of bare `not` keywords is refused, and the parser does not
+  /// recurse on it.
   ///
-  /// This is the nesting that costs no parenthesis: the operand of a bare `not`
-  /// is a whole rule, so `not not (…)` recurses once per keyword while a scan
-  /// for parentheses sees depth one. Before the parser charged its own frames,
-  /// twenty thousand of these took the process down with a segfault and no
-  /// diagnostic -- a stack overflow is not unwindable, so neither
-  /// `catch_unwind` around compilation ever saw it.
+  /// A bare `not` takes one item, and a bare `not` is not an item. So the
+  /// parser stops at the second `not`. A parser that recursed once for each
+  /// keyword could overflow the stack, which aborts the process with no
+  /// diagnostic.
   #[test]
-  fn a_chain_of_not_keywords_is_refused_by_the_budget() {
+  fn a_chain_of_not_keywords_is_refused_without_recursion() {
     let past = format!("@media {}(min-width: 1px)", "not ".repeat(64));
     assert!(refuses_query(&past));
 
@@ -1850,12 +2118,11 @@ mod malformed_queries {
     assert!(refuses_query(&far_past));
   }
 
-  /// The escaped spelling costs the same frame as the plain one.
+  /// The escaped spelling is refused like the plain one.
   ///
-  /// `n\6ft` is decoded by the tokenizer to `Ident("not")` and recurses
-  /// identically, so a guard that read the raw text would have to
-  /// over-approximate every escape to catch it. Charging the frame where it is
-  /// entered needs to know nothing about how the keyword was spelled.
+  /// The tokenizer decodes `n\6ft` to `Ident("not")`, so the parser reads the
+  /// same chain. A guard that read the raw text would have to know each
+  /// escape.
   #[test]
   fn an_escaped_not_chain_is_refused_like_a_plain_one() {
     let past = format!("@media {}(min-width: 1px)", "n\\6ft ".repeat(64));
@@ -1993,8 +2260,8 @@ mod unusual_but_valid_queries {
   }
 
   /// A comma-separated query is a disjunction, so each disjunct takes the
-  /// negation separately — and one of the two collapses here while the other
-  /// merges into a bound.
+  /// negation separately. One of the two never matches and is removed, and the
+  /// other merges into a bound.
   #[test]
   fn each_disjunct_of_a_comma_query_is_negated_on_its_own() {
     assert_eq!(
@@ -2007,16 +2274,16 @@ mod unusual_but_valid_queries {
       })),
       vec![
         "default",
-        "@media not all, (max-width: 99.98px)",
+        "@media (max-width: 99.98px)",
         "@media (min-width: 100px)",
       ]
     );
   }
 
-  /// A media type in the list is parenthesized on the way out and, like any
+  /// A media type in the list is a bare keyword on the way out and, like any
   /// rule the merge cannot read, keeps the widths beside it from merging.
   #[test]
-  fn a_media_type_is_parenthesized_and_blocks_the_merge() {
+  fn a_media_type_blocks_the_merge() {
     assert_eq!(
       transformed_keys(json!({
         "color": {
@@ -2025,7 +2292,7 @@ mod unusual_but_valid_queries {
           "@media (min-width: 100px)": "blue"
         }
       }))[1],
-      "@media (screen) and (min-width: 200px) and (not (min-width: 100px))"
+      "@media screen and (min-width: 200px) and (not (min-width: 100px))"
     );
   }
 
@@ -2153,8 +2420,6 @@ mod unusual_but_valid_queries {
 /// distributes its negations over whatever the top-level `Or` holds, so getting
 /// that nesting wrong changes the emitted rule text and the class name with it —
 /// which is what these three shapes did before the two were told apart.
-///
-/// Every expectation is quoted from a run of `@stylexjs/babel-plugin` 0.19.0.
 #[cfg(test)]
 mod a_comma_binds_more_loosely_than_or {
   use super::*;
@@ -2167,7 +2432,7 @@ mod a_comma_binds_more_loosely_than_or {
       rewritten_first_key(
         "@media (min-width: 1px) and (min-width: 2px), (min-width: 3px) or (min-width: 1px)"
       ),
-      "@media (min-width: 50.01px), (min-width: 3px) or (min-width: 1px) and (not (max-width: 50px))"
+      "@media (min-width: 50.01px), ((min-width: 3px) or (min-width: 1px)) and (not (max-width: 50px))"
     );
   }
 
@@ -2179,19 +2444,18 @@ mod a_comma_binds_more_loosely_than_or {
       rewritten_first_key(
         "@media (min-width: 1px) or (min-width: 2px), (min-width: 3px) and (min-width: 1px)"
       ),
-      "@media (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px)), (min-width: 50.01px)"
+      "@media ((min-width: 1px) or (min-width: 2px)) and (not (max-width: 50px)), (min-width: 50.01px)"
     );
   }
 
   /// A media type as its own segment, beside one holding an `or`. The media
-  /// type blocks the merge on its side, which leaves both segments visible in
-  /// the output at once.
+  /// type blocks the merge on its side. Because of the media type, the `or`
+  /// segment is split into its branches, and each branch merges into a bound.
   #[test]
   fn a_media_type_segment_sits_beside_an_or_segment() {
     assert_eq!(
       rewritten_first_key("@media screen, (min-width: 1px) or (min-width: 2px)"),
-      "@media (screen) and (not (max-width: 50px)), \
-       (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px))"
+      "@media screen and (not (max-width: 50px)), (min-width: 50.01px), (min-width: 50.01px)"
     );
   }
 }
@@ -2203,11 +2467,8 @@ mod a_comma_binds_more_loosely_than_or {
 /// parentheses refused all four of these — including the shape the reference
 /// implementation's own wrapped output is written in.
 ///
-/// Every expectation is quoted from a run of `@stylexjs/babel-plugin` 0.19.0,
-/// and each is worth reading twice: the parentheses that made the query
-/// parseable do not survive into the output. That is the reference
-/// implementation's serialization, precedence loss and all, and matching it is
-/// the point.
+/// An `or` beside an `and` keeps its parentheses in the output, so the
+/// precedence that was written is kept.
 #[cfg(test)]
 mod a_disjunction_inside_parentheses {
   use super::*;
@@ -2221,19 +2482,17 @@ mod a_disjunction_inside_parentheses {
     );
   }
 
-  /// Beside an `and`, on either side. The printed result reads as though the
-  /// `and` bound tighter than the `or`, which is not what was written — the
-  /// parentheses are gone and nothing replaced them.
+  /// Beside an `and`, on either side.
   #[test]
-  fn a_parenthesized_or_beside_an_and_loses_its_parentheses() {
+  fn a_parenthesized_or_beside_an_and_keeps_its_parentheses() {
     assert_eq!(
       rewritten_first_key("@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px)"),
-      "@media (min-width: 1px) or (min-width: 2px) and (min-width: 3px) and (not (max-width: 50px))"
+      "@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px) and (not (max-width: 50px))"
     );
 
     assert_eq!(
       rewritten_first_key("@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px))"),
-      "@media (min-width: 1px) and (min-width: 2px) or (min-width: 3px) and (not (max-width: 50px))"
+      "@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px)) and (not (max-width: 50px))"
     );
   }
 
@@ -2312,28 +2571,22 @@ mod combinators_css_does_not_define {
     ));
   }
 
-  /// Straight after a media type's `and` is the one place a bare `not` is a
-  /// query: `<media-query> = [not | only]? <media-type>
-  /// [ and <media-condition-without-or> ]?`, and a
-  /// `<media-condition-without-or>` may be a `<media-not>`.
-  ///
-  /// Only immediately, though. One more operand and the tail is a condition
-  /// again, where an operand has to be parenthesized.
-  ///
-  /// This is the second place the two compilers disagree by choice: the
-  /// official compiler refuses all of these, and refusing valid CSS to match it
-  /// would cost an author a query they are entitled to write.
+  /// A bare `not` stands only at the start of a query. After a media type and
+  /// `and`, the negated condition must be in parentheses.
   #[test]
-  fn a_media_type_takes_one_bare_negation_after_its_and() {
-    assert!(!refuses_query(
+  fn a_bare_not_after_a_media_type_is_refused() {
+    assert!(refuses_query(
       "@media screen and not (orientation: portrait)"
     ));
-    assert!(!refuses_query(
+    assert!(refuses_query(
       "@media not screen and not (orientation: portrait)"
     ));
-
     assert!(refuses_query(
       "@media screen and (orientation: portrait) and not (monochrome)"
+    ));
+
+    assert!(!refuses_query(
+      "@media screen and (not (orientation: portrait))"
     ));
   }
 
@@ -2356,25 +2609,15 @@ mod combinators_css_does_not_define {
     }
   }
 
-  /// Nesting parentheses around a single condition stays accepted, and this is
-  /// the one shape where the two compilers still disagree — deliberately.
-  /// `( <media-condition> )` is what CSS says a condition in parentheses is,
-  /// and a condition may itself be one, so `((min-width: 1px))` is valid.
-  /// Refusing it to match would mean rejecting correct CSS.
+  /// Parentheses hold a list of two or more conditions. One condition in its
+  /// own extra parentheses is refused.
   #[test]
-  fn nested_parentheses_around_one_condition_stay_accepted() {
-    assert_eq!(
-      transformed_keys(json!({
-        "color": { "default": "black", "@media ((min-width: 1px))": "red" }
-      })),
-      vec!["default", "@media (min-width: 1px)"]
-    );
+  fn parentheses_around_one_condition_are_refused() {
+    assert!(refuses_query("@media ((min-width: 1px))"));
+    assert!(refuses_query("@media (((((min-width: 1px)))))"));
 
-    assert_eq!(
-      transformed_keys(json!({
-        "color": { "default": "black", "@media (((((min-width: 1px)))))": "red" }
-      })),
-      vec!["default", "@media (min-width: 1px)"]
-    );
+    assert!(!refuses_query(
+      "@media ((min-width: 1px) and (max-width: 2px))"
+    ));
   }
 }

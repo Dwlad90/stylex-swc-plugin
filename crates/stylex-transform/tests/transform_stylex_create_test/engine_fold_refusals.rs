@@ -143,10 +143,12 @@ fn nesting_past_the_bound_names_the_depth_rule() {
 
 /// A read that walks off the value that was written names the property rather
 /// than the call it sat in, because the property is the whole of the reason.
-/// The reference compiler folds this one; the divergence is argued at
-/// `ESCAPING_PROPERTIES` and costs the answer to a call no declaration uses.
+/// The rule is argued at `BLOCKED_PROPERTIES`. The reference refuses this one
+/// too, for the call.
 #[test]
-#[should_panic(expected = "base > content > Cannot fold a read of 'constructor' at compile time.")]
+#[should_panic(
+  expected = "base > content > Access to this property is not allowed during compilation."
+)]
 fn an_escaping_property_names_the_property_rather_than_the_call() {
   fold(&module(
     "content: ''.constructor.constructor('return 1').call(),",

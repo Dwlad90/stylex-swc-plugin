@@ -1181,11 +1181,13 @@ describe('processStylexRules in a child process', () => {
   });
 
   /**
-   * Whether the export and the reference answer alike, the sheet or the
-   * error, in a child process that runs `setup` before its first call. Both
-   * modules load first: some changes stop a module from loading at all.
+   * The answer of the export and the reference, in a child process that runs
+   * `setup` before its first call. If the two answers have the same sheet or
+   * the same error, the result is the kind of answer: `sheet` or `error` and
+   * the error name. If the answers are not the same, the result is `differs`.
+   * Both modules load first, because some changes stop a module from loading.
    */
-  function sameSheetAfter(setup: string, rules: string): string {
+  function sharedAnswerAfter(setup: string, rules: string): string {
     return runNodeScriptOrThrow(`
       const { processStylexRules } = require(${JSON.stringify(path.join(distDir, 'index.js'))});
       const babel = require(${JSON.stringify(require.resolve('@stylexjs/babel-plugin'))});
@@ -1193,13 +1195,21 @@ describe('processStylexRules in a child process', () => {
       const rules = ${rules};
       const answer = run => {
         try {
-          return 'sheet ' + run(rules, false);
+          return { kind: 'sheet', text: run(rules, false) };
         } catch (error) {
-          return 'error ' + error.name + ': ' + error.message;
+          return { kind: 'error ' + error.name, text: error.message };
         }
       };
-      process.stdout.write(String(answer(processStylexRules) === answer(babel.processStylexRules)));
+      const exported = answer(processStylexRules);
+      const reference = answer(babel.processStylexRules);
+      const same = exported.kind === reference.kind && exported.text === reference.text;
+      process.stdout.write(same ? exported.kind : 'differs');
     `).stdout;
+  }
+
+  /** Whether the export and the reference answer alike: see `sharedAnswerAfter`. */
+  function sameSheetAfter(setup: string, rules: string): string {
+    return String(sharedAnswerAfter(setup, rules) !== 'differs');
   }
 
   test('sees a native function that a program moved before the first call', () => {
@@ -1222,14 +1232,25 @@ describe('processStylexRules in a child process', () => {
   test('answers as the reference for a constant chain of any depth', () => {
     // Past 256 links the native resolver refuses and the reference decides:
     // it resolves the chain, or its stack overflows with a `RangeError`.
-    for (const depth of [256, 257, 5000, 20000]) {
+    // 256 and 257 are on the two sides of the native limit. Each case also
+    // names its answer, so that each of the two outcomes is tested.
+    // Keep each depth far from the depth where the reference overflows. That
+    // depth changes with the platform and the JIT tier. Near it, the export
+    // and the reference start at different stack heights. Then one of them
+    // can overflow when the other does not.
+    for (const [depth, expected] of [
+      [256, 'sheet'],
+      [257, 'sheet'],
+      [1000, 'sheet'],
+      [20000, 'error RangeError'],
+    ] as const) {
       const deepChain = `[
         ...Array.from({ length: ${depth} }, (_, i) =>
           ['c' + i, { constKey: 'c' + i, constVal: 'var(--c' + (i + 1) + ')' }, 0]),
         ['c${depth}', { constKey: 'c${depth}', constVal: 'red' }, 0],
         ['x1', { ltr: '.x1{color:var(--c0)}', rtl: null }, 3000],
       ]`;
-      expect(sameSheetAfter('', deepChain)).toBe('true');
+      expect(sharedAnswerAfter('', deepChain)).toBe(expected);
     }
   });
 
